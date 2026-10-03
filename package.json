@@ -1,0 +1,44 @@
+{
+    "name": "ap2-practice-lab",
+    "version": "2.0.0",
+    "private": true,
+    "description": "Netzpläne und UML-Diagramme zeichnen, prüfen und für die AP2 üben",
+    "type": "module",
+    "scripts": {
+        "start": "vite",
+        "build": "vite build && node scripts/artifact.mjs",
+        "serve": "vite preview",
+        "typecheck": "tsc --noEmit",
+        "lint": "npx eslint",
+        "lint:fix": "npx eslint --fix",
+        "markdownlint": "npx markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+        "markdownlint:fix": "npx markdownlint-cli2 --fix \"**/*.md\" \"#node_modules\"",
+        "test:unit": "vitest run",
+        "test:e2e": "python3 tests/e2e/run.py",
+        "test": "npm run typecheck && npm run test:unit && npm run build && npm run test:e2e"
+    },
+    "engines": {
+        "node": ">=20.0"
+    },
+    "dependencies": {
+        "clsx": "^2.1.1",
+        "immer": "^11.1.21",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "zustand": "^5.0.15"
+    },
+    "devDependencies": {
+        "@moritz-grimm/eslint-config": "^2.2.0",
+        "@types/node": "^22.20.5",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@vitejs/plugin-react": "^6.1.1",
+        "eslint": "^9.39.5",
+        "eslint-plugin-react-hooks": "^7.1.1",
+        "markdownlint-cli2": "^0.23.3",
+        "typescript": "~5.8",
+        "vite": "^8.3.2",
+        "vite-plugin-singlefile": "^2.3.3",
+        "vitest": "^5.0.3"
+    }
+}

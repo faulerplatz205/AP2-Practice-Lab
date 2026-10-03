@@ -1,0 +1,65 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Install Playwright
+              run: |
+                  pip install -r tests/requirements.txt
+                  python -m playwright install --with-deps chromium
+
+            - name: Typecheck
+              run: npm run typecheck
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Markdownlint
+              run: npm run markdownlint
+
+            - name: Unit Tests
+              run: npm run test:unit
+
+            - name: Build
+              run: npm run build
+
+            - name: End-to-End Tests
+              run: npm run test:e2e
+
+            - name: Upload Screenshots
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: screenshots
+                  path: tests/output/
+                  if-no-files-found: ignore
+
+            - name: Upload Artifact Build
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ap2-practice-lab
+                  path: dist/ap2-practice-lab.html
