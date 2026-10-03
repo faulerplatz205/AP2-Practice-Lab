@@ -1,0 +1,19 @@
+# Dependencies
+/node_modules
+
+# Build output (npm run build creates it)
+/dist
+
+# Test output (screenshots, temporary files)
+/tests/output/
+__pycache__/
+*.pyc
+.venv/
+
+# Misc
+.DS_Store
+Thumbs.db
+.env*
+npm-debug.log*
+*.tsbuildinfo
+.vite/
