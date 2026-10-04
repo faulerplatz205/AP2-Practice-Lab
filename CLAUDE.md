@@ -278,7 +278,7 @@ In case of doubt, check `git log --format=%s` and follow the existing pattern.
 
 ## Current State and Open Ideas
 
-Version 2.0.0, all checks green. Not published yet: the owner tests the ZIP locally first, gives feedback, and only then the artifact is published (see **Publishing**).
+Version 2.1.0, all checks green, published as artifact version 12 on 2026-10-04 (see **Publishing**).
 
 Known rough edges:
 
