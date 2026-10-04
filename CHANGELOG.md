@@ -2,7 +2,9 @@
 
 Newest entries at the top. The versions match the releases of the Claude Artifact.
 
-## Unreleased
+## 2.1.0 – 2026-10-04
+
+First published version of the React rewrite (artifact version 12), together with the database kinds.
 
 ### Added
 
