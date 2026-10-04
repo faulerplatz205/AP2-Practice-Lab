@@ -2,7 +2,7 @@
     "name": "ap2-practice-lab",
     "version": "2.0.0",
     "private": true,
-    "description": "Netzpläne und UML-Diagramme zeichnen, prüfen und für die AP2 üben",
+    "description": "Draw and check network diagrams and UML diagrams to practise for the AP2 exam",
     "type": "module",
     "scripts": {
         "start": "vite",

@@ -5,6 +5,7 @@ import { FLOW_TYPES, RELATIONS, SEQUENCE_TYPES, isUml, lines } from "./types";
 import { text } from "../../i18n/locale";
 import { umlCheckText } from "../../i18n/check";
 import { relationLabels, umlText } from "../../i18n/diagram";
+import { checkEr, checkTables } from "../db/check";
 
 export interface UmlCheckResult {
     items: Issue[];
@@ -16,7 +17,7 @@ export interface UmlCheckResult {
 }
 
 /** Helpers that every rule group needs. Messages come from `t` (current language). */
-class Context {
+export class Context {
     public readonly items: Issue[] = [];
     public readonly marks: MarkSet = new Set();
     public readonly kinds = new Set<DiagramMode>();
@@ -241,6 +242,8 @@ export function checkUml(d: Diagram): UmlCheckResult {
     checkUseCase(c);
     checkClasses(c);
     checkSequence(c);
+    checkEr(c);
+    checkTables(c);
     if (c.ofType("component").length || c.ofType("iface").length) c.kinds.add("komp");
     if (c.ofType("node3d").length || c.ofType("artifact").length) c.kinds.add("vert");
     if (c.ofType("package").length) c.kinds.add("pak");

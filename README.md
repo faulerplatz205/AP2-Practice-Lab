@@ -1,84 +1,87 @@
 # AP2 Practice Lab
 
-Übungs-App für die AP2 (Abschlussprüfung Teil 2) der Fachinformatiker Anwendungsentwicklung. Netzpläne und UML-Diagramme werden gezeichnet, automatisch geprüft und sauber angeordnet. Dazu gibt es einen Subnetting-Bereich mit Rechner und Übungsaufgaben, Erfolge mit Level-System und eine versteckte Rainer-Galerie.
+**English** | [Deutsch](README.de.md)
 
-Die App ist eine einzige HTML-Datei ohne Server. Sie läuft als Claude Artifact oder direkt im Browser.
+Practice app for the AP2, the second part of the final exam for IT specialists in application development in Germany. Network diagrams and UML diagrams are drawn, checked automatically and tidied up. There is also a subnetting workspace with a calculator and exercises, achievements with a level system and a hidden Rainer gallery.
+
+The app is a single HTML file without a server. It runs as a Claude Artifact or directly in the browser.
 
 **Online:** <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>
 
-## Funktionen
+## Features
 
-- **Netzplan:** Vorgangsknoten im IHK-Aufbau (FAZ, FEZ, SAZ, SEZ, GP, FP), Berechnen, kritischer Pfad, Zählweise „Start bei 0“ oder „Start bei 1“, Gantt-Diagramm, Vorgangsliste (auch aus Excel einfügen), Zufallsübungen „Rechnen“ und „Zeichnen und rechnen“
-- **UML:** Aktivitäts-, Use-Case-, Klassen-, Sequenz-, Zustands-, Objekt-, Komponenten-, Verteilungs- und Paketdiagramm, jeweils mit passenden Elementen, Verbindungen und teilweise mit Beispiel. Dazu freies Zeichnen mit allgemeinen Formen
-- **Prüfen:** Rechenfehler im Netzplan werden Feld für Feld markiert, mit Formel und richtigem Wert. Für UML gibt es typische Prüfungsfehler, z. B. fehlender Endknoten, Entscheidung ohne Bedingung oder Use-Case ohne Akteur. Alle Regeln: [docs/check-rules.md](docs/check-rules.md)
-- **Sauber anordnen:** räumt jede Diagrammart automatisch auf
-- **Subnetting:** IPv4-Rechner mit Binäransicht, Netz in gleich große Subnetze aufteilen, VLSM nach Hostbedarf, IPv6 kürzen und ausschreiben, Übungsaufgaben mit Prüfung pro Feld
-- **Erfolge:** 27 Achievements, 9 Level und eine Rainer-Galerie mit 9 freischaltbaren Bildern. Tipp: irgendwo „rainer“ tippen
-- **Meine Pläne:** Pläne unter einem Namen im Browser speichern, öffnen, umbenennen, löschen
-- **Export und Import:** Plan als `.json`-Datei speichern und wieder öffnen (auch per Ziehen und Ablegen), Bild als PNG
-- **Deutsch und Englisch:** Umschalten mit `DE`/`EN` oben rechts
-- **Hell und dunkel:** Design wie das System, immer hell oder immer dunkel
+- **Network diagram:** activity nodes in the standard exam layout (ES, EF, LS, LF, TF, FF), calculation, critical path, counting mode "start at 0" or "start at 1", Gantt chart, activity list (can also be pasted from Excel), random exercises "Calculate" and "Draw and calculate"
+- **UML:** activity, use case, class, sequence, state, object, component, deployment and package diagrams, each with matching elements, relations and partly with an example. Plus free drawing with generic shapes
+- **Databases:** ER model in Chen notation (entities, relationships, attributes, cardinalities) and table model with primary and foreign keys. A normalization exercise turns an unnormalized table into third normal form; "Check" names the violated normal form and why
+- **Check:** calculation errors in a network diagram are marked field by field, with formula and correct value. For UML it finds typical exam mistakes, e.g. a missing final node, a decision without a guard or a use case without an actor. All rules: [docs/check-rules.md](docs/check-rules.md)
+- **Tidy up:** arranges every diagram kind automatically
+- **Subnetting:** IPv4 calculator with binary view, splitting a network into equal subnets, VLSM by host demand, shortening and expanding IPv6 addresses, exercises with a check per field
+- **Achievements:** 27 achievements, 9 levels and a Rainer gallery with 9 unlockable pictures. Tip: type "rainer" anywhere
+- **My plans:** save plans under a name in the browser, open, rename, delete
+- **Export and import:** save a plan as a `.json` file and open it again (also by drag and drop), image as PNG
+- **German and English:** switch with `DE`/`EN` at the top right
+- **Light and dark:** theme like the system, always light or always dark
 
-Sprache, Design und Arbeitsbereich merkt sich der Browser.
+The browser remembers language, theme and workspace.
 
-## Benutzen
+## Usage
 
 ### Online
 
-Den Link oben öffnen. Mehr braucht es nicht. Beim ersten Start erklärt eine Anleitung alles Wichtige; sie lässt sich jederzeit über „Anleitung“ wieder öffnen.
+Open the link above. That's all. On the first start a guide explains everything important; it can be opened again at any time via "Guide".
 
-### Lokal
+### Local
 
-Voraussetzung: Node.js ab Version 20.
+Requirement: Node.js 20 or newer.
 
 ```bash
-npm install     # einmalig
-npm start       # Entwicklungsserver auf http://localhost:5173
-npm run build   # baut dist/index.html und dist/ap2-practice-lab.html
+npm install     # once
+npm start       # dev server on http://localhost:5173
+npm run build   # builds dist/index.html and dist/ap2-practice-lab.html
 ```
 
-`dist/index.html` lässt sich danach direkt im Browser öffnen.
+`dist/index.html` can then be opened directly in the browser.
 
-## Weiterentwickeln
+## Development
 
 ```bash
-npm run typecheck   # TypeScript prüfen
+npm run typecheck   # check TypeScript
 npm run lint        # ESLint
-npm run test:unit   # Unit-Tests (Vitest)
-npm run test:e2e    # Browser-Tests (Playwright für Python, vorher npm run build)
-npm test            # alles zusammen
+npm run test:unit   # unit tests (Vitest)
+npm run test:e2e    # browser tests (Playwright for Python, run npm run build first)
+npm test            # everything together
 ```
 
-Für die Browser-Tests einmalig:
+Once for the browser tests:
 
 ```bash
 pip install playwright
 python -m playwright install chromium
 ```
 
-Aufbau, Regeln und Befehle stehen in [CLAUDE.md](CLAUDE.md), Details in [docs/](docs/README.md). Damit reicht Claude Code eine kurze Anweisung, z. B.:
+Structure, rules and commands are in [CLAUDE.md](CLAUDE.md), details in [docs/](docs/README.md). So a short instruction is enough for Claude Code, e.g.:
 
-- „Füg dem Aktivitätsdiagramm eine Prüfregel für leere Partitionen hinzu.“
-- „Bau ein Kommunikationsdiagramm als neue Diagrammart ein.“
-- „Mach eine Subnetting-Übung zum Supernetting.“
+- "Add a check rule for empty partitions to the activity diagram."
+- "Add a communication diagram as a new diagram kind."
+- "Make a subnetting exercise about supernetting."
 
-Im Ordner [.claude/skills](.claude/skills) liegen fertige Abläufe: `new-element` für neue Formen oder Diagrammarten und `publish` für Test und Veröffentlichung. Wie man mitmacht, steht in [CONTRIBUTING.md](CONTRIBUTING.md).
+The folder [.claude/skills](.claude/skills) holds ready-made workflows: `new-element` for new shapes or diagram kinds and `publish` for testing and publishing. How to contribute is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Aufbau
+## Structure
 
 ```text
 src/
-  components/   React-Komponenten (Zeichenfläche, Leisten, Dialoge, Subnetting)
-  state/        zustand-Stores und Aktionen
-  lib/          Logik ohne React (Prüfen, Berechnen, Anordnen, Subnetting)
-  i18n/         alle Texte auf Deutsch und Englisch
-  data/         Diagrammarten, Beispiele, Anleitung, Rainer-Galerie
-static/img/     Bilder für die Galerie
-scripts/        Build des Artifacts
-tests/e2e/      Browser-Tests pro Bereich
-docs/           Wissensbasis für Entwickler
+  components/   React components (canvas, bars, dialogs, subnetting)
+  state/        zustand stores and actions
+  lib/          logic without React (check, calculate, layout, subnetting)
+  i18n/         all texts in German and English
+  data/         diagram kinds, examples, guide, Rainer gallery
+static/img/     pictures for the gallery
+scripts/        artifact build
+tests/e2e/      browser tests per area
+docs/           developer knowledge base
 ```
 
-## Datenschutz
+## Privacy
 
-Alles bleibt im Browser. Pläne, Erfolge und Einstellungen liegen im `localStorage` des jeweiligen Browsers. Es gibt keinen Server und kein Tracking. Nur die Schriftarten werden von Google Fonts geladen.
+Everything stays in the browser. Plans, achievements and settings are stored in the `localStorage` of the browser. There is no server and no tracking. Only the fonts are loaded from Google Fonts.

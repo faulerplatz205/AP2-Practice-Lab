@@ -44,6 +44,11 @@ export const UML_TYPES: Record<UmlNodeType, UmlTypeInfo> = {
     artifact: { w: 150, h: 56, minW: 90, minH: 40 },
     package: { w: 230, h: 170, minW: 100, minH: 60, box: true },
     note: { w: 170, h: 70, minW: 60, minH: 36 },
+    entity: { w: 150, h: 56, minW: 80, minH: 36 },
+    relship: { w: 140, h: 76, minW: 80, minH: 50 },
+    erattr: { w: 120, h: 44, minW: 60, minH: 30, round: true, stereo: "" },
+    table: { w: 220, h: 98, minW: 150, minH: 50 },
+    sheet: { w: 320, h: 94, minW: 120, minH: 40 },
 };
 
 export function isUml(type: NodeType): type is UmlNodeType {
@@ -55,6 +60,9 @@ export function umlInfo(n: DiagramNode): UmlTypeInfo | undefined {
 }
 
 export const SEQUENCE_TYPES = new Set<NodeType>([ "lifeline", "actline", "activation" ]);
+
+/** ER model (Chen notation) */
+export const ER_TYPES = new Set<NodeType>([ "entity", "relship", "erattr" ]);
 
 export const FLOW_TYPES = new Set<NodeType>([ "start", "end", "flowend", "action", "decision", "bar", "signal", "accept", "objnode", "state" ]);
 
@@ -87,6 +95,8 @@ export const RELATIONS: Record<RelationKind, RelationInfo> = {
     async: { end: "op", seq: true },
     reply: { end: "op", dash: "7 5", seq: true },
     anchor: { dash: "2 4" },
+    erl: {},
+    fk: {},
 };
 
 export const RELATION_KINDS = Object.keys(RELATIONS) as RelationKind[];
@@ -101,6 +111,8 @@ export function autoRelation(a: DiagramNode, b: DiagramNode): RelationKind {
     if (t.includes("actor") || t.includes("usecase")) return "assoc";
     if (t.every(x => x === "class" || x === "object")) return "assoc";
     if (t.every(x => [ "component", "iface", "package", "artifact", "node3d" ].includes(x))) return "dep";
+    if (t.every(x => ER_TYPES.has(x))) return "erl";
+    if (t.every(x => x === "table")) return "fk";
     return "flow";
 }
 

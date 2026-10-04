@@ -20,7 +20,7 @@ export interface EdgeGeometry {
 
 function outline(n: DiagramNode): Outline {
     if (n.type === "ellipse" || n.type === "usecase" || (isUml(n.type) && UML_TYPES[n.type].round)) return "ellipse";
-    if (n.type === "diamond" || n.type === "decision") return "diamond";
+    if (n.type === "diamond" || n.type === "decision" || n.type === "relship") return "diamond";
     return "rect";
 }
 

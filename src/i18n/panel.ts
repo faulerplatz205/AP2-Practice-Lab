@@ -12,6 +12,8 @@ export const legendText = defineText({
 
 export const panelText = defineText({
     ariaLabel: "Eigenschaften",
+    fold: "Infobereich einklappen",
+    unfold: "Infobereich ausklappen",
 
     // Shared parts
     fillColor: "Füllfarbe",
@@ -116,6 +118,8 @@ export const panelText = defineText({
     ] as [string, string][],
 }, {
     ariaLabel: "Properties",
+    fold: "Collapse info panel",
+    unfold: "Expand info panel",
 
     fillColor: "Fill color",
     duplicate: "Duplicate",

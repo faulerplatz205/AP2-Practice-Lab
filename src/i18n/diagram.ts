@@ -36,6 +36,11 @@ const umlTextTable = defineText({
     artifact: { label: "Artefakt", text: "app.jar" },
     package: { label: "Paket", text: "paket" },
     note: { label: "Notiz", text: "Notiz" },
+    entity: { label: "Entität", text: "Entität" },
+    relship: { label: "Beziehung", text: "hat" },
+    erattr: { label: "Attribut", text: "Attribut" },
+    table: { label: "Tabelle", text: "Tabelle", attrs: "PK id INT\nname VARCHAR(50)" },
+    sheet: { label: "Datentabelle", text: "Beispieldaten", attrs: "Nr | Name | Ort\n1 | Meier | Hannover" },
 } satisfies Record<UmlNodeType, UmlText>, {
     class: { label: "Class", text: "Class", attrs: "- name : String", ops: "+ getName() : String" },
     object: { label: "Object", text: "object : Class", attrs: "name = \"value\"" },
@@ -63,6 +68,11 @@ const umlTextTable = defineText({
     artifact: { label: "Artifact", text: "app.jar" },
     package: { label: "Package", text: "package" },
     note: { label: "Note", text: "Note" },
+    entity: { label: "Entity", text: "Entity" },
+    relship: { label: "Relationship", text: "has" },
+    erattr: { label: "Attribute", text: "Attribute" },
+    table: { label: "Table", text: "Table", attrs: "PK id INT\nname VARCHAR(50)" },
+    sheet: { label: "Data table", text: "Sample data", attrs: "No | Name | City\n1 | Miller | Hanover" },
 });
 
 /** Names and default texts of all UML elements. Geometry and flags are in `UML_TYPES`. */
@@ -83,6 +93,8 @@ export const relationLabels = defineText<Record<RelationKind, string>>({
     async: "Asynchrone Nachricht",
     reply: "Antwortnachricht",
     anchor: "Notiz-Verbindung",
+    erl: "Linie (Kardinalität)",
+    fk: "Beziehung (1:n)",
 }, {
     flow: "Control flow (arrow)",
     assoc: "Association",
@@ -98,6 +110,8 @@ export const relationLabels = defineText<Record<RelationKind, string>>({
     async: "Asynchronous message",
     reply: "Reply message",
     anchor: "Note link",
+    erl: "Line (cardinality)",
+    fk: "Relationship (1:n)",
 });
 
 /** Names of the fill colors, index = `node.fill` (colors: `FILLS`). */

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AP2 Practice Lab (formerly „AP2 Draw“) is a browser app for practising the written final examination part 2 (AP2) of the German apprenticeship *Fachinformatiker Anwendungsentwicklung*. It has two workspaces:
 
-- **Draw** („Zeichnen“): network diagrams (Netzpläne) and all common UML diagrams, with automatic checks („Prüfen“), calculation, tidy layout, exercises, Gantt chart, activity list import, „Meine Pläne“ and file/PNG export
+- **Draw** („Zeichnen“): network diagrams (Netzpläne), all common UML diagrams, ER models (Chen notation) and table models with a normalisation exercise up to 3NF, with automatic checks („Prüfen“), calculation, tidy layout, exercises, Gantt chart, activity list import, „Meine Pläne“ and file/PNG export
 - **Subnetting**: IPv4 calculator, equal split and VLSM, IPv6 shortening/expanding, and a trainer with random exercises
 
 Achievements, levels and a hidden „Rainer“ gallery (type `rainer` anywhere outside an input field) motivate practising. The UI speaks German (reference language) and English, with a light/dark/system theme. Both choices are remembered in `localStorage`.
@@ -73,8 +73,9 @@ src/
     uml/              node and relation types, check rules, edge routing, sizes, editable fields
     tidy/             „Sauber anordnen“ for every diagram kind (layered layout)
     subnet/           IPv4/IPv6 maths, split/VLSM, exercise generator and answer check (+ *.test.ts)
+    db/               ER and table model rules, column syntax, normal forms (+ normalize.test.ts)
   i18n/               all user-visible texts, one file per area (see docs/i18n.md)
-  data/               static data: diagram kinds and palettes (modes.ts), examples, guide, Rainer gallery
+  data/               static data: diagram kinds and palettes (modes.ts), examples, normalisation scenarios, guide, Rainer gallery
   hooks/              useKeyboard (all shortcuts + easter egg), useSpaceKey
   types/              diagram.ts (stored data model), check.ts (check result)
   css/custom.css      all styles, colors only as tokens (see Theming)
@@ -102,7 +103,7 @@ Six zustand stores in `src/state/`, plus the language store in `src/i18n/locale.
 | Store | Hook | Holds | Persisted |
 | --- | --- | --- | --- |
 | `diagramStore.ts` | `useDiagram` | `doc` (the drawing), undo/redo, view, selection, tool, editor, `dirty`, `checkActive` | `doc` on every change |
-| `uiStore.ts` | `useUi` | workspace, open dialog, toast, Rainer picture, mode menu | workspace |
+| `uiStore.ts` | `useUi` | workspace, right panel open/folded, open dialog, toast, Rainer picture, mode menu | workspace, panel |
 | `achievementStore.ts` | `useAchievements` | unlocked achievements, counters, guide chapters read, checked kinds, popups | all but popups |
 | `planStore.ts` | `usePlans` | „Meine Pläne“ and the id of the open plan | yes |
 | `subnetStore.ts` | `useSubnet` | inputs of all subnet tabs, trainer state | no (survives tab switches, not reloads) |
@@ -128,7 +129,8 @@ Code in `src/lib` has no React and no store access, with two accepted exceptions
 
 ### Diagram Kinds
 
-- `MODES` in `src/data/modes.ts` defines the eleven kinds: items in the palette, allowed relations, optional example. Texts come from `src/i18n/modes.ts`
+- `MODES` in `src/data/modes.ts` defines the thirteen kinds: items in the palette, allowed relations, optional example. Texts come from `src/i18n/modes.ts`
+- Databases: ER model (`er`: `entity`, `relship`, `erattr`, line `erl` with the cardinality as label) and table model (`rel`: `table` with one column per line like `PK kundenNr INT`, `sheet` for sample data, line `fk` with 1/n in `m1`/`m2`). Rules in `src/lib/db/check.ts`, normal forms in `src/lib/db/normalize.ts`, exercise scenarios in `src/data/normalization.ts` (`Diagram.norm`)
 - Node types: `np` (activity node of a network diagram), the generic shapes `rect`, `ellipse`, `diamond`, `text`, and all UML types in `UML_TYPES` (`src/lib/uml/types.ts`)
 - Relations: `RELATIONS` in the same file; an edge without `kind` is `flow`
 - Drawing a UML node: `components/Canvas/UmlShape.tsx`; editable areas: `lib/uml/fields.ts`; arrowheads: `components/Canvas/Markers.tsx`
@@ -136,7 +138,7 @@ Code in `src/lib` has no React and no store access, with two accepted exceptions
 
 ### Checking („Prüfen“)
 
-- `runCheck(doc)` in `src/lib/check.ts` combines the network diagram check (`lib/netzplan/check.ts` + `solve.ts`) and the UML check (`lib/uml/check.ts`). It returns `CheckResult` (`src/types/check.ts`) with issues, marks, counters and `ok`
+- `runCheck(doc)` in `src/lib/check.ts` combines the network diagram check (`lib/netzplan/check.ts` + `solve.ts`) and the UML check (`lib/uml/check.ts`, which also runs the database rules of `lib/db/check.ts`). It returns `CheckResult` (`src/types/check.ts`) with issues, marks, counters and `ok`
 - The check runs in `Panel` and `Canvas` via `useMemo` while `checkActive` is set; `actions.check()` only switches it on and rewards achievements
 - All rules: `docs/check-rules.md`. A new rule is added there **and** in the code, plus a test case
 
@@ -175,13 +177,15 @@ All `localStorage` keys start with `netzplan-zeichner-v1` (`STORAGE_KEY` in `src
 | `locale` | `…-lang` | `de` or `en` |
 | `theme` | `…-theme` | `system`, `light` or `dark` |
 | `workspace` | `…-workspace` | `draw` or `subnet` |
+| `panel` | `…-panel` | `open` or `closed` (right panel) |
 
 Never rename, because they are stored or exported 1:1:
 
 - **Storage prefix and suffixes:** as in the table above
 - **Achievement fields:** `u` (unlocked id => timestamp), `c` (counters), `g` (guide chapters read), `k` (checked diagram kinds), `lastOk` (fingerprint of the last correct diagram). Versions before 2.0 stored German kind names in `k`; `LEGACY_KIND_NAMES` maps them on load
-- **Node fields:** `id`, `type`, `x`, `y`, `w`, `h`, `fill`, `text`, `attrs`, `ops`, `stereo`, `align`, `f` with `nr`, `name`, `d`, `faz`, `fez`, `saz`, `sez`, `gp`, `fp`. Edge fields: `id`, `from`, `to`, `label`, `kind`, `y`, `m1`, `m2`. Diagram: `nodes`, `edges`, `next`, `cfg.start`, `cfg.mode`, `task`
-- **Mode keys:** `netz`, `akt`, `uc`, `kl`, `seq`, `zu`, `obj`, `komp`, `vert`, `pak`, `frei`
+- **Node fields:** `id`, `type`, `x`, `y`, `w`, `h`, `fill`, `text`, `attrs`, `ops`, `stereo`, `align`, `f` with `nr`, `name`, `d`, `faz`, `fez`, `saz`, `sez`, `gp`, `fp`. Edge fields: `id`, `from`, `to`, `label`, `kind`, `y`, `m1`, `m2`. Diagram: `nodes`, `edges`, `next`, `cfg.start`, `cfg.mode`, `task`, `norm` (`id`, `shown`, `done`)
+- **Mode keys:** `netz`, `akt`, `uc`, `kl`, `seq`, `zu`, `obj`, `komp`, `vert`, `pak`, `er`, `rel`, `frei`
+- **Normalisation scenario ids:** `invoice`, `course`, `project`; ER attribute kinds in `stereo`: `key`, `multi`, `derived`
 - **Node type ids:** `np`, `rect`, `ellipse`, `diamond`, `text` and every key of `UML_TYPES`; relation kinds: every key of `RELATIONS`
 - **Achievement ids:** every `id` in `ACHIEVEMENTS` (`src/lib/achievements.ts`); counter names `tasks`, `kinds`, `quick`, `streak`, `guide`, `subnets`, `rainer`
 - **Rainer gallery mapping:** the order of `RAINER_GALLERY` in `src/data/rainer.ts` (picture #n is unlocked by a fixed achievement, see `docs/achievements.md`)
@@ -201,7 +205,7 @@ New fields get a default in `normalize()` (`src/lib/diagram.ts`) or are read wit
 
 ### DOM Ids and Classes
 
-The e2e suites drive the app through stable ids, classes and data attributes, for example `#bCheck`, `#bCalc`, `#bNew`, `#bOpen`, `#bSave`, `#bLang`, `#bTheme`, `#modeBtn`, `#exBtn`, `#panel`, `#toast`, `#planName`, `#lvl`, `#ed`, `#file`, `#subnetView`, `#sn*`, `.tile[data-k="m0"]`, `[data-mode]`, `[data-newmode]`, `[data-ws]`, `[data-tab]`, `[data-id]`, `[data-eid]`. Keep them when restructuring a component; search `tests/e2e/` before renaming one. New controls get a stable `id`, a `title` and a visible focus state.
+The e2e suites drive the app through stable ids, classes and data attributes, for example `#bCheck`, `#bCalc`, `#bPanel`, `#bNew`, `#bOpen`, `#bSave`, `#bLang`, `#bTheme`, `#modeBtn`, `#exBtn`, `#panel`, `#toast`, `#planName`, `#lvl`, `#ed`, `#file`, `#subnetView`, `#sn*`, `.tile[data-k="m0"]`, `[data-mode]`, `[data-newmode]`, `[data-ws]`, `[data-tab]`, `[data-id]`, `[data-eid]`. Keep them when restructuring a component; search `tests/e2e/` before renaming one. New controls get a stable `id`, a `title` and a visible focus state.
 
 ### UI Texts
 
@@ -285,6 +289,8 @@ Known rough edges:
 Possible next features:
 
 - UML exercises (e.g. „draw an activity diagram for this text“) like the network diagram exercises
+- ER exercises („draw the ER model for this text“) and SQL exercises on the table model
+- Crow's foot notation as an alternative for the ER model
 - Check rules for component, deployment and package diagrams
 - More subnetting exercise kinds (e.g. supernetting, „which subnet does this host belong to“)
 - Compact toolbar for phones

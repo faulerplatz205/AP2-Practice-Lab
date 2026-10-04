@@ -5,7 +5,7 @@ import { MODES } from "../../data/modes";
 import { useText } from "../../i18n/locale";
 import { panelText } from "../../i18n/panel";
 import { ActivityLegend } from "../ActivityLegend";
-import { CountingMode, ExerciseBanner, Rich } from "./common";
+import { CountingMode, ExerciseBanner, NormBanner, Rich } from "./common";
 
 export function HelpPanel(): ReactElement {
     const t = useText(panelText);
@@ -13,6 +13,7 @@ export function HelpPanel(): ReactElement {
     const info = useText(MODES)[mode];
     if (mode !== "netz") {
         return <>
+            <NormBanner />
             <div><div className="eyebrow">{info.label}</div><h2>{t.howTo}</h2></div>
             <ol className="tips">{info.tips.map(tip => <li key={tip}>{tip}</li>)}</ol>
             {info.example && <button className="btn ghost" id="hEx" style={{ alignSelf: "flex-start" }} onClick={() => addExample(info.example!)}>{t.showExample}</button>}

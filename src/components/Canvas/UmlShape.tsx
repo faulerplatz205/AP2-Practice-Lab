@@ -3,6 +3,7 @@ import type { DiagramNode } from "../../types/diagram";
 import { classLayout } from "../../lib/uml/size";
 import { lines } from "../../lib/uml/types";
 import { MultilineText, TextLines } from "./SvgText";
+import { ErShape, SheetShape, TableShape } from "./DbShape";
 
 interface Props {
     node: DiagramNode;
@@ -170,6 +171,14 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
                 <path d={`M${w - 14} 0V14H${w}`} fill="none" {...line} />
                 <TextLines rows={lines(n.text)} x={10} y={22} />
             </>;
+        case "entity":
+        case "relship":
+        case "erattr":
+            return <ErShape node={n} fill={fill} />;
+        case "table":
+            return <TableShape node={n} fill={fill} />;
+        case "sheet":
+            return <SheetShape node={n} />;
         default:
             return null;
     }

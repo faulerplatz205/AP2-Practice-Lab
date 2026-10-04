@@ -7,6 +7,7 @@ import { FLOW_TYPES, FRAGMENT_OPERATORS, UML_TYPES, isUml } from "../../lib/uml/
 import { useText } from "../../i18n/locale";
 import { umlText } from "../../i18n/diagram";
 import { panelText } from "../../i18n/panel";
+import { dbText } from "../../i18n/database";
 import { NodePreview } from "../Preview";
 import { LiveInput, LiveTextarea } from "./LiveInput";
 import { SizeFields } from "./SizeFields";
@@ -35,7 +36,7 @@ function QuickAppend({ node: n }: { node: DiagramNode }): ReactElement | null {
 }
 
 export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | null {
-    const t = useText(panelText), uml = useText(umlText);
+    const t = useText(panelText), uml = useText(umlText), db = useText(dbText);
     if (!isUml(n.type)) return null;
     const info = UML_TYPES[n.type], label = uml[n.type].label;
     const write = (key: "text" | "attrs" | "ops") => (d: Diagram, v: string): void => {
@@ -86,11 +87,28 @@ export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | nul
         {n.type === "object" && <label className="field">{t.attributeValues}
             <LiveTextarea id="f-attrs" className="mono" placeholder={t.objectPlaceholder} value={n.attrs ?? ""} write={write("attrs")} />
         </label>}
+        {n.type === "erattr" && <label className="field">{db.attributeKind}
+            <select id="f-stereo" value={n.stereo ?? ""} onChange={e => setValue("stereo", e.target.value)}>
+                {Object.entries(db.attributeKinds).map(([ value, name ]) => <option key={value} value={value}>{name}</option>)}
+            </select>
+        </label>}
+        {n.type === "table" && <>
+            <label className="field">{db.columns}
+                <LiveTextarea id="f-attrs" className="mono" placeholder={"PK kundenNr INT\nname VARCHAR(50)\nFK plz CHAR(5)"} value={n.attrs ?? ""} write={write("attrs")} />
+            </label>
+            <p>{db.columnsHint}</p>
+        </>}
+        {n.type === "sheet" && <>
+            <label className="field">{db.sheetRows}
+                <LiveTextarea id="f-attrs" className="mono" value={n.attrs ?? ""} write={write("attrs")} />
+            </label>
+            <p>{db.sheetHint}</p>
+        </>}
         {n.type === "state" && <label className="field">{t.stateActivities}
             <LiveTextarea id="f-attrs" className="mono" placeholder={"entry / …\ndo / …\nexit / …"} value={n.attrs ?? ""} write={write("attrs")} />
         </label>}
-        <SizeFields node={n} height={n.type !== "class" && n.type !== "object"} />
-        {!info.notext && !info.box && n.type !== "note" && <Swatches node={n} />}
+        {n.type !== "sheet" && <SizeFields node={n} height={![ "class", "object", "table" ].includes(n.type)} />}
+        {!info.notext && !info.box && n.type !== "note" && n.type !== "sheet" && <Swatches node={n} />}
         <NodeActions />
     </>;
 }

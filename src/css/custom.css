@@ -53,7 +53,13 @@ button,input,textarea{font:inherit;color:inherit}
 .zoom output{font-family:var(--fmono);font-size:12px;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
 .hint{position:absolute;left:12px;bottom:12px;font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 10px;max-width:calc(100% - 200px)}
 .toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:8px;font-size:14px;max-width:min(560px,calc(100% - 32px));box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:6}
-.panel{width:290px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel{position:relative;width:290px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel.folded{width:auto;padding:8px 6px;align-items:center}
+.pfold{position:absolute;top:8px;right:8px;padding:6px;color:var(--muted)}
+.pfold svg{transform:rotate(-90deg)}
+.panel>.pfold+*{padding-right:30px}
+.panel.folded .pfold{position:static}
+.panel.folded .pfold svg{transform:rotate(90deg)}
 .panel h2{margin:0;font-size:16px;font-weight:700}
 .panel p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
 .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
@@ -263,6 +269,9 @@ kbd{font-family:var(--fmono);font-size:11px;border:1px solid var(--line);border-
   .modewrap{width:150px}
 
   .panel{width:auto;border-left:0;border-top:1px solid var(--line);max-height:38%}
+  .panel.folded{align-items:flex-end;padding:4px 8px}
+  .pfold svg{transform:none}
+  .panel.folded .pfold svg{transform:rotate(180deg)}
   .btn .lb{display:none}
   .hint{display:none}
 }

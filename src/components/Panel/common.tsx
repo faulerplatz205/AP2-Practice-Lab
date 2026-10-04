@@ -1,7 +1,9 @@
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import type { DiagramNode } from "../../types/diagram";
 import { useDiagram } from "../../state/diagramStore";
-import { deleteSelection, duplicateSelection, endExercise, select, setCountingMode } from "../../state/actions";
+import { deleteSelection, duplicateSelection, endExercise, endNormExercise, select, setCountingMode, showNormSolution } from "../../state/actions";
+import { isNormId } from "../../data/normalization";
+import { dbText, normText } from "../../i18n/database";
 import { FILLS } from "../../lib/constants";
 import { findNode } from "../../lib/diagram";
 import { useText } from "../../i18n/locale";
@@ -63,6 +65,23 @@ export function CountingMode(): ReactElement {
             <div className="seg" role="group" aria-label={t.countingMode}>
                 <button type="button" data-start="0" aria-pressed={start === 0} onClick={() => setCountingMode(0)}>{t.startAt(0)}</button>
                 <button type="button" data-start="1" aria-pressed={start === 1} onClick={() => setCountingMode(1)}>{t.startAt(1)}</button>
+            </div>
+        </div>
+    );
+}
+
+export function NormBanner(): ReactElement | null {
+    const t = useText(dbText), scenarios = useText(normText);
+    const norm = useDiagram(s => s.doc.norm);
+    if (!isNormId(norm?.id)) return null;
+    return (
+        <div className="banner" id="normBanner">
+            <span><b>{t.exerciseRunning}</b> ({scenarios[norm.id].title})</span>
+            <span>{norm.done ? <b>{t.solved}</b> : t.task}</span>
+            <span><Rich text={t.rules} /></span>
+            <div className="row">
+                {!norm.shown && <button className="btn ghost" id="nSolution" onClick={showNormSolution}>{t.showSolution}</button>}
+                <button className="btn ghost" id="nEnd" onClick={endNormExercise}>{t.endExercise}</button>
             </div>
         </div>
     );

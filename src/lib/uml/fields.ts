@@ -1,5 +1,6 @@
 import type { DiagramNode, Point } from "../../types/diagram";
 import { classLayout } from "./size";
+import { TABLE_HEADER, sheetLayout } from "../db/columns";
 import { UML_TYPES, isUml } from "./types";
 
 /** Area of a UML element that is edited by double-click. */
@@ -34,6 +35,12 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
             return ly < 24 && p && p.x - n.x < 90 ? { key: "text", y: 0, h: 24 } : { key: "attrs", y: 0, h: 24 };
         case "lifeline":
             return { key: "text", y: 0, h: 40 };
+        case "table":
+            return ly < TABLE_HEADER ? { key: "text", y: 0, h: TABLE_HEADER } : { key: "attrs", y: TABLE_HEADER, h: Math.max(n.h - TABLE_HEADER, 40), multi: true };
+        case "sheet": {
+            const caption = sheetLayout(n).caption;
+            return caption && ly < caption ? { key: "text", y: 0, h: caption } : { key: "attrs", y: caption, h: Math.max(n.h - caption, 40), multi: true };
+        }
         case "actline":
             return { key: "text", y: 48, h: 22 };
         case "actor":

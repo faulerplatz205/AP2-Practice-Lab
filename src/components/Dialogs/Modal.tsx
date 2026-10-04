@@ -10,6 +10,7 @@ import { GanttDialog } from "./GanttDialog";
 import { GuideDialog } from "./GuideDialog";
 import { ImageDialog } from "./ImageDialog";
 import { NewDiagramDialog } from "./NewDiagramDialog";
+import { NormDialog } from "./NormDialog";
 import { PlansDialog } from "./PlansDialog";
 import { SaveAsDialog } from "./SaveAsDialog";
 import { TaskListDialog } from "./TaskListDialog";
@@ -24,6 +25,7 @@ export function Modal(): ReactElement {
         case "gantt": body = <GanttDialog />; break;
         case "taskList": body = <TaskListDialog />; break;
         case "exercise": body = <ExerciseDialog />; break;
+        case "norm": body = <NormDialog />; break;
         case "plans": body = <PlansDialog />; break;
         case "saveAs": body = <SaveAsDialog />; break;
         case "discard": body = <DiscardDialog then={dialog.then} />; break;

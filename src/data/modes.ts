@@ -8,7 +8,7 @@ export interface PaletteItem {
     preset?: Partial<DiagramNode>;
 }
 
-export type ExampleKey = "activity" | "useCase" | "class" | "sequence" | "state";
+export type ExampleKey = "activity" | "useCase" | "class" | "sequence" | "state" | "er" | "rel";
 
 export interface ModeInfo {
     label: string;
@@ -100,6 +100,21 @@ function buildModes(t: ModeTexts): Record<DiagramMode, ModeInfo> {
             items: [ item("package", i.package) ],
             relations: [ "dep" ],
         },
+        er: {
+            ...m.er,
+            items: [
+                item("entity", i.entity), item("relship", i.relationship), item("erattr", i.attribute),
+                item("erattr", i.keyAttribute, { stereo: "key", text: p.keyAttribute }),
+            ],
+            relations: [ "erl", "anchor" ],
+            example: "er",
+        },
+        rel: {
+            ...m.rel,
+            items: [ item("table", i.table), item("sheet", i.sheet) ],
+            relations: [ "fk", "anchor" ],
+            example: "rel",
+        },
         frei: {
             ...m.frei,
             items: buildGenericItems(t),
@@ -120,4 +135,4 @@ export const MODES: Dictionary<Record<DiagramMode, ModeInfo>> = {
 
 export const MODE_KEYS = Object.keys(MODES.de) as DiagramMode[];
 
-export const EXAMPLE_MODE: Record<ExampleKey, DiagramMode> = { activity: "akt", useCase: "uc", class: "kl", sequence: "seq", state: "zu" };
+export const EXAMPLE_MODE: Record<ExampleKey, DiagramMode> = { activity: "akt", useCase: "uc", class: "kl", sequence: "seq", state: "zu", er: "er", rel: "rel" };

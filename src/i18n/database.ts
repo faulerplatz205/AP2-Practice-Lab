@@ -1,0 +1,331 @@
+import { defineText } from "./locale";
+
+const list = (names: string[]): string => names.map(n => `„${n}“`).join(", ");
+const listEn = (names: string[]): string => names.map(n => `“${n}”`).join(", ");
+
+/** Messages of „Prüfen“ for the ER model and the table model, including the normalisation exercise. */
+export const dbCheckText = defineText({
+    /** Which display name of a scenario attribute (`NormAttribute.names`) to use */
+    nameIndex: 0,
+
+    // ER model (Chen)
+    entityNoName: "Entität ohne Namen",
+    entityDuplicate: (name: string) => `Entität „${name}“ gibt es doppelt`,
+    entityNoKey: (name: string) => `Entität „${name}“ hat kein Schlüsselattribut`,
+    entityNoKeyTip: "Jede Entität wird über ein Schlüsselattribut (unterstrichen) eindeutig identifiziert, z. B. „KundenNr“.",
+    attrUnconnected: (name: string) => `Attribut „${name}“ hängt an nichts`,
+    attrUnconnectedTip: "Verbinde das Attribut mit einer Linie mit seiner Entität oder Beziehung.",
+    attrManyOwners: (name: string) => `Attribut „${name}“ hängt an mehreren Elementen`,
+    attrManyOwnersTip: "Jedes Attribut gehört zu genau einer Entität oder Beziehung.",
+    keyOnRelationship: (name: string) => `Schlüsselattribut „${name}“ an einer Beziehung`,
+    keyOnRelationshipTip: "Schlüsselattribute gehören an Entitäten. An einer Beziehung stehen nur Attribute, die die Zuordnung beschreiben, z. B. „Menge“.",
+    relshipNoName: "Beziehung ohne Namen",
+    relshipNoNameTip: "Beschrifte die Raute mit einem Verb, z. B. „bestellt“ oder „gehört zu“.",
+    relshipFewEntities: (name: string, n: number) => `Beziehung „${name}“ verbindet ${n === 0 ? "keine Entität" : "nur eine Entität"}`,
+    relshipFewEntitiesTip: "Eine Beziehung verbindet mindestens zwei Entitäten. Bei einer rekursiven Beziehung führen zwei Linien zur selben Entität.",
+    entitiesDirect: (a: string, b: string) => `„${a}“ und „${b}“ sind direkt verbunden`,
+    entitiesDirectTip: "Im ER-Modell nach Chen steht zwischen zwei Entitäten immer eine Beziehung (Raute).",
+    relshipsDirect: "Zwei Beziehungen sind direkt verbunden",
+    relshipsDirectTip: "Eine Raute verbindet Entitäten, keine anderen Rauten.",
+    cardinalityMissing: (entity: string, rel: string) => `Kardinalität fehlt zwischen „${entity}“ und „${rel}“`,
+    cardinalityMissingTip: "Schreib 1, n oder m an die Linie (Doppelklick auf die Linie), z. B. 1:n zwischen Kunde und Bestellung.",
+    cardinalityInvalid: (value: string) => `Kardinalität „${value}“ ist ungewöhnlich`,
+    cardinalityInvalidTip: "Üblich sind 1, n und m (Chen), c/mc oder (min,max), z. B. (0,n).",
+    erLineKind: "Im ER-Modell einfache Linien verwenden",
+    erLineKindTip: "Wähle links „Linie (Kardinalität)“. Pfeile und UML-Beziehungen gibt es im ER-Modell nach Chen nicht.",
+
+    // Table model
+    tableNoName: "Tabelle ohne Namen",
+    tableDuplicate: (name: string) => `Tabelle „${name}“ gibt es doppelt`,
+    tableNoColumns: (name: string) => `Tabelle „${name}“ hat keine Spalten`,
+    tableNoColumnsTip: "Doppelklick in die Tabelle, eine Zeile pro Spalte, z. B. „PK kundenNr INT“.",
+    tableNoPk: (name: string) => `Tabelle „${name}“ hat keinen Primärschlüssel`,
+    tableNoPkTip: "Markiere die Spalte, die jede Zeile eindeutig macht, mit PK, z. B. „PK kundenNr INT“. Bei Zwischentabellen bilden beide Fremdschlüssel zusammen den Primärschlüssel.",
+    columnDuplicate: (table: string, column: string) => `Spalte „${column}“ steht doppelt in „${table}“`,
+    fkUnknown: (table: string, column: string) => `${table}: Fremdschlüssel „${column}“ verweist auf keinen Primärschlüssel`,
+    fkUnknownTip: "Ein Fremdschlüssel heißt wie der Primärschlüssel der Tabelle, auf die er verweist, z. B. FK kundenNr → Kunde (PK kundenNr).",
+    fkNoLine: (table: string, target: string) => `„${table}“ verweist auf „${target}“, aber die Linie fehlt`,
+    fkNoLineTip: "Verbinde die beiden Tabellen mit „Beziehung (1:n)“: 1 an der Tabelle mit dem Primärschlüssel, n an der mit dem Fremdschlüssel.",
+    relationMn: (a: string, b: string) => `m:n zwischen „${a}“ und „${b}“`,
+    relationMnTip: "Im Tabellenmodell wird m:n über eine Zwischentabelle aufgelöst. Sie enthält die Primärschlüssel beider Tabellen als Fremdschlüssel, zusammen bilden sie ihren Primärschlüssel.",
+    relationNoFk: (a: string, b: string) => `Beziehung „${a}“ – „${b}“ ohne Fremdschlüssel`,
+    relationNoFkTip: "Bei 1:n bekommt die n-Tabelle den Primärschlüssel der 1-Tabelle als Fremdschlüssel (FK).",
+    fkWrongSide: (a: string, b: string) => `Fremdschlüssel auf der falschen Seite: „${a}“ – „${b}“`,
+    fkWrongSideTip: "Der Fremdschlüssel steht in der Tabelle auf der n-Seite. Prüfe die Kardinalitäten an den Linienenden.",
+    relationNoCardinality: (a: string, b: string) => `Kardinalitäten fehlen an „${a}“ – „${b}“`,
+    relationNoCardinalityTip: "Schreib 1 und n an die Enden der Linie (rechts im Panel).",
+    relLineKind: "Tabellen mit „Beziehung (1:n)“ verbinden",
+    relLineKindTip: "Im Tabellenmodell gibt es nur Beziehungen über Fremdschlüssel, keine UML-Pfeile.",
+
+    // Normalisation exercise
+    normNonAtomic: (table: string, column: string) => `1NF: „${column}“ in „${table}“ ist nicht atomar`,
+    normNonAtomicTip: (parts: string[]) => `Jedes Feld enthält genau einen Wert. Teile die Spalte auf: ${list(parts)}.`,
+    normRepeating: (table: string, columns: string[]) => `1NF: Wiederholungsgruppe in „${table}“ (${list(columns)})`,
+    normRepeatingTip: "Statt durchnummerierter Spalten bekommt jeder Wert eine eigene Zeile, meist in einer eigenen Tabelle.",
+    normUnknown: (table: string, columns: string[]) => `${table}: ${list(columns)} ${columns.length > 1 ? "kommen" : "kommt"} in der Ausgangstabelle nicht vor`,
+    normUnknownTip: "Zusätzliche Schlüssel (z. B. eine laufende ID) sind erlaubt. Bewertet werden die Spalten der Ausgangstabelle.",
+    normMissing: (columns: string[]) => `Es fehlen Spalten der Ausgangstabelle: ${list(columns)}`,
+    normMissingTip: "Beim Normalisieren geht keine Information verloren. Jede Spalte steht in mindestens einer Tabelle.",
+    normKeyTooSmall: (table: string, columns: string[]) => `${table}: Der Primärschlüssel bestimmt ${list(columns)} nicht`,
+    normKeyTooSmallTip: "Der Primärschlüssel muss jede Zeile eindeutig machen. Wähle einen anderen Schlüssel oder verschiebe die Spalten in die Tabelle, zu der sie gehören.",
+    normKeyTooBig: (table: string, columns: string[]) => `${table}: ${list(columns)} ${columns.length > 1 ? "sind" : "ist"} im Primärschlüssel überflüssig`,
+    normKeyTooBigTip: "Der Primärschlüssel ist minimal: nur so viele Spalten, wie nötig sind, um eine Zeile eindeutig zu machen.",
+    normNoKey: (table: string) => `${table}: Die Spalten gehören nicht zusammen`,
+    normNoKeyTip: "Keine Spalte bestimmt die anderen. Verteile die Spalten auf die Tabellen, deren Schlüssel sie beschreiben.",
+    normPartial: (table: string, key: string[], columns: string[]) => `2NF verletzt in „${table}“: ${list(columns)} ${columns.length > 1 ? "hängen" : "hängt"} nur von ${list(key)} ab`,
+    normPartialTip: (key: string[], columns: string[]) => `Teilabhängigkeit vom zusammengesetzten Schlüssel. Lagere ${list(columns)} in eine eigene Tabelle mit dem Primärschlüssel ${list(key)} aus.`,
+    normTransitive: (table: string, via: string[], columns: string[]) => `3NF verletzt in „${table}“: ${list(columns)} ${columns.length > 1 ? "hängen" : "hängt"} von ${list(via)} ab, nicht direkt vom Schlüssel`,
+    normTransitiveTip: (via: string[], columns: string[]) => `Transitive Abhängigkeit. Lagere ${list([ ...via, ...columns ])} in eine eigene Tabelle aus, ${list(via)} bleibt als Fremdschlüssel stehen.`,
+    normRedundant: (column: string, tables: string[]) => `„${column}“ steht in mehreren Tabellen (${tables.join(", ")})`,
+    normRedundantTip: "Ist die Spalte ein Fremdschlüssel, markiere sie mit FK. Sonst ist der Wert doppelt gespeichert: Lösche die Kopie.",
+    normSolved: "3. Normalform erreicht",
+}, {
+    nameIndex: 1,
+    entityNoName: "Entity without a name",
+    entityDuplicate: (name: string) => `Entity “${name}” exists twice`,
+    entityNoKey: (name: string) => `Entity “${name}” has no key attribute`,
+    entityNoKeyTip: "Every entity is identified by a key attribute (underlined), e.g. “CustomerNo”.",
+    attrUnconnected: (name: string) => `Attribute “${name}” is not attached`,
+    attrUnconnectedTip: "Connect the attribute with a line to its entity or relationship.",
+    attrManyOwners: (name: string) => `Attribute “${name}” is attached to several elements`,
+    attrManyOwnersTip: "Every attribute belongs to exactly one entity or relationship.",
+    keyOnRelationship: (name: string) => `Key attribute “${name}” on a relationship`,
+    keyOnRelationshipTip: "Key attributes belong to entities. A relationship only has attributes describing the assignment, e.g. “Quantity”.",
+    relshipNoName: "Relationship without a name",
+    relshipNoNameTip: "Label the diamond with a verb, e.g. “orders” or “belongs to”.",
+    relshipFewEntities: (name: string, n: number) => `Relationship “${name}” connects ${n === 0 ? "no entity" : "only one entity"}`,
+    relshipFewEntitiesTip: "A relationship connects at least two entities. In a recursive relationship two lines lead to the same entity.",
+    entitiesDirect: (a: string, b: string) => `“${a}” and “${b}” are connected directly`,
+    entitiesDirectTip: "In Chen notation there is always a relationship (diamond) between two entities.",
+    relshipsDirect: "Two relationships are connected directly",
+    relshipsDirectTip: "A diamond connects entities, not other diamonds.",
+    cardinalityMissing: (entity: string, rel: string) => `Cardinality missing between “${entity}” and “${rel}”`,
+    cardinalityMissingTip: "Write 1, n or m on the line (double-click the line), e.g. 1:n between customer and order.",
+    cardinalityInvalid: (value: string) => `Cardinality “${value}” is unusual`,
+    cardinalityInvalidTip: "Common are 1, n and m (Chen), c/mc or (min,max), e.g. (0,n).",
+    erLineKind: "Use plain lines in the ER model",
+    erLineKindTip: "Pick “Line (cardinality)” on the left. Chen notation has no arrows or UML relationships.",
+
+    tableNoName: "Table without a name",
+    tableDuplicate: (name: string) => `Table “${name}” exists twice`,
+    tableNoColumns: (name: string) => `Table “${name}” has no columns`,
+    tableNoColumnsTip: "Double-click into the table, one line per column, e.g. “PK customerNo INT”.",
+    tableNoPk: (name: string) => `Table “${name}” has no primary key`,
+    tableNoPkTip: "Mark the column that makes every row unique with PK, e.g. “PK customerNo INT”. In junction tables both foreign keys together form the primary key.",
+    columnDuplicate: (table: string, column: string) => `Column “${column}” appears twice in “${table}”`,
+    fkUnknown: (table: string, column: string) => `${table}: foreign key “${column}” does not reference a primary key`,
+    fkUnknownTip: "A foreign key has the name of the primary key it references, e.g. FK customerNo → Customer (PK customerNo).",
+    fkNoLine: (table: string, target: string) => `“${table}” references “${target}”, but the line is missing`,
+    fkNoLineTip: "Connect both tables with “Relationship (1:n)”: 1 at the table with the primary key, n at the one with the foreign key.",
+    relationMn: (a: string, b: string) => `m:n between “${a}” and “${b}”`,
+    relationMnTip: "In the table model m:n is resolved with a junction table. It holds the primary keys of both tables as foreign keys; together they form its primary key.",
+    relationNoFk: (a: string, b: string) => `Relationship “${a}” – “${b}” without a foreign key`,
+    relationNoFkTip: "In 1:n the n table gets the primary key of the 1 table as foreign key (FK).",
+    fkWrongSide: (a: string, b: string) => `Foreign key on the wrong side: “${a}” – “${b}”`,
+    fkWrongSideTip: "The foreign key belongs to the table on the n side. Check the cardinalities at the line ends.",
+    relationNoCardinality: (a: string, b: string) => `Cardinalities missing on “${a}” – “${b}”`,
+    relationNoCardinalityTip: "Write 1 and n at the ends of the line (in the panel on the right).",
+    relLineKind: "Connect tables with “Relationship (1:n)”",
+    relLineKindTip: "The table model only has relationships through foreign keys, no UML arrows.",
+
+    normNonAtomic: (table: string, column: string) => `1NF: “${column}” in “${table}” is not atomic`,
+    normNonAtomicTip: (parts: string[]) => `Every field holds exactly one value. Split the column: ${listEn(parts)}.`,
+    normRepeating: (table: string, columns: string[]) => `1NF: repeating group in “${table}” (${listEn(columns)})`,
+    normRepeatingTip: "Instead of numbered columns every value gets its own row, usually in a table of its own.",
+    normUnknown: (table: string, columns: string[]) => `${table}: ${listEn(columns)} ${columns.length > 1 ? "do" : "does"} not appear in the source table`,
+    normUnknownTip: "Extra keys (e.g. a running ID) are allowed. The columns of the source table are assessed.",
+    normMissing: (columns: string[]) => `Columns of the source table are missing: ${listEn(columns)}`,
+    normMissingTip: "Normalisation loses no information. Every column appears in at least one table.",
+    normKeyTooSmall: (table: string, columns: string[]) => `${table}: the primary key does not determine ${listEn(columns)}`,
+    normKeyTooSmallTip: "The primary key must make every row unique. Pick another key or move the columns to the table they belong to.",
+    normKeyTooBig: (table: string, columns: string[]) => `${table}: ${listEn(columns)} ${columns.length > 1 ? "are" : "is"} not needed in the primary key`,
+    normKeyTooBigTip: "The primary key is minimal: only as many columns as needed to make a row unique.",
+    normNoKey: (table: string) => `${table}: the columns do not belong together`,
+    normNoKeyTip: "No column determines the others. Move the columns to the tables whose key they describe.",
+    normPartial: (table: string, key: string[], columns: string[]) => `2NF violated in “${table}”: ${listEn(columns)} ${columns.length > 1 ? "depend" : "depends"} on ${listEn(key)} only`,
+    normPartialTip: (key: string[], columns: string[]) => `Partial dependency on the composite key. Move ${listEn(columns)} to a table of its own with primary key ${listEn(key)}.`,
+    normTransitive: (table: string, via: string[], columns: string[]) => `3NF violated in “${table}”: ${listEn(columns)} ${columns.length > 1 ? "depend" : "depends"} on ${listEn(via)}, not directly on the key`,
+    normTransitiveTip: (via: string[], columns: string[]) => `Transitive dependency. Move ${listEn([ ...via, ...columns ])} to a table of its own; ${listEn(via)} stays as foreign key.`,
+    normRedundant: (column: string, tables: string[]) => `“${column}” appears in several tables (${tables.join(", ")})`,
+    normRedundantTip: "If the column is a foreign key, mark it with FK. Otherwise the value is stored twice: delete the copy.",
+    normSolved: "Third normal form reached",
+});
+
+interface ScenarioText {
+    title: string;
+    description: string;
+    /** Caption of the source table */
+    caption: string;
+    /** Source table: header line and rows, cells separated by `|` */
+    rows: string;
+    /** Model solution: [table name, columns] */
+    solution: [string, string][];
+}
+
+interface NormTexts {
+    invoice: ScenarioText;
+    course: ScenarioText;
+    project: ScenarioText;
+}
+
+/** Texts of the normalisation scenarios. Dependencies and accepted names: src/data/normalization.ts */
+export const normText = defineText<NormTexts>({
+    invoice: {
+        title: "Rechnungen",
+        description: "Rechnungen mit Kunde, Wohnort und mehreren Artikeln je Rechnung",
+        caption: "Rechnungen (nicht normalisiert)",
+        rows: [
+            "RechnungsNr | Datum | KundenNr | Kundenname | PLZ | Ort | ArtikelNr | Bezeichnung | Einzelpreis | Menge",
+            "1001 | 02.03.2026 | 17 | Meier GmbH | 30159 | Hannover | 4711; 4712 | Maus; Tastatur | 19,90; 39,90 | 2; 1",
+            "1002 | 05.03.2026 | 23 | Lange KG | 30159 | Hannover | 4711 | Maus | 19,90 | 5",
+            "1003 | 09.03.2026 | 17 | Meier GmbH | 30159 | Hannover | 4713; 4711 | Monitor; Maus | 189,00; 19,90 | 2; 1",
+        ].join("\n"),
+        solution: [
+            [ "Kunde", "PK kundenNr INT\nkundenname VARCHAR(50)\nFK plz CHAR(5)" ],
+            [ "Ort", "PK plz CHAR(5)\nort VARCHAR(40)" ],
+            [ "Rechnung", "PK rechnungsNr INT\ndatum DATE\nFK kundenNr INT" ],
+            [ "Artikel", "PK artikelNr INT\nbezeichnung VARCHAR(50)\neinzelpreis DECIMAL(8,2)" ],
+            [ "Rechnungsposition", "PK FK rechnungsNr INT\nPK FK artikelNr INT\nmenge INT" ],
+        ],
+    },
+    course: {
+        title: "Seminare",
+        description: "Seminare mit Dozent und Teilnehmern, die bezahlt haben oder nicht",
+        caption: "Seminarbuchungen (nicht normalisiert)",
+        rows: [
+            "KursNr | Titel | Datum | DozentNr | Dozent | TeilnehmerNr | Teilnehmer | Bezahlt",
+            "K1 | SQL Grundlagen | 12.05.2026 | D3 | Kaya | T01; T02 | Lea Schmidt; Tom Berg | ja; nein",
+            "K2 | Java Einstieg | 19.05.2026 | D5 | Wolf | T02 | Tom Berg | ja",
+            "K3 | SQL Vertiefung | 26.05.2026 | D3 | Kaya | T01; T07 | Lea Schmidt; Ana Roth | ja; ja",
+        ].join("\n"),
+        solution: [
+            [ "Kurs", "PK kursNr CHAR(3)\ntitel VARCHAR(60)\ndatum DATE\nFK dozentNr CHAR(3)" ],
+            [ "Dozent", "PK dozentNr CHAR(3)\ndozentName VARCHAR(40)" ],
+            [ "Teilnehmer", "PK teilnehmerNr CHAR(3)\nvorname VARCHAR(30)\nnachname VARCHAR(30)" ],
+            [ "Buchung", "PK FK kursNr CHAR(3)\nPK FK teilnehmerNr CHAR(3)\nbezahlt BOOLEAN" ],
+        ],
+    },
+    project: {
+        title: "Projektzeiten",
+        description: "Mitarbeiter mit Abteilung und den Stunden in mehreren Projekten",
+        caption: "Projektzeiten (nicht normalisiert)",
+        rows: [
+            "PersNr | Name | AbteilungNr | Abteilung | ProjektNr | Projektname | Stunden",
+            "P01 | Kaya | A1 | Entwicklung | PR7; PR9 | Webshop; App | 20; 12",
+            "P02 | Berg | A2 | Vertrieb | PR7 | Webshop | 8",
+            "P03 | Roth | A1 | Entwicklung | PR9 | App | 30",
+        ].join("\n"),
+        solution: [
+            [ "Mitarbeiter", "PK persNr CHAR(3)\nnachname VARCHAR(40)\nFK abteilungNr CHAR(2)" ],
+            [ "Abteilung", "PK abteilungNr CHAR(2)\nabteilung VARCHAR(40)" ],
+            [ "Projekt", "PK projektNr CHAR(4)\nprojektname VARCHAR(40)" ],
+            [ "Projektzeit", "PK FK persNr CHAR(3)\nPK FK projektNr CHAR(4)\nstunden INT" ],
+        ],
+    },
+}, {
+    invoice: {
+        title: "Invoices",
+        description: "Invoices with customer, city and several articles per invoice",
+        caption: "Invoices (not normalized)",
+        rows: [
+            "InvoiceNo | Date | CustomerNo | CustomerName | Zip | City | ArticleNo | Description | UnitPrice | Quantity",
+            "1001 | 2026-03-02 | 17 | Meier Ltd | 30159 | Hanover | 4711; 4712 | Mouse; Keyboard | 19.90; 39.90 | 2; 1",
+            "1002 | 2026-03-05 | 23 | Lange Inc | 30159 | Hanover | 4711 | Mouse | 19.90 | 5",
+            "1003 | 2026-03-09 | 17 | Meier Ltd | 30159 | Hanover | 4713; 4711 | Monitor; Mouse | 189.00; 19.90 | 2; 1",
+        ].join("\n"),
+        solution: [
+            [ "Customer", "PK customerNo INT\ncustomerName VARCHAR(50)\nFK zip CHAR(5)" ],
+            [ "City", "PK zip CHAR(5)\ncity VARCHAR(40)" ],
+            [ "Invoice", "PK invoiceNo INT\ndate DATE\nFK customerNo INT" ],
+            [ "Article", "PK articleNo INT\ndescription VARCHAR(50)\nunitPrice DECIMAL(8,2)" ],
+            [ "InvoiceLine", "PK FK invoiceNo INT\nPK FK articleNo INT\nquantity INT" ],
+        ],
+    },
+    course: {
+        title: "Courses",
+        description: "Courses with trainer and participants who have paid or not",
+        caption: "Course bookings (not normalized)",
+        rows: [
+            "CourseNo | Title | Date | TrainerNo | Trainer | ParticipantNo | Participant | Paid",
+            "K1 | SQL basics | 2026-05-12 | D3 | Kaya | T01; T02 | Lea Schmidt; Tom Berg | yes; no",
+            "K2 | Java intro | 2026-05-19 | D5 | Wolf | T02 | Tom Berg | yes",
+            "K3 | SQL advanced | 2026-05-26 | D3 | Kaya | T01; T07 | Lea Schmidt; Ana Roth | yes; yes",
+        ].join("\n"),
+        solution: [
+            [ "Course", "PK courseNo CHAR(3)\ntitle VARCHAR(60)\ndate DATE\nFK trainerNo CHAR(3)" ],
+            [ "Trainer", "PK trainerNo CHAR(3)\ntrainerName VARCHAR(40)" ],
+            [ "Participant", "PK participantNo CHAR(3)\nfirstName VARCHAR(30)\nlastName VARCHAR(30)" ],
+            [ "Booking", "PK FK courseNo CHAR(3)\nPK FK participantNo CHAR(3)\npaid BOOLEAN" ],
+        ],
+    },
+    project: {
+        title: "Project hours",
+        description: "Employees with department and their hours in several projects",
+        caption: "Project hours (not normalized)",
+        rows: [
+            "EmployeeNo | Name | DepartmentNo | Department | ProjectNo | ProjectName | Hours",
+            "P01 | Kaya | A1 | Development | PR7; PR9 | Web shop; App | 20; 12",
+            "P02 | Berg | A2 | Sales | PR7 | Web shop | 8",
+            "P03 | Roth | A1 | Development | PR9 | App | 30",
+        ].join("\n"),
+        solution: [
+            [ "Employee", "PK employeeNo CHAR(3)\nlastName VARCHAR(40)\nFK departmentNo CHAR(2)" ],
+            [ "Department", "PK departmentNo CHAR(2)\ndepartment VARCHAR(40)" ],
+            [ "Project", "PK projectNo CHAR(4)\nprojectName VARCHAR(40)" ],
+            [ "ProjectHours", "PK FK employeeNo CHAR(3)\nPK FK projectNo CHAR(4)\nhours INT" ],
+        ],
+    },
+});
+
+/** UI texts of the database kinds: sidebar, panel, exercise dialog and banner. */
+export const dbText = defineText({
+    normalization: "Normalisierung",
+    normButton: "Übung: 3. Normalform",
+    normButtonTitle: "Eine nicht normalisierte Tabelle in die 3. Normalform bringen",
+    columns: "Spalten",
+    columnsHint: "Eine Zeile pro Spalte: PK/FK, Name, Datentyp. Beispiele: „PK kundenNr INT“, „FK plz CHAR(5)“, „PK FK bestellNr INT“ (Zwischentabelle).",
+    sheetRows: "Zeilen",
+    sheetHint: "Erste Zeile = Spaltenköpfe, Zellen mit | trennen.",
+    attributeKind: "Art",
+    attributeKinds: { "": "Attribut", key: "Schlüsselattribut (unterstrichen)", multi: "Mehrwertiges Attribut", derived: "Abgeleitetes Attribut" },
+    cardinality: "Kardinalität",
+    cardinalityPlaceholder: "1, n oder m",
+    cardinalityStart: (name: string) => `Kardinalität bei ${name}`,
+    // Dialog
+    dialogTitle: "Übung: Normalisierung",
+    dialogIntro: "Du bekommst eine nicht normalisierte Tabelle mit Beispieldaten. Zerlege sie in Tabellen in der 3. Normalform, mit Primär- und Fremdschlüsseln. „Prüfen“ zeigt, welche Normalform verletzt ist und warum.",
+    start: "Übung starten",
+    // Banner in the panel
+    exerciseRunning: "Normalisierungsübung",
+    task: "Bring die Ausgangstabelle in die 3. Normalform: Lege Tabellen mit PK und FK an und verbinde sie. Die Spaltennamen der Ausgangstabelle kannst du übernehmen.",
+    rules: "**1NF:** jedes Feld atomar, keine Wiederholungsgruppen. **2NF:** keine Spalte hängt nur von einem Teil eines zusammengesetzten Schlüssels ab. **3NF:** keine Spalte hängt von einer anderen Nicht-Schlüsselspalte ab.",
+    showSolution: "Musterlösung zeigen",
+    endExercise: "Übung beenden",
+    solved: "Geschafft: 3. Normalform erreicht.",
+    started: "Neue Übung: Bring die Tabelle in die 3. Normalform.",
+    solutionInserted: "Musterlösung rechts eingefügt.",
+}, {
+    normalization: "Normalization",
+    normButton: "Exercise: 3rd normal form",
+    normButtonTitle: "Bring an unnormalized table into third normal form",
+    columns: "Columns",
+    columnsHint: "One line per column: PK/FK, name, data type. Examples: “PK customerNo INT”, “FK zip CHAR(5)”, “PK FK orderNo INT” (junction table).",
+    sheetRows: "Rows",
+    sheetHint: "First line = column headers, separate cells with |.",
+    attributeKind: "Kind",
+    attributeKinds: { "": "Attribute", key: "Key attribute (underlined)", multi: "Multivalued attribute", derived: "Derived attribute" },
+    cardinality: "Cardinality",
+    cardinalityPlaceholder: "1, n or m",
+    cardinalityStart: (name: string) => `Cardinality at ${name}`,
+    dialogTitle: "Exercise: normalization",
+    dialogIntro: "You get an unnormalized table with sample data. Split it into tables in third normal form, with primary and foreign keys. “Check” shows which normal form is violated and why.",
+    start: "Start exercise",
+    exerciseRunning: "Normalization exercise",
+    task: "Bring the source table into third normal form: create tables with PK and FK and connect them. You can reuse the column names of the source table.",
+    rules: "**1NF:** every field atomic, no repeating groups. **2NF:** no column depends on part of a composite key only. **3NF:** no column depends on another non-key column.",
+    showSolution: "Show model solution",
+    endExercise: "End exercise",
+    solved: "Done: third normal form reached.",
+    started: "New exercise: bring the table into third normal form.",
+    solutionInserted: "Model solution inserted on the right.",
+});
