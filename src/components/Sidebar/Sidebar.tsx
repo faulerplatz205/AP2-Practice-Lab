@@ -2,11 +2,12 @@ import { type ReactElement, useEffect, useRef } from "react";
 import clsx from "clsx";
 import { useDiagram } from "../../state/diagramStore";
 import { useUi } from "../../state/uiStore";
-import { addExample, compute, openGantt, pickRelation, pickTile, setMode } from "../../state/actions";
+import { addExample, openGantt, pickRelation, pickTile, setMode } from "../../state/actions";
 import { GENERIC_ITEMS, MODES, MODE_KEYS, type PaletteItem } from "../../data/modes";
 import { useText } from "../../i18n/locale";
 import { relationLabels } from "../../i18n/diagram";
 import { sidebarText } from "../../i18n/canvas";
+import { dbText } from "../../i18n/database";
 import { Icon } from "../Icon";
 import { NodePreview, RelationPreview } from "../Preview";
 
@@ -55,7 +56,7 @@ function ModeMenu(): ReactElement {
 }
 
 export function Sidebar(): ReactElement {
-    const t = useText(sidebarText), relations = useText(relationLabels), generic = useText(GENERIC_ITEMS);
+    const t = useText(sidebarText), relations = useText(relationLabels), generic = useText(GENERIC_ITEMS), db = useText(dbText);
     const mode = useDiagram(s => s.doc.cfg.mode);
     const tool = useDiagram(s => s.tool);
     const toolKey = useDiagram(s => s.toolKey);
@@ -89,11 +90,16 @@ export function Sidebar(): ReactElement {
                 <section>
                     <h3>{t.netzplan}</h3>
                     <div className="acts">
-                        <button className="btn ghost" id="bCalc" title={t.calculateTitle} onClick={compute}>{t.calculate}</button>
                         <button className="btn ghost" id="bGantt" title={t.ganttTitle} onClick={openGantt}>{t.gantt}</button>
                         <button className="btn ghost" id="bList" title={t.taskListTitle} onClick={() => open({ type: "taskList" })}>{t.taskList}</button>
                         <button className="btn ghost" id="bTask" title={t.exerciseTitle} onClick={() => open({ type: "exercise" })}>{t.exercise}</button>
                     </div>
+                </section>
+            )}
+            {mode === "rel" && (
+                <section>
+                    <h3>{db.normalization}</h3>
+                    <button className="btn ghost wide" id="bNorm" title={db.normButtonTitle} onClick={() => open({ type: "norm" })}>{db.normButton}</button>
                 </section>
             )}
             {info.example && (

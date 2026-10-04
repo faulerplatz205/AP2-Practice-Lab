@@ -3,9 +3,13 @@
  * achievements (achievementStore) and saved plans (planStore) with the logic in src/lib.
  * Components only call these functions and do not change the stores themselves.
  */
-import type { ActivityKey, Diagram, DiagramMode, DiagramNode, NodeType, Point, RelationKind } from "../types/diagram";
+import type { ActivityKey, Diagram, DiagramEdge, DiagramMode, DiagramNode, NodeType, Point, RelationKind } from "../types/diagram";
 import { ACTIVITY_CELLS, GRID } from "../lib/constants";
-import { createNode, emptyDiagram, findEdge, findNode, isActivity, looksLikeDiagram, nextActivityNr, normalize } from "../lib/diagram";
+import { createNode, diagramBox, emptyDiagram, findEdge, findNode, isActivity, looksLikeDiagram, nextActivityNr, normalize } from "../lib/diagram";
+import { relationEnds } from "../lib/db/columns";
+import { fitToContent } from "../lib/uml/size";
+import { NORM_SCENARIOS, type NormScenarioId, isNormId } from "../data/normalization";
+import { dbText, normText } from "../i18n/database";
 import { contentFingerprint, runCheck } from "../lib/check";
 import { calculate } from "../lib/netzplan/calculate";
 import { createExercise } from "../lib/netzplan/exercise";
@@ -13,7 +17,7 @@ import { buildGraph } from "../lib/netzplan/graph";
 import { layoutActivities } from "../lib/netzplan/layout";
 import { buildFromRows, parseTaskList } from "../lib/netzplan/taskList";
 import { fmt, num, snap } from "../lib/math";
-import { tidyDiagram } from "../lib/tidy/tidy";
+import { arrangeTables, tidyDiagram } from "../lib/tidy/tidy";
 import { fieldAt } from "../lib/uml/fields";
 import { edgeGeometry } from "../lib/uml/routing";
 import { RELATIONS, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
@@ -185,6 +189,13 @@ export function connectTo(toId: number): void {
             const isMerge = d.edges.filter(x => x.to === a.id).length > 1 && !outgoing.length;
             e.label = isMerge ? "" : nextGuard(outgoing.map(x => x.label));
         }
+        // ER: the first entity line of a diamond gets 1, every further one n
+        const rel = [ a, b ].find(n => n.type === "relship"), entity = [ a, b ].find(n => n.type === "entity");
+        if (kind === "erl" && rel && entity) {
+            const isEntityLine = (x: DiagramEdge): boolean => (x.from === rel.id || x.to === rel.id) && [ x.from, x.to ].some(id => findNode(d, id)?.type === "entity");
+            e.label = d.edges.some(isEntityLine) ? "n" : "1";
+        }
+        if (kind === "fk" && a.type === "table" && b.type === "table") [ e.m1, e.m2 ] = relationEnds(a, b);
         d.edges.push(e);
     });
     notify(msg().relationSet(text(relationLabels)[kind]));
@@ -394,12 +405,64 @@ export function buildFromTaskList(text: string, alsoCalculate: boolean): string 
     return null;
 }
 
+/* ---------- Normalisation exercise ---------- */
+
+/** New table model with the unnormalized source table of the scenario. */
+export function startNormExercise(id: NormScenarioId): void {
+    const d = emptyDiagram("rel", doc().cfg.start);
+    const source = createNode(d, "sheet");
+    const s = text(normText)[id];
+    Object.assign(source, { text: s.caption, attrs: s.rows, x: 0, y: 0 });
+    fitToContent(source);
+    d.nodes.push(source);
+    d.norm = { id };
+    setTool("select");
+    useDiagram.getState().replace(d);
+    useDiagram.getState().set({ checkActive: false });
+    const { persist, plans } = usePlans.getState();
+    persist(plans, null);
+    useUi.getState().close();
+    requestAnimationFrame(() => fitView());
+    notify(text(dbText).started);
+}
+
+/** Inserts the model solution right of the drawing. */
+export function showNormSolution(): void {
+    const id = doc().norm?.id;
+    if (!isNormId(id)) return;
+    const s = text(normText)[id];
+    useDiagram.getState().change(d => {
+        const box = diagramBox(d);
+        const tables = s.solution.map(([ name, columns ]) => {
+            const n = createNode(d, "table");
+            Object.assign(n, { text: name, attrs: columns });
+            d.nodes.push(n);
+            return n;
+        });
+        for (const [ from, to ] of NORM_SCENARIOS[id].solutionEdges) {
+            d.edges.push({ id: d.next++, from: tables[from].id, to: tables[to].id, label: "", kind: "fk", m1: "n", m2: "1" });
+        }
+        arrangeTables(d, tables, box ? box.x + box.w + 120 : 0, box ? box.y : 0);
+        d.norm!.shown = true;
+    });
+    requestAnimationFrame(() => fitView());
+    notify(text(dbText).solutionInserted);
+}
+
+export function endNormExercise(): void {
+    useDiagram.getState().change(d => {
+        delete d.norm;
+    });
+}
+
 /* ---------- Check ---------- */
 
 export function check(): void {
     const d = doc();
     const result = runCheck(d);
     useDiagram.getState().set({ checkActive: true, selection: null });
+    // The result is shown in the right panel, so a folded panel opens
+    if (!useUi.getState().panelOpen) useUi.getState().setPanelOpen(true);
     const a = useAchievements.getState();
     if (result.ok) {
         const fingerprint = contentFingerprint(d);
@@ -412,6 +475,14 @@ export function check(): void {
     }
     if (result.ok) rewardCheck(result.hasUml, result.kinds);
     const t = msg();
+    if (result.ok && d.norm) {
+        if (!d.norm.done) {
+            useDiagram.getState().change(x => {
+                x.norm!.done = true;
+            }, { history: false });
+        }
+        return notify(text(dbText).solved);
+    }
     notify(result.ok ? t.allCorrect : !result.errors && !result.isNetzplan ? t.onlyHints : result.errors ? t.errorsFound(result.errors) : t.incomplete);
 }
 

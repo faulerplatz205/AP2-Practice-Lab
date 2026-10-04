@@ -89,7 +89,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
         title: "UML-Diagramme",
         body: <>
             <h4>UML-Diagramme zeichnen</h4>
-            <p>Links oben wählst du die <b>Diagrammart</b>: Netzplan, Aktivität, Use-Case, Klassen, Sequenz, Zustand, Objekt, Komponente, Verteilung, Paket oder freies Zeichnen. Darunter siehst du nur die Elemente und Verbindungen, die du dafür brauchst, und meist ein <b>Beispiel</b> zum Einfügen. Die Ziffern <kbd>1</kbd>–<kbd>9</kbd> wählen ein Element direkt. Weitere Formen liegen unter „Allgemeine Formen“.</p>
+            <p>Links oben wählst du die <b>Diagrammart</b>: Netzplan, Aktivität, Use-Case, Klassen, Sequenz, Zustand, Objekt, Komponente, Verteilung, Paket, ER-Modell, Tabellenmodell oder freies Zeichnen. Darunter siehst du nur die Elemente und Verbindungen, die du dafür brauchst, und meist ein <b>Beispiel</b> zum Einfügen. Die Ziffern <kbd>1</kbd>–<kbd>9</kbd> wählen ein Element direkt. Weitere Formen liegen unter „Allgemeine Formen“.</p>
             <p><b>Aktivitätsdiagramm in wenigen Klicks:</b></p>
             <ol>
                 <li>Startknoten setzen.</li>
@@ -103,6 +103,12 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li><b>Klassen:</b> Doppelklick in Name, Attribute oder Methoden. Mit <kbd>Enter</kbd> neue Zeile, mit <kbd>Strg+Enter</kbd> fertig.</li>
                 <li><b>Sequenz:</b> Nachrichten zwischen Lebenslinien setzen, dann nach oben oder unten ziehen.</li>
                 <li><b>Prüfen</b> kontrolliert auch UML: fehlender Start- oder Endknoten, Entscheidung ohne Bedingungen, falsche Balken, Use-Case ohne Akteur, Sichtbarkeit und Datentypen in Klassen und mehr.</li>
+            </ul>
+            <h4>Datenbanken: ER-Modell und Tabellenmodell</h4>
+            <ul>
+                <li><b>ER-Modell</b> (Chen-Notation): Entitäten (Rechteck) über eine <b>Beziehung</b> (Raute) verbinden, Attribute (Ellipse) anhängen, den Schlüssel als <b>Schlüsselattribut</b> (unterstrichen). Die erste Linie einer Raute bekommt 1, jede weitere n; per Doppelklick änderst du die Kardinalität.</li>
+                <li><b>Tabellenmodell:</b> In eine Tabelle schreibst du eine Spalte pro Zeile, z. B. <code>PK kundenNr INT</code> oder <code>FK plz CHAR(5)</code>. Die Linie „Beziehung (1:n)“ setzt n an die Tabelle mit dem Fremdschlüssel. m:n löst du über eine Zwischentabelle auf.</li>
+                <li><b>Normalisierung:</b> Im Tabellenmodell erzeugt <b>Übung: 3. Normalform</b> eine nicht normalisierte Tabelle mit Beispieldaten. Zerlege sie in Tabellen; <b>Prüfen</b> sagt, welche Normalform verletzt ist (1NF: nicht atomar, 2NF: Teilabhängigkeit, 3NF: transitive Abhängigkeit). Die Musterlösung kannst du dir einblenden.</li>
             </ul>
         </>,
     },
@@ -242,7 +248,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
         title: "UML diagrams",
         body: <>
             <h4>Drawing UML diagrams</h4>
-            <p>At the top left you choose the <b>Diagram type</b>: network diagram, activity, use case, class, sequence, state machine, object, component, deployment, package or free drawing. Below it you only see the elements and connections you need for it, and usually an <b>example</b> to insert. The digits <kbd>1</kbd>–<kbd>9</kbd> pick an element directly. More shapes are under “General shapes”.</p>
+            <p>At the top left you choose the <b>Diagram type</b>: network diagram, activity, use case, class, sequence, state machine, object, component, deployment, package, ER model, table model or free drawing. Below it you only see the elements and connections you need for it, and usually an <b>example</b> to insert. The digits <kbd>1</kbd>–<kbd>9</kbd> pick an element directly. More shapes are under “General shapes”.</p>
             <p><b>An activity diagram in a few clicks:</b></p>
             <ol>
                 <li>Place an initial node.</li>
@@ -256,6 +262,12 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li><b>Classes:</b> double-click the name, attributes or operations. <kbd>Enter</kbd> starts a new line, <kbd>Ctrl+Enter</kbd> finishes.</li>
                 <li><b>Sequence:</b> draw messages between lifelines, then drag them up or down.</li>
                 <li><b>Check</b> also checks UML: missing initial or final node, decisions without conditions, wrong bars, use cases without an actor, visibility and data types in classes, and more.</li>
+            </ul>
+            <h4>Databases: ER model and table model</h4>
+            <ul>
+                <li><b>ER model</b> (Chen notation): connect entities (rectangle) through a <b>relationship</b> (diamond), attach attributes (ellipse), the key as <b>key attribute</b> (underlined). The first line of a diamond gets 1, every further one n; double-click to change the cardinality.</li>
+                <li><b>Table model:</b> write one column per line into a table, e.g. <code>PK customerNo INT</code> or <code>FK zip CHAR(5)</code>. The line “Relationship (1:n)” puts n at the table with the foreign key. Resolve m:n with a junction table.</li>
+                <li><b>Normalization:</b> in the table model, <b>Exercise: 3rd normal form</b> creates an unnormalized table with sample data. Split it into tables; <b>Check</b> tells which normal form is violated (1NF: not atomic, 2NF: partial dependency, 3NF: transitive dependency). You can show the model solution.</li>
             </ul>
         </>,
     },

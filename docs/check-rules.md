@@ -137,6 +137,65 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 
 These kinds are detected (`komp`, `vert`, `pak`) and named in the result but have no rules yet.
 
+## Databases
+
+Code: `src/lib/db/check.ts` (rules), `src/lib/db/normalize.ts` (normal forms), `src/lib/db/columns.ts` (column syntax). Messages: `dbCheckText` in `src/i18n/database.ts`.
+
+### ER Model (Chen Notation)
+
+Entities are rectangles, relationships diamonds, attributes ellipses; a key attribute is underlined (`stereo: "key"`). The cardinality of a line between entity and relationship is its `label`.
+
+| Rule | Level |
+| --- | --- |
+| Every entity has a name; no name twice | error / warn |
+| Every entity has a key attribute | warn |
+| Every attribute is attached; to at most one entity or relationship | error / warn |
+| Key attributes belong to entities, not to relationships | warn |
+| Every relationship has a name | warn |
+| A relationship connects at least two entities (recursive: the same entity twice) | error |
+| No direct line between two entities or between two relationships | error |
+| Every line between entity and relationship has a cardinality | error |
+| The cardinality is 1, n, m, c, mc, a number, a range like `0..1` or `(min,max)` | warn |
+| Only plain lines (`erl`) between ER elements | warn |
+
+### Table Model
+
+A table lists one column per line: optional `PK`/`FK` (both for junction tables), the name, an optional data type (`PK kundenNr INT`, `FK plz CHAR(5)`, `name : VARCHAR(50)`). Names are compared with `columnKey()`: case, umlauts and separators do not matter, a trailing `Nummer`, `Number`, `No` or `Id` counts as `Nr`.
+
+| Rule | Level |
+| --- | --- |
+| Every table has a name; no name twice | error / warn |
+| Every table has columns and a primary key | error |
+| No column twice in a table | error |
+| A foreign key is named like a primary key of another table | warn |
+| Tables linked by a foreign key are connected by a line | warn |
+| A line has cardinalities at both ends | warn |
+| No m:n line between two tables (junction table instead) | error |
+| One of the two tables holds a foreign key to the other | error |
+| The foreign key is in the table on the n side | warn |
+| Only `fk` lines between tables | warn |
+
+Data tables (`sheet`) are sample data and are not checked.
+
+### Normalisation Exercise
+
+The scenario (`src/data/normalization.ts`) defines the attributes of the source table with accepted names and the functional dependencies. `checkNormalization()` maps every column to an attribute and checks:
+
+| Rule | Level |
+| --- | --- |
+| 1NF: no non-atomic column (e.g. „Teilnehmer“ for first and last name) | error |
+| 1NF: no repeating group (numbered columns like `artikel1`, `artikel2`) | error |
+| Every attribute of the source table appears in a table | error |
+| The primary key determines all columns of its table | error |
+| The primary key is minimal | warn |
+| The columns of a table belong together (some candidate key consists of determinants) | error |
+| 2NF: no non-key column depends on part of a composite key (one message per key part) | error |
+| 3NF: no non-key column depends on another non-key column | error |
+| A non-key column appears in one table only (otherwise it must be marked FK) | warn |
+| Columns that are not in the source table (e.g. an extra running ID) | info |
+
+Extra columns are left out of the analysis, so a surrogate key does not count as an error.
+
 ## Subnetting Answers
 
 Code: `checkField()` in `src/lib/subnet/exercises.ts`. Whitespace is ignored. Each field gets `correct` and, when wrong, a tip:

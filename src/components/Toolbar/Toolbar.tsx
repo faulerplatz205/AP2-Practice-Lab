@@ -108,7 +108,7 @@ export function Toolbar(): ReactElement {
                 </div>
                 <div className="grp">
                     <ToolButton id="bCheck" icon="check" label={t.check} title={t.check} primary onClick={check} />
-                    <ToolButton id="bCalcTop" icon="calc" label={t.calculate} title={t.calculateTitle} hidden={!isNetzplan} onClick={compute} />
+                    <ToolButton id="bCalc" icon="calc" label={t.calculate} title={t.calculateTitle} hidden={!isNetzplan} onClick={compute} />
                     <ToolButton id="bLayout" icon="layout" label={t.tidy} title={t.tidyTitle} onClick={tidy} />
                 </div>
             </>}

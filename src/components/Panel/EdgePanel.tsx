@@ -7,6 +7,7 @@ import { RELATIONS, RELATION_KINDS, isUml } from "../../lib/uml/types";
 import { useText } from "../../i18n/locale";
 import { relationLabels, umlText } from "../../i18n/diagram";
 import { panelText } from "../../i18n/panel";
+import { dbText } from "../../i18n/database";
 import { LiveInput } from "./LiveInput";
 import { BackToCheck, Heading } from "./common";
 
@@ -20,9 +21,10 @@ export function EdgePanel({ edge: e, from, to }: { edge: DiagramEdge; from: Diag
     const t = useText(panelText), uml = useText(umlText), relations = useText(relationLabels);
     const kind = e.kind ?? "flow", rel = RELATIONS[kind];
     const guard = isGuard(e.id);
-    const withMultiplicity = [ "assoc", "dir", "aggr", "comp" ].includes(kind);
+    const withMultiplicity = [ "assoc", "dir", "aggr", "comp", "fk" ].includes(kind);
+    const db = useText(dbText);
     const change = useDiagram.getState().change;
-    const label = rel.seq ? t.message : from.type === "decision" ? t.guardLabel : t.label;
+    const label = rel.seq ? t.message : from.type === "decision" ? t.guardLabel : kind === "erl" ? db.cardinality : t.label;
     return <>
         <BackToCheck />
         <Heading eyebrow={t.connection} title={`${nodeName(from, uml)} → ${nodeName(to, uml)}`} />
@@ -36,17 +38,17 @@ export function EdgePanel({ edge: e, from, to }: { edge: DiagramEdge; from: Diag
             </select>
         </label>
         <label className={guard ? "field guard" : "field"}>{label}
-            <LiveInput id="f-label" placeholder={rel.seq ? t.messagePlaceholder : guard ? t.guardPlaceholder : t.optional}
+            <LiveInput id="f-label" placeholder={rel.seq ? t.messagePlaceholder : guard ? t.guardPlaceholder : kind === "erl" ? db.cardinalityPlaceholder : t.optional}
                 value={guard ? guardText(e.label) : e.label || ""}
                 write={(d, v) => {
                     findEdge(d, e.id)!.label = guard ? wrapGuard(v) : v;
                 }} />
         </label>
         {withMultiplicity && <div className="fields">
-            <label className="wide">{t.multiplicityStart}<LiveInput id="f-m1" placeholder="1" value={e.m1 ?? ""} write={(d, v) => {
+            <label className={kind === "fk" ? "full" : "wide"}>{kind === "fk" ? db.cardinalityStart(nodeName(from, uml)) : t.multiplicityStart}<LiveInput id="f-m1" placeholder="1" value={e.m1 ?? ""} write={(d, v) => {
                 findEdge(d, e.id)!.m1 = v;
             }} /></label>
-            <label>{t.multiplicityEnd}<LiveInput id="f-m2" placeholder="0..*" value={e.m2 ?? ""} write={(d, v) => {
+            <label className={kind === "fk" ? "full" : undefined}>{kind === "fk" ? db.cardinalityStart(nodeName(to, uml)) : t.multiplicityEnd}<LiveInput id="f-m2" placeholder={kind === "fk" ? "n" : "0..*"} value={e.m2 ?? ""} write={(d, v) => {
                 findEdge(d, e.id)!.m2 = v;
             }} /></label>
         </div>}

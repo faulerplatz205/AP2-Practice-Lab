@@ -1,33 +1,33 @@
-# Mitmachen
+# Contributing
 
-## Ablauf
+## Workflow
 
-1. Repository klonen, `npm install`, für die Browser-Tests einmalig `pip install playwright` und `python -m playwright install chromium`
-2. `npm start` und die Änderung in `src/` machen. Texte nur in `src/i18n/`, immer auf Deutsch und Englisch
-3. `npm test` ausführen (Typecheck, Unit-Tests, Build, Browser-Tests) und `npm run lint`
-4. Screenshots in `tests/output/` ansehen, bei Änderungen an der Oberfläche im hellen und dunklen Design
-5. Doku in `docs/` anpassen, wenn sich Verhalten ändert
-6. Commit-Nachricht nach dem Format in `CLAUDE.md`, Abschnitt **Commit Messages**
+1. Clone the repository, `npm install`, once for the browser tests `pip install playwright` and `python -m playwright install chromium`
+2. `npm start` and make the change in `src/`. Texts only in `src/i18n/`, always in German and English
+3. Run `npm test` (typecheck, unit tests, build, browser tests) and `npm run lint`
+4. Look at the screenshots in `tests/output/`, for UI changes in the light and dark theme
+5. Update the docs in `docs/` when behaviour changes
+6. Commit message in the format from `CLAUDE.md`, section **Commit Messages**
 
-`dist/` wird nicht committet, `npm run build` erzeugt es.
+`dist/` is not committed, `npm run build` creates it.
 
-## Mit Claude Code
+## With Claude Code
 
-`CLAUDE.md` enthält alles, was Claude über das Projekt wissen muss. Es reicht eine kurze Anweisung. Für wiederkehrende Aufgaben gibt es Skills:
+`CLAUDE.md` contains everything Claude needs to know about the project. A short instruction is enough. There are skills for recurring tasks:
 
-- `/new-element Kommunikationsdiagramm`
+- `/new-element communication diagram`
 - `/publish`
 
-Nach jeder Bearbeitung prüft ein Hook (`.claude/settings.json`) die geänderte Datei: TypeScript und ESLint bei `.ts`/`.tsx`, markdownlint bei `.md`.
+After every edit a hook (`.claude/settings.json`) checks the changed file: TypeScript and ESLint for `.ts`/`.tsx`, markdownlint for `.md`.
 
-## Was gern gesehen ist
+## Welcome Contributions
 
-- Neue Prüfregeln für typische Prüfungsfehler, mit Quelle oder Beispiel aus alten AP2-Aufgaben
-- Weitere Übungsarten, z. B. für Aktivitäts- oder Klassendiagramme oder neue Subnetting-Aufgaben
-- Fehlerberichte mit Schritten zum Nachstellen und einem Screenshot
+- New check rules for typical exam mistakes, with a source or example from past AP2 exams
+- More exercise kinds, e.g. for activity or class diagrams or new subnetting exercises
+- Bug reports with steps to reproduce and a screenshot
 
-## Was nicht hineingehört
+## What Does Not Belong Here
 
-- Änderungen an gespeicherten Schlüsseln, Feldnamen oder ids (siehe **Persistence** in `CLAUDE.md`). Sonst verlieren Nutzer ihre Pläne und Erfolge
-- Externe Skripte oder Server-Abhängigkeiten. Die App bleibt eine einzelne Datei
-- Bilder, die eine Person wegen ihres Aussehens oder Körpers vorführen
+- Changes to stored keys, field names or ids (see **Persistence** in `CLAUDE.md`). Otherwise users lose their plans and achievements
+- External scripts or server dependencies. The app stays a single file
+- Pictures that mock a person for their appearance or body

@@ -21,9 +21,9 @@ Logic that does not need React lives in `src/lib` and takes a `Diagram` as argum
 | Area | Component | Notes |
 | --- | --- | --- |
 | Top bar | `components/Toolbar/Toolbar.tsx` | workspace switch, tools, undo/redo, check, calculate, tidy, image, save, open, achievements, guide, new, language, theme |
-| Left sidebar | `components/Sidebar/Sidebar.tsx` | diagram kind menu (`#modeBtn`), palette tiles (`.tile[data-k]`), relations, example (`#exBtn`), network diagram tools |
+| Left sidebar | `components/Sidebar/Sidebar.tsx` | diagram kind menu (`#modeBtn`), palette tiles (`.tile[data-k]`), relations, example (`#exBtn`), network diagram tools (Gantt, activity list, exercise; „Berechnen“ only in the top bar, `#bCalc`) |
 | Canvas | `components/Canvas/Canvas.tsx` | `<svg id="svg">` with `World`, pointer handling, zoom, inline editor `#ed` |
-| Right panel | `components/Panel/Panel.tsx` | priority: selection => check result => short help of the diagram kind |
+| Right panel | `components/Panel/Panel.tsx` | priority: selection => check result => short help of the diagram kind. `#bPanel` folds it to a narrow strip (`useUi().panelOpen`, stored); `check()` unfolds it |
 | Dialogs | `components/Dialogs/Modal.tsx` | renders `useUi().dialog`; one component per dialog type |
 | Feedback | `components/Feedback/*` | toast, achievement/level popups, Rainer picture |
 | Subnetting | `components/Subnet/SubnetView.tsx` | replaces sidebar, canvas and panel when `workspace === "subnet"` |
@@ -35,7 +35,7 @@ Logic that does not need React lives in `src/lib` and takes a `Diagram` as argum
 | Store | File | Notes |
 | --- | --- | --- |
 | `useDiagram` | `state/diagramStore.ts` | drawing, undo/redo as JSON strings (max. 150), view, selection, tool, palette preset, inline editor, `checkActive`, `dirty` |
-| `useUi` | `state/uiStore.ts` | workspace, the one open dialog (`Dialog` union), toast, Rainer picture |
+| `useUi` | `state/uiStore.ts` | workspace, right panel folded or not (`panelOpen`), the one open dialog (`Dialog` union), toast, Rainer picture |
 | `useAchievements` | `state/achievementStore.ts` | progress, popups; `unlock(id)`, `bump(counter)` |
 | `usePlans` | `state/planStore.ts` | „Meine Pläne“; `persist()` writes list and current id together and returns `false` when storage is full |
 | `useSubnet` | `state/subnetStore.ts` | subnet inputs and trainer, not persisted |

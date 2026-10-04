@@ -251,6 +251,91 @@ function tidyActivities(d: Diagram): DiagramNode[] | null {
     return [ ...activities, ...loose ];
 }
 
+/**
+ * ER model: entities and relationships in a row in the order of their connections (wrapping after 7),
+ * attributes fanned out above and below their element.
+ */
+function tidyEr(d: Diagram): DiagramNode[] | null {
+    const core = d.nodes.filter(n => n.type === "entity" || n.type === "relship");
+    if (!core.length) return null;
+    const byId = new Map(d.nodes.map(n => [ n.id, n ]));
+    const neighbours = (n: DiagramNode): DiagramNode[] => d.edges
+        .filter(e => e.from === n.id || e.to === n.id)
+        .map(e => byId.get(e.from === n.id ? e.to : e.from))
+        .filter((m): m is DiagramNode => !!m);
+    // Walk the entity–relationship graph from the left-most element, so connected elements end up side by side
+    const order: DiagramNode[] = [];
+    for (const start of core.slice().sort((a, b) => a.x - b.x || a.y - b.y)) {
+        const stack = [ start ];
+        while (stack.length) {
+            const n = stack.pop()!;
+            if (order.includes(n)) continue;
+            order.push(n);
+            stack.push(...neighbours(n).filter(m => core.includes(m) && !order.includes(m)).sort((a, b) => b.x - a.x));
+        }
+    }
+    const x0 = Math.min(...core.map(n => n.x)), y0 = Math.min(...core.map(n => n.y));
+    const attrsOf = new Map(order.map(n => [ n.id, neighbours(n).filter(m => m.type === "erattr") ]));
+    const placed = new Set<number>();
+    let x = x0, row = 0;
+    order.forEach((n, i) => {
+        if (i && i % 7 === 0) {
+            x = x0;
+            row++;
+        }
+        const mine = attrsOf.get(n.id)!.filter(a => !placed.has(a.id));
+        const fan = Math.max(n.w, Math.ceil(mine.length / 2) * 130);
+        const cx = x + fan / 2, cy = y0 + 130 + row * 380;
+        n.x = snap(cx - n.w / 2);
+        n.y = snap(cy - n.h / 2);
+        mine.forEach((a, k) => {
+            const above = k % 2 === 0, slot = Math.floor(k / 2), count = above ? Math.ceil(mine.length / 2) : Math.floor(mine.length / 2);
+            a.x = snap(cx + (slot - (count - 1) / 2) * 130 - a.w / 2);
+            a.y = snap(cy + (above ? -110 : 110) - a.h / 2);
+            placed.add(a.id);
+        });
+        x += fan + 70;
+    });
+    const loose = d.nodes.filter(n => n.type === "erattr" && !placed.has(n.id));
+    loose.forEach((a, k) => {
+        a.x = snap(x0 + k * 140);
+        a.y = snap(y0 + 130 + (row + 1) * 380);
+    });
+    return [ ...core, ...d.nodes.filter(n => n.type === "erattr") ];
+}
+
+/** Layers `tables` with the referenced table (1 side) above the one holding the foreign key; top left corner at (left, top). Mutates the nodes. */
+export function arrangeTables(d: Diagram, tables: DiagramNode[], left: number, top: number): void {
+    if (!tables.length) return;
+    tables.forEach(fitToContent);
+    const ids = new Set(tables.map(n => n.id));
+    const many = (m?: string): boolean => /^(?:[nm*]|.*\.\.[nm*]|.*,\s*[nm*]\s*\))$/i.test(String(m ?? "").trim());
+    const edges: [number, number][] = d.edges
+        .filter(e => e.kind === "fk" && ids.has(e.from) && ids.has(e.to))
+        .map(e => many(e.m1) && !many(e.m2) ? [ e.to, e.from ] : [ e.from, e.to ]);
+    layered(tables, edges, { gx: 70, gy: 80, top: true });
+    const dx = left - Math.min(...tables.map(n => n.x)), dy = top - Math.min(...tables.map(n => n.y));
+    tables.forEach(n => {
+        n.x = snap(n.x + dx);
+        n.y = snap(n.y + dy);
+    });
+}
+
+/** Table model: data tables at the top, below them the tables (see `arrangeTables`). */
+function tidyTables(d: Diagram): DiagramNode[] | null {
+    const tables = d.nodes.filter(n => n.type === "table"), sheets = d.nodes.filter(n => n.type === "sheet");
+    if (!tables.length && !sheets.length) return null;
+    const top = Math.min(...[ ...tables, ...sheets ].map(n => n.y)), left = Math.min(...[ ...tables, ...sheets ].map(n => n.x));
+    let y = top;
+    for (const s of sheets) {
+        s.x = snap(left);
+        s.y = snap(y);
+        y += s.h + 50;
+    }
+    arrangeTables(d, tables, left, y);
+    return [ ...sheets, ...tables ];
+}
+
 /** Notes to the right of their element. */
 function tidyNotes(d: Diagram): void {
     const byId = new Map(d.nodes.map(n => [ n.id, n ]));
@@ -266,7 +351,7 @@ function tidyNotes(d: Diagram): void {
 /** Several diagrams on one canvas end up side by side without overlapping. Mutates `d`. */
 export function tidyDiagram(d: Diagram): void {
     const groups: DiagramNode[][] = [];
-    for (const step of [ tidyActivities, tidyFlow, tidyUseCase, tidyClasses, tidySequence ]) {
+    for (const step of [ tidyActivities, tidyFlow, tidyUseCase, tidyClasses, tidySequence, tidyEr, tidyTables ]) {
         const group = step(d);
         if (group?.length) groups.push(group);
     }

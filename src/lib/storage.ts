@@ -37,4 +37,5 @@ export const KEYS = {
     locale: "-lang",
     theme: "-theme",
     workspace: "-workspace",
+    panel: "-panel",
 } as const;

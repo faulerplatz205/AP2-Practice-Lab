@@ -50,6 +50,14 @@ export const modeText = defineText({
             label: "Paketdiagramm",
             tips: [ "Pakete setzen und Abhängigkeiten ziehen." ],
         },
+        er: {
+            label: "ER-Modell",
+            tips: [ "Entitäten (Rechteck) setzen und über eine Beziehung (Raute) verbinden.", "Kardinalität (1, n, m) an jede Linie zwischen Entität und Raute schreiben: Doppelklick auf die Linie.", "Attribute (Ellipse) anhängen, den Schlüssel als Schlüsselattribut (unterstrichen)." ],
+        },
+        rel: {
+            label: "Tabellenmodell",
+            tips: [ "Tabelle setzen, Doppelklick in die Spalten. Eine Zeile pro Spalte, z. B. „PK kundenNr INT“ oder „FK plz CHAR(5)“.", "Tabellen mit „Beziehung (1:n)“ verbinden, 1 und n stehen an den Enden.", "m:n über eine Zwischentabelle auflösen. Der Fremdschlüssel steht in der n-Tabelle." ],
+        },
         frei: {
             label: "Freies Zeichnen",
             tips: [ "Formen und Texte frei setzen und verbinden." ],
@@ -93,6 +101,12 @@ export const modeText = defineText({
         diamond: "Raute",
         text: "Text",
         note: "Notiz",
+        entity: "Entität",
+        relationship: "Beziehung",
+        attribute: "Attribut",
+        keyAttribute: "Schlüsselattribut",
+        table: "Tabelle",
+        sheet: "Datentabelle",
     },
     /** Default texts of palette items with presets */
     presets: {
@@ -102,6 +116,7 @@ export const modeText = defineText({
         enumName: "Status",
         enumValues: "OFFEN\nBEZAHLT\nVERSENDET",
         stateActivities: "entry / öffnen()\ndo / warten()\nexit / schließen()",
+        keyAttribute: "ID",
     },
 }, {
     modes: {
@@ -144,6 +159,14 @@ export const modeText = defineText({
         pak: {
             label: "Package diagram",
             tips: [ "Place packages and draw dependencies." ],
+        },
+        er: {
+            label: "ER model",
+            tips: [ "Place entities (rectangle) and connect them through a relationship (diamond).", "Write the cardinality (1, n, m) on every line between entity and diamond: double-click the line.", "Attach attributes (ellipse); the key as key attribute (underlined)." ],
+        },
+        rel: {
+            label: "Table model",
+            tips: [ "Place a table and double-click into the columns. One line per column, e.g. “PK customerNo INT” or “FK zip CHAR(5)”.", "Connect tables with “Relationship (1:n)”; 1 and n are at the ends.", "Resolve m:n with a junction table. The foreign key goes into the n table." ],
         },
         frei: {
             label: "Free drawing",
@@ -188,6 +211,12 @@ export const modeText = defineText({
         diamond: "Diamond",
         text: "Text",
         note: "Note",
+        entity: "Entity",
+        relationship: "Relationship",
+        attribute: "Attribute",
+        keyAttribute: "Key attribute",
+        table: "Table",
+        sheet: "Data table",
     },
     presets: {
         abstractClass: "Vehicle",
@@ -196,6 +225,7 @@ export const modeText = defineText({
         enumName: "Status",
         enumValues: "OPEN\nPAID\nSHIPPED",
         stateActivities: "entry / open()\ndo / wait()\nexit / close()",
+        keyAttribute: "ID",
     },
 });
 

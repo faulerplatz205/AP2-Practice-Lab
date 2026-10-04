@@ -1,5 +1,7 @@
 import { type ReactElement, useMemo } from "react";
 import { useDiagram } from "../../state/diagramStore";
+import { useUi } from "../../state/uiStore";
+import { Icon } from "../Icon";
 import { runCheck } from "../../lib/check";
 import { findEdge, findNode, isActivity } from "../../lib/diagram";
 import { isUml } from "../../lib/uml/types";
@@ -17,6 +19,7 @@ export function Panel(): ReactElement {
     const doc = useDiagram(s => s.doc);
     const selection = useDiagram(s => s.selection);
     const checkActive = useDiagram(s => s.checkActive);
+    const panelOpen = useUi(s => s.panelOpen);
     const t = useText(panelText);
     // The check messages are texts in the current language: recompute on a language switch
     const locale = useLocale(s => s.locale);
@@ -36,6 +39,26 @@ export function Panel(): ReactElement {
     } else {
         content = <HelpPanel />;
     }
+    if (!panelOpen) {
+        return (
+            <aside className="panel folded" id="panel" aria-label={t.ariaLabel}>
+                <PanelToggle open={false} title={t.unfold} />
+            </aside>
+        );
+    }
     // key: rebuild the inputs when another element is selected
-    return <aside className="panel" id="panel" aria-label={t.ariaLabel} key={selection ? `${selection.kind}${selection.id}` : "none"}>{content}</aside>;
+    return (
+        <aside className="panel" id="panel" aria-label={t.ariaLabel} key={selection ? `${selection.kind}${selection.id}` : "none"}>
+            <PanelToggle open title={t.fold} />
+            {content}
+        </aside>
+    );
+}
+
+function PanelToggle({ open, title }: { open: boolean; title: string }): ReactElement {
+    return (
+        <button type="button" className="btn pfold" id="bPanel" title={title} aria-label={title} aria-expanded={open} onClick={() => useUi.getState().setPanelOpen(!open)}>
+            <Icon name="chevron" size={16} />
+        </button>
+    );
 }

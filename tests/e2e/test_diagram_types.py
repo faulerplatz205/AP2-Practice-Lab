@@ -27,7 +27,7 @@ async def main():
         S = lambda: pg.evaluate("JSON.parse(localStorage.getItem('netzplan-zeichner-v1'))")
         A = lambda: pg.evaluate("JSON.parse(localStorage.getItem('netzplan-zeichner-v1-ach')||'{}')")
         ok(await pg.title() == 'AP2 Practice Lab', 'Title AP2 Practice Lab')
-        modes = ['netz', 'akt', 'uc', 'kl', 'seq', 'zu', 'obj', 'komp', 'vert', 'pak', 'frei']
+        modes = ['netz', 'akt', 'uc', 'kl', 'seq', 'zu', 'obj', 'komp', 'vert', 'pak', 'er', 'rel', 'frei']
         for m in modes:
             await pg.click('#bNew')
             await pg.click(f'[data-newmode="{m}"]')

@@ -89,12 +89,14 @@ export function guessMode(d: Pick<Diagram, "nodes">): DiagramMode {
         [ "komp", [ "component", "iface" ]],
         [ "vert", [ "node3d", "artifact" ]],
         [ "pak", [ "package" ]],
+        [ "er", [ "entity", "relship", "erattr" ]],
+        [ "rel", [ "table", "sheet" ]],
     ];
     for (const [ mode, types ] of byType) if (types.some(x => t.has(x))) return mode;
     return t.size ? "frei" : "netz";
 }
 
-const ALL_MODES: DiagramMode[] = [ "netz", "akt", "uc", "kl", "seq", "zu", "obj", "komp", "vert", "pak", "frei" ];
+const ALL_MODES: DiagramMode[] = [ "netz", "akt", "uc", "kl", "seq", "zu", "obj", "komp", "vert", "pak", "er", "rel", "frei" ];
 
 /** Migrates loaded data (storage, file, older versions) to the current shape; new fields get their defaults here. */
 export function normalize(raw: unknown): Diagram {
@@ -105,6 +107,7 @@ export function normalize(raw: unknown): Diagram {
     const next = Math.max(d.next ?? 1, 1, ...nodes.map(n => n.id + 1), ...edges.map(e => e.id + 1));
     const out: Diagram = { nodes, edges, next, cfg: { start: d.cfg?.start === 1 ? 1 : 0, mode } };
     if (d.task) out.task = d.task;
+    if (d.norm) out.norm = d.norm;
     return out;
 }
 

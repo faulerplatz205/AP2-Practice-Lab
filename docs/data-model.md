@@ -10,7 +10,8 @@ const doc: Diagram = {
     edges: [ /* DiagramEdge */ ],
     next: 42,                        // next free id for nodes and edges
     cfg: { start: 0, mode: "netz" },
-    task: { mode: "calc", list: [], usedCalc: false, done: false }, // only during an exercise
+    task: { mode: "calc", list: [], usedCalc: false, done: false }, // only during a network diagram exercise
+    norm: { id: "invoice", shown: false, done: false }, // only during a normalisation exercise
 };
 ```
 
@@ -19,7 +20,7 @@ const doc: Diagram = {
 | Field | Values | Meaning |
 | --- | --- | --- |
 | `start` | `0` or `1` | counting mode of the network diagram |
-| `mode` | `netz`, `akt`, `uc`, `kl`, `seq`, `zu`, `obj`, `komp`, `vert`, `pak`, `frei` | selected diagram kind, controls the left sidebar |
+| `mode` | `netz`, `akt`, `uc`, `kl`, `seq`, `zu`, `obj`, `komp`, `vert`, `pak`, `er`, `rel`, `frei` | selected diagram kind, controls the left sidebar |
 
 If `mode` is missing or unknown (older plans), `guessMode()` derives it from the node types.
 
@@ -46,15 +47,15 @@ If `mode` is missing or unknown (older plans), `guessMode()` derives it from the
 | `x`, `y`, `w`, `h` | number | all | position and size in world coordinates |
 | `fill` | 0 to 4 | all | fill color: default, blue, green, yellow, red (`FILLS`) |
 | `text` | string | all | name or label, multi-line with `\n`; empty for `np` |
-| `attrs` | string | `class`, `object`, `state`, `fragment` | attributes, attribute values, state activities or guard, one per line |
+| `attrs` | string | `class`, `object`, `state`, `fragment`, `table`, `sheet` | attributes, attribute values, state activities, guard, table columns (`PK kundenNr INT`) or data rows (cells separated by a vertical bar), one per line |
 | `ops` | string | `class` | operations, one per line |
-| `stereo` | string | `class` | empty, `abstract`, `interface` or `enum` |
+| `stereo` | string | `class`, `erattr` | class: empty, `abstract`, `interface` or `enum`; ER attribute: empty, `key`, `multi` or `derived` |
 | `align` | `"left"` | `text` | left-aligned text, e.g. for exercise texts |
 | `f` | object | `np` | `nr`, `name`, `d`, `faz`, `fez`, `saz`, `sez`, `gp`, `fp`, all strings |
 
 Network diagram values are strings because fields may be empty or wrong. `num()` reads them with comma or dot, `fmt()` writes at most two decimals with a decimal comma. The keys follow the German IHK terms: `faz`/`fez`/`saz`/`sez`/`gp`/`fp` = ES/EF/LS/LF/TF/FF.
 
-UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end`, `flowend`, `action`, `decision`, `bar`, `signal`, `accept`, `objnode`, `lane`, `state`, `lifeline`, `actline`, `activation`, `fragment`, `component`, `iface`, `node3d`, `artifact`, `package`, `note`.
+UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end`, `flowend`, `action`, `decision`, `bar`, `signal`, `accept`, `objnode`, `lane`, `state`, `lifeline`, `actline`, `activation`, `fragment`, `component`, `iface`, `node3d`, `artifact`, `package`, `note`, and for databases `entity`, `relship` (relationship diamond), `erattr` (ER attribute), `table`, `sheet` (data table).
 
 ### Edges (`DiagramEdge`)
 
@@ -66,7 +67,7 @@ UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end
 | `y` | number | messages only: height relative to the top of the sender |
 | `m1`, `m2` | string | multiplicity at the start and the end |
 
-Relation kinds: `flow`, `assoc`, `dir`, `inherit`, `realize`, `aggr`, `comp`, `dep`, `include`, `extend`, `msg`, `async`, `reply`, `anchor` (note link).
+Relation kinds: `flow`, `assoc`, `dir`, `inherit`, `realize`, `aggr`, `comp`, `dep`, `include`, `extend`, `msg`, `async`, `reply`, `anchor` (note link), `erl` (ER line, cardinality in `label`), `fk` (table relationship, cardinalities in `m1`/`m2`).
 
 ### Exercise (`task`)
 
@@ -76,6 +77,14 @@ Relation kinds: `flow`, `assoc`, `dir`, `inherit`, `realize`, `aggr`, `comp`, `d
 | `list` | `{nr, name, d, pred}` rows of the activity list |
 | `usedCalc` | „Berechnen“ was used; part of the drawing, so undo takes it back |
 | `done` | already counted as solved |
+
+### Normalisation Exercise (`norm`)
+
+| Field | Meaning |
+| --- | --- |
+| `id` | scenario: `invoice`, `course` or `project` (`NORM_SCENARIOS` in `src/data/normalization.ts`); never renamed |
+| `shown` | the model solution was inserted |
+| `done` | „Prüfen“ found the third normal form |
 
 ## Browser Storage
 
@@ -91,6 +100,7 @@ All keys start with `netzplan-zeichner-v1` (`STORAGE_KEY`). Suffixes are in `KEY
 | `netzplan-zeichner-v1-lang` | `de` or `en` |
 | `netzplan-zeichner-v1-theme` | `system`, `light` or `dark` |
 | `netzplan-zeichner-v1-workspace` | `draw` or `subnet` |
+| `netzplan-zeichner-v1-panel` | `open` or `closed` (right panel); missing => open |
 
 The subnet inputs and the trainer are not stored.
 

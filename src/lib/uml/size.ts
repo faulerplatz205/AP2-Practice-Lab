@@ -1,6 +1,7 @@
 import type { DiagramNode } from "../../types/diagram";
 import { snap } from "../math";
 import { lines } from "./types";
+import { sheetLayout, tableLayout } from "../db/columns";
 
 export interface ClassLayout {
     headerH: number;
@@ -33,6 +34,14 @@ export function fitToContent(n: DiagramNode): void {
         const attrs = n.attrs ? lines(n.attrs) : [];
         n.w = Math.max(n.w, snap(Math.max(n.text.length * 8.6, ...attrs.map(l => l.length * 7.2)) + 24));
         n.h = 30 + (attrs.length ? attrs.length * LINE + 10 : 14);
+    } else if (n.type === "table") {
+        const L = tableLayout(n);
+        n.w = Math.max(n.w, snap(L.width));
+        n.h = L.height;
+    } else if (n.type === "sheet") {
+        const L = sheetLayout(n);
+        n.w = snap(L.width + 5);
+        n.h = L.height;
     } else if (n.type === "state" && n.attrs) {
         n.h = Math.max(n.h, 38 + lines(n.attrs).length * LINE + 6);
     }

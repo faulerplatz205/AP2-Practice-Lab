@@ -27,12 +27,13 @@ export type UmlNodeType =
     | "start" | "end" | "flowend" | "action" | "decision" | "bar"
     | "signal" | "accept" | "objnode" | "lane" | "state"
     | "lifeline" | "actline" | "activation" | "fragment"
-    | "component" | "iface" | "node3d" | "artifact" | "package" | "note";
+    | "component" | "iface" | "node3d" | "artifact" | "package" | "note"
+    | "entity" | "relship" | "erattr" | "table" | "sheet";
 
 export type NodeType = GenericNodeType | UmlNodeType;
 
-/** Empty = normal class. */
-export type Stereotype = "" | "abstract" | "interface" | "enum";
+/** Empty = normal class or attribute. ER attributes: "key" (underlined), "multi" (double ellipse), "derived" (dashed). */
+export type Stereotype = "" | "abstract" | "interface" | "enum" | "key" | "multi" | "derived";
 
 export interface DiagramNode {
     id: number;
@@ -55,7 +56,9 @@ export type ActivityNode = DiagramNode & { type: "np"; f: ActivityFields };
 
 export type RelationKind =
     | "flow" | "assoc" | "dir" | "inherit" | "realize" | "aggr" | "comp"
-    | "dep" | "include" | "extend" | "msg" | "async" | "reply" | "anchor";
+    | "dep" | "include" | "extend" | "msg" | "async" | "reply" | "anchor"
+    /** ER line (cardinality in `label`) and table relation (1/n in `m1`/`m2`) */
+    | "erl" | "fk";
 
 export interface DiagramEdge {
     id: number;
@@ -72,7 +75,7 @@ export interface DiagramEdge {
     m2?: string;
 }
 
-export type DiagramMode = "netz" | "akt" | "uc" | "kl" | "seq" | "zu" | "obj" | "komp" | "vert" | "pak" | "frei";
+export type DiagramMode = "netz" | "akt" | "uc" | "kl" | "seq" | "zu" | "obj" | "komp" | "vert" | "pak" | "er" | "rel" | "frei";
 
 export interface DiagramConfig {
     /** Counting mode of the network diagram: start at 0 or at 1 */
@@ -95,6 +98,15 @@ export interface Exercise {
     done?: boolean;
 }
 
+/** Normalisation exercise: the scenario is defined in src/data/normalization.ts */
+export interface NormExercise {
+    /** Scenario id, never renamed */
+    id: string;
+    /** Model solution was inserted */
+    shown?: boolean;
+    done?: boolean;
+}
+
 export interface Diagram {
     nodes: DiagramNode[];
     edges: DiagramEdge[];
@@ -102,6 +114,7 @@ export interface Diagram {
     next: number;
     cfg: DiagramConfig;
     task?: Exercise;
+    norm?: NormExercise;
 }
 
 export interface Rect {

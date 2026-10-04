@@ -20,7 +20,7 @@ interface Example {
 
 /** Examples in one language. Each passes the check without errors (see tests/e2e/test_uml.py). */
 function buildExamples(t: ExampleTexts): Record<ExampleKey, Example> {
-    const a = t.activity, u = t.useCase, c = t.class, s = t.sequence, z = t.state;
+    const a = t.activity, u = t.useCase, c = t.class, s = t.sequence, z = t.state, e = t.er, r = t.rel;
     return {
         activity: {
             nodes: [
@@ -67,6 +67,28 @@ function buildExamples(t: ExampleTexts): Record<ExampleKey, Example> {
                 [ "end", 300, 450 ], [ "state", 560, 230, { text: z.cancelled }], [ "end", 560, 350 ],
             ],
             edges: [[ 0, 1 ], [ 1, 2, z.pay ], [ 2, 3, z.ship ], [ 3, 4, z.deliver ], [ 1, 5, z.cancel ], [ 5, 6 ]],
+        },
+        er: {
+            nodes: [
+                [ "entity", 120, 200, { text: e.customer }], [ "relship", 340, 200, { text: e.orders }], [ "entity", 560, 200, { text: e.order }],
+                [ "relship", 780, 200, { text: e.contains }], [ "entity", 1000, 200, { text: e.article }],
+                [ "erattr", 60, 80, { text: e.customerNo, stereo: "key" }], [ "erattr", 190, 80, { text: e.name }],
+                [ "erattr", 500, 80, { text: e.orderNo, stereo: "key" }], [ "erattr", 630, 80, { text: e.date }],
+                [ "erattr", 930, 80, { text: e.articleNo, stereo: "key" }], [ "erattr", 1070, 80, { text: e.description, w: 130 }],
+                [ "erattr", 1000, 320, { text: e.price }], [ "erattr", 780, 320, { text: e.quantity }],
+            ],
+            edges: [
+                [ 0, 1, "1", "erl" ], [ 1, 2, "n", "erl" ], [ 2, 3, "m", "erl" ], [ 3, 4, "n", "erl" ],
+                [ 5, 0, "", "erl" ], [ 6, 0, "", "erl" ], [ 7, 2, "", "erl" ], [ 8, 2, "", "erl" ],
+                [ 9, 4, "", "erl" ], [ 10, 4, "", "erl" ], [ 11, 4, "", "erl" ], [ 12, 3, "", "erl" ],
+            ],
+        },
+        rel: {
+            nodes: [
+                [ "table", 140, 100, { text: r.customer, attrs: r.customerCols }], [ "table", 480, 100, { text: r.order, attrs: r.orderCols }],
+                [ "table", 480, 320, { text: r.line, attrs: r.lineCols }], [ "table", 820, 320, { text: r.article, attrs: r.articleCols }],
+            ],
+            edges: [[ 1, 0, "", "fk", { m1: "n", m2: "1" }], [ 2, 1, "", "fk", { m1: "n", m2: "1" }], [ 2, 3, "", "fk", { m1: "n", m2: "1" }]],
         },
     };
 }

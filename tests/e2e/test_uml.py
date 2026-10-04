@@ -12,6 +12,8 @@ async def insert_example(pg, ex):
     await pg.click('#modeBtn')
     await pg.click(f'[data-mode="{MODE[ex]}"]')
     await pg.click('#exBtn')
+    # the app fits the view in the next animation frame; measure only after that
+    await pg.evaluate("new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
 
 
 async def tile(pg, mode, i):
@@ -46,7 +48,7 @@ async def main():
         A = lambda: pg.evaluate("JSON.parse(localStorage.getItem('netzplan-zeichner-v1-ach')||'{}')")
         # palette
         await pg.click('#modeBtn')
-        ok(await pg.locator('[data-mode]').count() == 11, 'Diagram kind picker with 11 kinds')
+        ok(await pg.locator('[data-mode]').count() == 13, 'Diagram kind picker with 13 kinds')
         await pg.click('[data-mode="akt"]')
         ok(await pg.locator('.side .tile[data-k^="m"]').count() == 11 and 'Startknoten' in await pg.inner_text('#side')
            and 'Vorgang' not in await pg.inner_text('.side .tiles'), 'Activity shows only its elements')
@@ -57,7 +59,7 @@ async def main():
         await pg.click('#modeBtn')
         await pg.click('[data-mode="netz"]')
         t = await pg.inner_text('#side')
-        ok('Vorgang' in t and 'Berechnen' in t and 'Gantt' in t, 'Network diagram shows activity node and network tools')
+        ok('Vorgang' in t and 'Gantt' in t and 'Berechnen' not in t, 'Network diagram shows activity node and network tools ("Berechnen" only in the top bar)')
         await pg.screenshot(path=out('u1.png'))
         # examples: each should check clean
         for ex, kind in [('activity', 'Aktivitätsdiagramm'), ('usecase', 'Use-Case-Diagramm'), ('class', 'Klassendiagramm'),

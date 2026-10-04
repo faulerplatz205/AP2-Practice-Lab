@@ -95,6 +95,16 @@ async def main():
         ok('Netzplan stimmt' in t, 'Check updates after calculating')
         await pg.click('[data-start="0"]')
         await pg.click('#bCalc')
+        ok(await pg.locator('#bCalc').count() == 1, '"Berechnen" exists only once (top bar)')
+        # fold the right panel; it stays folded after a reload and "Prüfen" unfolds it
+        await pg.click('#bPanel')
+        ok(await pg.locator('#panel.folded').count() == 1 and 'Netzplan stimmt' not in await pg.inner_text('#panel'), 'Panel can be folded')
+        await pg.reload()
+        ok(await pg.locator('#panel.folded').count() == 1, 'Folded panel is remembered')
+        await pg.click('#bCheck')
+        ok(await pg.locator('#panel.folded').count() == 0 and 'Netzplan stimmt' in await pg.inner_text('#panel'), '"Prüfen" unfolds the panel')
+        # the reload fitted the view to the wider canvas; fit again so no node is hidden behind the panel
+        await pg.click('#zFit')
         # arrow by click-click
         await pg.click('#cClose')
         await pg.click('[data-tool="arrow"]')
