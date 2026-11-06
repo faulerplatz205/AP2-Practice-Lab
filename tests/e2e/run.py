@@ -4,6 +4,7 @@
     python3 tests/e2e/run.py                # all
     python3 tests/e2e/run.py uml rainer     # only suites whose name contains one of the words
 """
+import os
 import subprocess
 import sys
 import time
@@ -17,7 +18,8 @@ if len(sys.argv) > 1:
 failed = []
 for s in suites:
     t = time.time()
-    r = subprocess.run([sys.executable, s.name], cwd=s.parent, capture_output=True, text=True)
+    r = subprocess.run([sys.executable, s.name], cwd=s.parent, capture_output=True, text=True, encoding='utf-8',
+                       env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
     fails = [line for line in r.stdout.splitlines() if line.startswith('FAIL ')]
     good = r.returncode == 0 and not fails
     print(f"{'ok  ' if good else 'FAIL'} {s.stem:<24} {time.time() - t:5.1f}s")

@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { useDiagram } from "../../state/diagramStore";
 import { useUi } from "../../state/uiStore";
+import { exportGanttImage } from "../../state/exportImage";
 import { buildGraph } from "../../lib/netzplan/graph";
 import { solve } from "../../lib/netzplan/solve";
 import { byNr, fmt } from "../../lib/math";
@@ -57,6 +58,10 @@ export function GanttDialog(): ReactElement {
             <span><i style={{ background: "var(--accent)" }} />{t.withFloat}</span>
             <span><i style={{ border: "1px solid var(--muted)", backgroundImage: "repeating-linear-gradient(45deg,var(--muted) 0 1.5px,transparent 1.5px 4px)" }} />{t.totalFloat}</span>
         </div>
-        <div className="row"><button className="btn primary" id="mClose" onClick={close}>{common.close}</button></div>
+        <div className="row">
+            <button className="btn ghost" id="mGanttImg" title={t.imageTitle} onClick={() => void exportGanttImage()}>{t.image}</button>
+            <span className="sep" />
+            <button className="btn primary" id="mClose" onClick={close}>{common.close}</button>
+        </div>
     </>;
 }

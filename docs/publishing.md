@@ -33,7 +33,7 @@ With Claude Code in the repository:
 
 ## Without Claude
 
-`dist/index.html` also works when opened directly in a browser or from any web space. Only saving through the download dialog is missing there; the app shows the text for copying instead. „Meine Pläne“ and everything else work everywhere.
+`dist/index.html` also works when opened directly in a browser or as a self-hosted website (any static web space, no server code). There is no `window.claude`, so the download menu uses a normal browser download (`browserDownload()` in `src/lib/downloads.ts`) for the plan file, PNG and PDF. „Meine Pläne“ and everything else work everywhere. The browser storage of the website is separate from the artifact's: plans move between them only as a downloaded `.json` file.
 
 ## Size
 

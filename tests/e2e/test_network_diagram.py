@@ -164,6 +164,10 @@ async def main():
         await pg.click('#bGantt')
         ok(await pg.locator('.gantt svg rect').count() > 7, 'Gantt chart shown')
         await pg.screenshot(path=out('s3.png'))
+        await pg.click('#mGanttImg')
+        await pg.wait_for_timeout(700)
+        ok(await pg.locator('.dlg img').count() == 1 and await pg.locator('#mPdf').count() == 1, 'Gantt chart as image with PDF option')
+        await pg.screenshot(path=out('gantt_img.png'))
         await pg.click('#mClose')
         # drawing exercise
         await pg.click('#bTask')
@@ -205,12 +209,10 @@ async def main():
                 break
         else:
             ok(True, '15 random tasks: one start/end each, no redundant arrows, solvable')
-        await pg.click('#bImg')
-        await pg.wait_for_timeout(800)
-        ok(await pg.locator('#dlg img').count() == 1 or 'kopiert' in await pg.inner_text('#toast'),
-           'Image export (copy or image dialog)')
-        if not await pg.locator('#modal').is_hidden():
-            await pg.keyboard.press('Escape')
+        await pg.click('#bDownload')
+        async with pg.expect_download() as dl:
+            await pg.click('#dlPng')
+        ok((await dl.value).suggested_filename.endswith('.png'), 'Image export (PNG download)')
         # dark mode screenshot
         await pg.emulate_media(color_scheme='dark')
         await pg.click('#bTask')

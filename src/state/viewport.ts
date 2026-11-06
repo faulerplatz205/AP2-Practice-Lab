@@ -1,5 +1,5 @@
 import type { Point, Rect } from "../types/diagram";
-import { diagramBox } from "../lib/diagram";
+import { contentBox } from "../lib/uml/labels";
 import { clamp } from "../lib/math";
 import { useDiagram } from "./diagramStore";
 
@@ -36,7 +36,7 @@ export function zoomCenter(k: number): void {
 /** Shows `box` (or the whole drawing) as large as possible and centred. */
 export function fitView(box?: Rect | null): void {
     const { doc, set } = useDiagram.getState();
-    const b = box ?? diagramBox(doc);
+    const b = box ?? contentBox(doc);
     const r = canvas?.getBoundingClientRect();
     if (!b || !r) {
         set({ view: { x: 40, y: 40, z: 1 } });

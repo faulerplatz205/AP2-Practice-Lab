@@ -78,7 +78,7 @@ function buildExamples(t: ExampleTexts): Record<ExampleKey, Example> {
                 [ "erattr", 1000, 320, { text: e.price }], [ "erattr", 780, 320, { text: e.quantity }],
             ],
             edges: [
-                [ 0, 1, "1", "erl" ], [ 1, 2, "n", "erl" ], [ 2, 3, "m", "erl" ], [ 3, 4, "n", "erl" ],
+                [ 0, 1, "1", "erl" ], [ 1, 2, "n", "erl" ], [ 2, 3, "n", "erl" ], [ 3, 4, "m", "erl" ],
                 [ 5, 0, "", "erl" ], [ 6, 0, "", "erl" ], [ 7, 2, "", "erl" ], [ 8, 2, "", "erl" ],
                 [ 9, 4, "", "erl" ], [ 10, 4, "", "erl" ], [ 11, 4, "", "erl" ], [ 12, 3, "", "erl" ],
             ],

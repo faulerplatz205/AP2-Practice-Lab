@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import type { DiagramNode } from "../../types/diagram";
 import { classLayout } from "../../lib/uml/size";
 import { lines } from "../../lib/uml/types";
-import { MultilineText, TextLines } from "./SvgText";
+import { MultilineText, TextLines, Underline } from "./SvgText";
 import { ErShape, SheetShape, TableShape } from "./DbShape";
 
 interface Props {
@@ -16,13 +16,16 @@ const line = { stroke: STROKE, strokeWidth: 1.4 };
 function Label({ x, y, children, size = 13, weight = "600", anchor = "middle", muted, italic, underline, mono }: {
     x: number; y: number; children: string; size?: number; weight?: string; anchor?: "start" | "middle"; muted?: boolean; italic?: boolean; underline?: boolean; mono?: boolean;
 }): ReactElement {
-    return <text x={x} y={y} textAnchor={anchor} fontSize={size} fontWeight={weight} fontStyle={italic ? "italic" : undefined} textDecoration={underline ? "underline" : undefined} fontFamily={mono ? "var(--fmono)" : "var(--fui)"} fill={muted ? "var(--muted)" : "var(--ink)"}>{children}</text>;
+    return <>
+        <text x={x} y={y} textAnchor={anchor} fontSize={size} fontWeight={weight} fontStyle={italic ? "italic" : undefined} fontFamily={mono ? "var(--fmono)" : "var(--fui)"} fill={muted ? "var(--muted)" : "var(--ink)"}>{children}</text>
+        {underline && <Underline text={children} x={x} y={y} size={size} weight={weight} anchor={anchor} mono={mono} />}
+    </>;
 }
 
 /** Coordinates are relative to the element: (0, 0) is its top left corner. */
 export function UmlShape({ node: n, fill }: Props): ReactElement | null {
     const { w, h } = n;
-    const centered = (size = 14): ReactElement => <MultilineText text={n.text} x={w / 2} y={h / 2} size={size} />;
+    const centered = (size = 14, width = w - 16): ReactElement => <MultilineText text={n.text} x={w / 2} y={h / 2} size={size} maxWidth={width} />;
 
     switch (n.type) {
         case "class": {
@@ -58,7 +61,7 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
             </>;
         }
         case "usecase":
-            return <><ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />{centered(13.5)}</>;
+            return <><ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />{centered(13.5, w * 0.74)}</>;
         case "boundary":
             return <><rect width={w} height={h} fill="transparent" {...line} /><Label x={w / 2} y={22} size={15} weight="700">{n.text}</Label></>;
         case "start":
@@ -81,9 +84,9 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
         case "bar":
             return <rect width={w} height={h} rx="2" fill={STROKE} />;
         case "signal":
-            return <><path d={`M0 0H${w - 18}L${w} ${h / 2}L${w - 18} ${h}H0Z`} fill={fill} {...line} strokeLinejoin="round" /><MultilineText text={n.text} x={(w - 18) / 2} y={h / 2} size={13.5} /></>;
+            return <><path d={`M0 0H${w - 18}L${w} ${h / 2}L${w - 18} ${h}H0Z`} fill={fill} {...line} strokeLinejoin="round" /><MultilineText text={n.text} x={(w - 18) / 2} y={h / 2} size={13.5} maxWidth={w - 40} /></>;
         case "accept":
-            return <><path d={`M0 0H${w}V${h}H0L18 ${h / 2}Z`} fill={fill} {...line} strokeLinejoin="round" /><MultilineText text={n.text} x={w / 2 + 9} y={h / 2} size={13.5} /></>;
+            return <><path d={`M0 0H${w}V${h}H0L18 ${h / 2}Z`} fill={fill} {...line} strokeLinejoin="round" /><MultilineText text={n.text} x={w / 2 + 9} y={h / 2} size={13.5} maxWidth={w - 40} /></>;
         case "objnode":
             return <><rect width={w} height={h} fill={fill} {...line} />{centered(13.5)}</>;
         case "lane":

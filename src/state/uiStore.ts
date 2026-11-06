@@ -12,7 +12,7 @@ export type Dialog =
     | { type: "saveAs" }
     | { type: "discard"; then: () => void }
     | { type: "exportText"; filename: string; data: string }
-    | { type: "image"; url: string; canvas: HTMLCanvasElement }
+    | { type: "image"; url: string; canvas: HTMLCanvasElement; title: string; file: string }
     | { type: "new" }
     | { type: "achievements"; tab: "ach" | "gal" }
     | { type: "guide"; chapter: number };

@@ -18,11 +18,12 @@ The app is a single HTML file without a server. It runs as a Claude Artifact or 
 - **Subnetting:** IPv4 calculator with binary view, splitting a network into equal subnets, VLSM by host demand, shortening and expanding IPv6 addresses, exercises with a check per field
 - **Achievements:** 27 achievements, 9 levels and a Rainer gallery with 9 unlockable pictures. Tip: type "rainer" anywhere
 - **My plans:** save plans under a name in the browser, open, rename, delete
-- **Export and import:** save a plan as a `.json` file and open it again (also by drag and drop), image as PNG
-- **German and English:** switch with `DE`/`EN` at the top right
-- **Light and dark:** theme like the system, always light or always dark
+- **Download and upload:** one download menu for the plan as `.json` file, image (PNG) and PDF; upload opens the `.json` file again (also by drag and drop). Works in the Claude artifact and as a plain website
+- **German and English:** switch at the top right under “Display”
+- **Light, dark, high contrast, accent color:** theme like the system, always light or always dark, optionally with high contrast and in blue or green (like the knowledge base)
+- **Knowledge base:** the short help links the matching article on [knowledge.moritz-grimm.dev](https://knowledge.moritz-grimm.dev) for every diagram kind
 
-The browser remembers language, theme and workspace.
+The browser remembers language, theme, contrast, accent color and workspace.
 
 ## Usage
 

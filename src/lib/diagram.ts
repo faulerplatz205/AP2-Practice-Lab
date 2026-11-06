@@ -1,7 +1,7 @@
 import type { ActivityNode, Diagram, DiagramEdge, DiagramMode, DiagramNode, NodeType, Rect } from "../types/diagram";
 import { snap } from "./math";
 import { boundingBox } from "./geometry";
-import { UML_TYPES, isUml } from "./uml/types";
+import { RELATIONS, UML_TYPES, isUml } from "./uml/types";
 import { text } from "../i18n/locale";
 import { diagramText, umlText } from "../i18n/diagram";
 
@@ -98,20 +98,82 @@ export function guessMode(d: Pick<Diagram, "nodes">): DiagramMode {
 
 const ALL_MODES: DiagramMode[] = [ "netz", "akt", "uc", "kl", "seq", "zu", "obj", "komp", "vert", "pak", "er", "rel", "frei" ];
 
-/** Migrates loaded data (storage, file, older versions) to the current shape; new fields get their defaults here. */
+const NODE_TYPES = new Set<string>([ ...Object.keys(GENERIC_SIZE), ...Object.keys(UML_TYPES) ]);
+
+const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/** A usable node, `null` when id, type or position are missing. Size, fill, text and activity fields get defaults. */
+function cleanNode(raw: unknown): DiagramNode | null {
+    if (!isObject(raw)) return null;
+    const n = raw as Partial<DiagramNode>;
+    if (!isNumber(n.id) || !NODE_TYPES.has(String(n.type)) || !isNumber(n.x) || !isNumber(n.y)) return null;
+    const type = n.type as NodeType;
+    const sized = isNumber(n.w) && n.w > 0 && isNumber(n.h) && n.h > 0;
+    const filled = isNumber(n.fill) && n.fill >= 0 && n.fill <= 4;
+    const activity = type !== "np" || isObject(n.f);
+    if (sized && filled && typeof n.text === "string" && activity) return n as DiagramNode;
+    const size = defaultSize(type);
+    const out = { ...n, type, w: sized ? n.w : size.w, h: sized ? n.h : size.h, fill: filled ? n.fill : 0, text: typeof n.text === "string" ? n.text : "" } as DiagramNode;
+    if (!activity) out.f = { nr: "", name: "", d: "", faz: "", fez: "", saz: "", sez: "", gp: "", fp: "" };
+    return out;
+}
+
+/** A usable edge between two existing nodes, else `null`. */
+function cleanEdge(raw: unknown, nodeIds: Set<number>): DiagramEdge | null {
+    if (!isObject(raw)) return null;
+    const e = raw as Partial<DiagramEdge>;
+    if (!isNumber(e.id) || !isNumber(e.from) || !isNumber(e.to) || !nodeIds.has(e.from) || !nodeIds.has(e.to)) return null;
+    if (e.kind !== undefined && !(e.kind in RELATIONS)) return null;
+    return typeof e.label === "string" ? e as DiagramEdge : { ...e, label: "" } as DiagramEdge;
+}
+
+/** Keeps the first entry per id. */
+function uniqueIds<T extends { id: number }>(items: T[]): T[] {
+    const seen = new Set<number>();
+    return items.filter(x => !seen.has(x.id) && !!seen.add(x.id));
+}
+
+/**
+ * Migrates loaded data (storage, file, older versions) to the current shape; new fields get their defaults here.
+ * Broken nodes and edges (no id, unknown type, line to a missing node) are dropped; valid ones are returned unchanged.
+ */
 export function normalize(raw: unknown): Diagram {
-    const d = raw as Partial<Diagram> & { cfg?: Partial<Diagram["cfg"]> };
-    const nodes = Array.isArray(d.nodes) ? d.nodes : [];
-    const edges = Array.isArray(d.edges) ? d.edges : [];
+    const d = (isObject(raw) ? raw : {}) as Partial<Diagram> & { cfg?: Partial<Diagram["cfg"]> };
+    const nodes = uniqueIds((Array.isArray(d.nodes) ? d.nodes : []).map(cleanNode).filter(n => n !== null));
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const edges = uniqueIds((Array.isArray(d.edges) ? d.edges : []).map(e => cleanEdge(e, nodeIds)).filter(e => e !== null));
     const mode = d.cfg?.mode && ALL_MODES.includes(d.cfg.mode) ? d.cfg.mode : guessMode({ nodes });
-    const next = Math.max(d.next ?? 1, 1, ...nodes.map(n => n.id + 1), ...edges.map(e => e.id + 1));
+    const next = Math.max(isNumber(d.next) ? d.next : 1, 1, ...nodes.map(n => n.id + 1), ...edges.map(e => e.id + 1));
     const out: Diagram = { nodes, edges, next, cfg: { start: d.cfg?.start === 1 ? 1 : 0, mode } };
-    if (d.task) out.task = d.task;
-    if (d.norm) out.norm = d.norm;
+    if (isObject(d.task)) out.task = d.task;
+    if (isObject(d.norm)) out.norm = d.norm;
     return out;
 }
 
 export function looksLikeDiagram(raw: unknown): boolean {
-    const d = raw as Partial<Diagram> | null;
-    return !!d && Array.isArray(d.nodes) && Array.isArray(d.edges);
+    return isObject(raw) && Array.isArray(raw.nodes) && Array.isArray(raw.edges);
+}
+
+export type PlanFileResult =
+    | { ok: true; diagram: Diagram; dropped: number }
+    | { ok: false; reason: "json" | "shape" };
+
+/** Reads the text of a plan file (.json export). `dropped` counts the broken nodes and edges left out. */
+export function parsePlanFile(content: string): PlanFileResult {
+    let data: unknown;
+    try {
+        data = JSON.parse(content);
+    } catch {
+        return { ok: false, reason: "json" };
+    }
+    if (!looksLikeDiagram(data)) return { ok: false, reason: "shape" };
+    const rest = { ...data as Record<string, unknown> };
+    delete rest.app;
+    delete rest.version;
+    const diagram = normalize(rest);
+    const given = (rest.nodes as unknown[]).length + (rest.edges as unknown[]).length;
+    const dropped = given - diagram.nodes.length - diagram.edges.length;
+    if (given && !diagram.nodes.length) return { ok: false, reason: "shape" };
+    return { ok: true, diagram, dropped };
 }

@@ -3,7 +3,8 @@ import clsx from "clsx";
 import { useDiagram } from "../../state/diagramStore";
 import { type SavedPlan, usePlans } from "../../state/planStore";
 import { useUi } from "../../state/uiStore";
-import { deletePlan, exportFile, openPlan, renamePlan, savePlan } from "../../state/actions";
+import { deletePlan, openPlan, renamePlan, savePlan } from "../../state/actions";
+import { download } from "../../state/download";
 import { MODES } from "../../data/modes";
 import { localeTag, useText } from "../../i18n/locale";
 import { dialogText, plansText } from "../../i18n/dialogs";
@@ -69,7 +70,7 @@ export function PlansDialog(): ReactElement {
             }}>{t.saveCurrent}</button>}
             <span className="sep" />
             <button className="btn ghost" id="mImport" onClick={() => document.getElementById("file")?.click()}>{t.importFile}</button>
-            {hasContent && <button className="btn ghost" id="mExport" onClick={() => void exportFile()}>{t.exportFile}</button>}
+            {hasContent && <button className="btn ghost" id="mExport" onClick={() => void download("json")}>{t.exportFile}</button>}
             <button className="btn" id="mClose" onClick={close}>{common.close}</button>
         </div>
         <p style={{ fontSize: 12.5 }}>{t.storageNote}</p>

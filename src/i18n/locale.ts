@@ -32,8 +32,9 @@ export const useLocale = create<LocaleState>()(set => ({
     setLocale: (locale): void => set({ locale }),
 }));
 
+/** Without a document (unit tests of the drawing logic) there is nothing to update. */
 function applyLocale(locale: Locale): void {
-    document.documentElement.lang = locale;
+    if (typeof document !== "undefined") document.documentElement.lang = locale;
 }
 
 applyLocale(useLocale.getState().locale);

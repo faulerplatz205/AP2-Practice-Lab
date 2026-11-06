@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 
 from common import APP, out, finish
 
-MODE = {'activity': 'akt', 'usecase': 'uc', 'class': 'kl', 'sequence': 'seq', 'state': 'zu'}
+MODE = {'activity': 'akt', 'usecase': 'uc', 'class': 'kl', 'sequence': 'seq', 'state': 'zu', 'er': 'er'}
 
 
 async def insert_example(pg, ex):
@@ -47,7 +47,7 @@ async def main():
         await pg.goto(APP)
         await pg.wait_for_timeout(500)
         await pg.keyboard.press('Escape')
-        for ex in ['activity', 'usecase', 'class', 'sequence', 'state']:
+        for ex in ['activity', 'usecase', 'class', 'sequence', 'state', 'er']:
             await pg.click('#bNew')
             await pg.click('#mYes')
             await insert_example(pg, ex)

@@ -18,11 +18,12 @@ Die App ist eine einzige HTML-Datei ohne Server. Sie läuft als Claude Artifact 
 - **Subnetting:** IPv4-Rechner mit Binäransicht, Netz in gleich große Subnetze aufteilen, VLSM nach Hostbedarf, IPv6 kürzen und ausschreiben, Übungsaufgaben mit Prüfung pro Feld
 - **Erfolge:** 27 Achievements, 9 Level und eine Rainer-Galerie mit 9 freischaltbaren Bildern. Tipp: irgendwo „rainer“ tippen
 - **Meine Pläne:** Pläne unter einem Namen im Browser speichern, öffnen, umbenennen, löschen
-- **Export und Import:** Plan als `.json`-Datei speichern und wieder öffnen (auch per Ziehen und Ablegen), Bild als PNG
-- **Deutsch und Englisch:** Umschalten mit `DE`/`EN` oben rechts
-- **Hell und dunkel:** Design wie das System, immer hell oder immer dunkel
+- **Herunterladen und Hochladen:** ein Menü für den Plan als `.json`-Datei, als Bild (PNG) und als PDF; Hochladen öffnet die `.json`-Datei wieder (auch per Ziehen und Ablegen). Funktioniert im Claude-Artifact und als normale Webseite
+- **Deutsch und Englisch:** Umschalten oben rechts unter „Darstellung“
+- **Hell, dunkel, hoher Kontrast, Akzentfarbe:** Design wie das System, immer hell oder immer dunkel, wahlweise mit hohem Kontrast und in Blau oder Grün (wie die Wissensdatenbank)
+- **Wissensdatenbank:** Die Kurzhilfe verlinkt zu jeder Diagrammart den passenden Artikel auf [knowledge.moritz-grimm.dev](https://knowledge.moritz-grimm.dev)
 
-Sprache, Design und Arbeitsbereich merkt sich der Browser.
+Sprache, Design, Kontrast, Akzentfarbe und Arbeitsbereich merkt sich der Browser.
 
 ## Benutzen
 

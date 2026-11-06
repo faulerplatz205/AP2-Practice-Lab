@@ -30,7 +30,7 @@ export function Modal(): ReactElement {
         case "saveAs": body = <SaveAsDialog />; break;
         case "discard": body = <DiscardDialog then={dialog.then} />; break;
         case "exportText": body = <ExportTextDialog filename={dialog.filename} data={dialog.data} />; break;
-        case "image": body = <ImageDialog url={dialog.url} canvas={dialog.canvas} />; break;
+        case "image": body = <ImageDialog url={dialog.url} canvas={dialog.canvas} title={dialog.title} file={dialog.file} />; break;
         case "new": body = <NewDiagramDialog />; break;
         case "achievements": body = <AchievementsDialog tab={dialog.tab} />; break;
         case "guide": body = <GuideDialog chapter={dialog.chapter} />; break;

@@ -9,32 +9,36 @@ Code: `src/lib/achievements.ts` (list, levels), `src/state/achievementStore.ts` 
 | id | Name (de) | Condition | XP | Counter | Secret |
 | --- | --- | --- | --- | --- | --- |
 | `first_node` | Erster Vorgang | place an activity node | 10 | | |
-| `first_arrow` | Verbunden | draw the first arrow | 10 | | |
-| `calc` | Rechenknecht | let the app calculate a network diagram | 15 | | |
-| `check_ok` | Richtiger Netzplan | check a network diagram without mistakes | 50 | | |
+| `first_arrow` | Verbunden | connect two nodes with the arrow tool (any diagram kind; „+“ and dragging into empty space do not count) | 10 | | |
+| `calc` | Rechenknecht | „Berechnen“ succeeds | 15 | | |
+| `check_ok` | Richtiger Netzplan | correct check (every field filled in, no error, no hint) of a drawing with at least one activity | 50 | | |
 | `milestone` | Meilenstein | correct network diagram with an activity of duration 0 | 25 | | |
 | `big` | Großprojekt | correct network diagram with at least 10 activities | 60 | | |
 | `start1` | Andere Schule | correct network diagram with „Start bei 1“ | 40 | | |
 | `mental` | Kopfrechner | solve a „Rechnen“ exercise without „Berechnen“ | 100 | | |
 | `architect` | Architekt | solve a „Zeichnen und rechnen“ exercise without „Berechnen“ | 120 | | |
-| `tasks5` | Dauerlerner | solve 5 exercises without mistakes | 150 | `tasks` = 5 | |
-| `uml_first` | UML-Einsteiger | place the first UML element (also by example or „Danach anhängen“) | 10 | | |
-| `act_ok` | Ablauf-Profi | first correct activity diagram | 60 | | |
-| `uml_ok` | Richtiges UML-Diagramm | UML diagram without errors and hints | 50 | | |
-| `uml_kinds` | Diagramm-Sammler | 4 different UML kinds checked without mistakes | 120 | `kinds` = 4 | |
-| `quick` | Schnellzeichner | append 10 elements with „Danach anhängen“ | 20 | `quick` = 10 | |
+| `tasks5` | Dauerlerner | 5 network diagram exercises checked correctly (each counts once, „Berechnen“ allowed) | 150 | `tasks` = 5 | |
+| `uml_first` | UML-Einsteiger | place the first UML, ER or table element (also by example, „+“ or „Danach anhängen“) | 10 | | |
+| `act_ok` | Ablauf-Profi | correct check of a drawing that contains an activity diagram | 60 | | |
+| `uml_ok` | Richtiges UML-Diagramm | UML diagram, ER or table model without errors and hints | 50 | | |
+| `uml_kinds` | Diagramm-Sammler | 4 different kinds checked correctly (UML kinds, `er`, `rel`; not `netz`) | 120 | `kinds` = 4 | |
+| `quick` | Schnellzeichner | append 10 elements: „+“ on the node bar, dragging an arrow into empty space, „Danach anhängen“/„Zweig hinzufügen“, „Attribut anhängen“ | 20 | `quick` = 10 | |
 | `unbeatable` | Ihr werdet mich niemals besiegen | 5 different diagrams in a row without a mistake | 100 | `streak` = 5 | |
 | `list` | Listenprofi | create a network diagram from an activity list | 20 | | |
-| `layout` | Ordnung muss sein | use „Sauber anordnen“ | 10 | | |
-| `gantt` | Gantt-Fan | open the Gantt chart | 10 | | |
-| `export` | Fotograf | export an image | 15 | | |
-| `guide` | Leseratte | read every chapter of the guide | 20 | `guide` = 9 | |
+| `layout` | Ordnung muss sein | „Sauber anordnen“ with at least one node | 10 | | |
+| `gantt` | Gantt-Fan | open the Gantt chart (needs a calculable network diagram) | 10 | | |
+| `export` | Fotograf | download PNG or PDF, copy the image, or save the Gantt chart as image (not the .json plan file) | 15 | | |
+| `guide` | Leseratte | open every chapter of the guide | 20 | `guide` = 9 | |
 | `subnet_first` | Netzwerker | enter a valid input in any subnet tool (calculator, split, VLSM, IPv6) | 10 | | |
-| `subnet_ok` | Maskenträger | solve the first subnetting exercise without mistakes | 40 | | |
-| `subnet10` | Subnetz-Profi | solve 10 subnetting exercises without mistakes and without showing the solution | 120 | `subnets` = 10 | |
-| `night` | Nachtschicht | correct network diagram or diagram between 22:00 and 5:00 | 30 | | yes |
-| `rainer` | Rainer! | type „rainer“ | 50 | | yes |
-| `rainer10` | Rainer-Fanclub | call Rainer 10 times | 75 | `rainer` = 10 | yes |
+| `subnet_ok` | Maskenträger | first trainer exercise answered completely right without showing the solution (earlier wrong attempts are fine) | 40 | | |
+| `subnet10` | Subnetz-Profi | 10 trainer exercises answered completely right without showing the solution | 120 | `subnets` = 10 | |
+| `night` | Nachtschicht | any correct check (network diagram, UML, ER, table model) while the local hour is 22, 23, 0, 1, 2, 3 or 4 | 30 | | yes |
+| `rainer` | Rainer! | type „rainer“ | 50 | | |
+| `rainer10` | Rainer-Fanclub | call Rainer 10 times (opening a gallery picture does not count) | 75 | `rainer` = 10 | |
+
+### Dialog
+
+Every description in `achievementText` says exactly what triggers the achievement, matching the code. A locked secret achievement shows „Geheimes Achievement“ and its `hint` instead of name and description; `night` is the only secret one. Achievements with a counter show a progress bar with `count / target` until they are unlocked. Each achievement that unlocks a picture carries the badge „Schaltet Rainer #n frei“.
 
 ### Counters
 
@@ -88,6 +92,8 @@ Typing „rainer“ (case-insensitive, not in input fields, also with an open di
 | #7 | `rainer-07.jpg` | `mental` |
 | #8 | `rainer-08.jpg` | `architect` |
 | #9 | `rainer-09.jpg` | `night` |
+
+A locked tile in the gallery shows the name of its achievement (or „Geheimes Achievement“), what to do (or the hint) and, if there is a counter, the progress.
 
 The order of `RAINER_GALLERY` is the picture number shown to users. New pictures are only appended.
 

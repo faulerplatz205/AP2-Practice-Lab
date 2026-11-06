@@ -57,6 +57,7 @@ export function EdgePanel({ edge: e, from, to }: { edge: DiagramEdge; from: Diag
             <button className="btn ghost" id="pRev" onClick={() => change(d => {
                 const x = findEdge(d, e.id)!;
                 [ x.from, x.to ] = [ x.to, x.from ];
+                if (x.m1 !== undefined || x.m2 !== undefined) [ x.m1, x.m2 ] = [ x.m2, x.m1 ];
             })}>{t.reverse}</button>
             <button className="btn ghost" id="pDel" onClick={deleteSelection}>{t.delete}</button>
         </div>

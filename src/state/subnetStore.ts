@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type Exercise, type ExerciseKind, type FieldResult, checkExercise, generateExercise } from "../lib/subnet";
+import { type Difficulty, type Exercise, type ExerciseKind, type FieldResult, checkExercise, generateExercise, nextKind } from "../lib/subnet";
 import { bump, unlock } from "./achievementStore";
 import { text } from "../i18n/locale";
 import { subnetText } from "../i18n/subnet";
@@ -14,6 +14,7 @@ export interface VlsmRow {
 
 interface Trainer {
     kind: ExerciseKind | "mixed";
+    level: Difficulty;
     exercise: Exercise | null;
     answers: Record<string, string>;
     results: FieldResult[] | null;
@@ -56,6 +57,7 @@ export const useSubnet = create<SubnetState>()(set => ({
     vlsmRows: defaultRows(),
     ipv6Input: "2001:0db8:0000:0000:0001:0000:0000:0001/64",
     kind: "mixed",
+    level: "medium",
     exercise: null,
     answers: {},
     results: null,
@@ -71,8 +73,9 @@ export function calculated(valid: boolean): void {
 }
 
 export function newExercise(): void {
-    const { kind, set } = useSubnet.getState();
-    set({ exercise: generateExercise(Math.random, kind === "mixed" ? undefined : kind), answers: {}, results: null, revealed: false, solved: false });
+    const { kind, level, exercise, set } = useSubnet.getState();
+    const next = kind === "mixed" ? nextKind(Math.random, exercise?.task.kind ?? null) : kind;
+    set({ exercise: generateExercise(Math.random, next, level), answers: {}, results: null, revealed: false, solved: false });
 }
 
 export function setAnswer(id: string, value: string): void {

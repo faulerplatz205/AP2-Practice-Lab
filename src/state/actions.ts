@@ -5,7 +5,7 @@
  */
 import type { ActivityKey, Diagram, DiagramEdge, DiagramMode, DiagramNode, NodeType, Point, RelationKind } from "../types/diagram";
 import { ACTIVITY_CELLS, GRID } from "../lib/constants";
-import { createNode, diagramBox, emptyDiagram, findEdge, findNode, isActivity, looksLikeDiagram, nextActivityNr, normalize } from "../lib/diagram";
+import { createNode, diagramBox, emptyDiagram, findEdge, findNode, isActivity, nextActivityNr, normalize, parsePlanFile } from "../lib/diagram";
 import { relationEnds } from "../lib/db/columns";
 import { fitToContent } from "../lib/uml/size";
 import { NORM_SCENARIOS, type NormScenarioId, isNormId } from "../data/normalization";
@@ -20,9 +20,9 @@ import { fmt, num, snap } from "../lib/math";
 import { arrangeTables, tidyDiagram } from "../lib/tidy/tidy";
 import { fieldAt } from "../lib/uml/fields";
 import { edgeGeometry } from "../lib/uml/routing";
-import { RELATIONS, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
+import { FRAME_TYPES, RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
 import { inside } from "../lib/geometry";
-import { fileBaseName, offerFile, safeFileName } from "../lib/downloads";
+import { fileBaseName } from "../lib/downloads";
 import { MODES, type ExampleKey, EXAMPLE_MODE, GENERIC_ITEMS, type PaletteItem } from "../data/modes";
 import { insertExample } from "../data/examples";
 import { RAINER_GALLERY } from "../data/rainer";
@@ -47,6 +47,7 @@ export function setTool(tool: Tool): void {
     useDiagram.getState().set({
         tool,
         pendingFrom: null,
+        arrowOnce: false,
         ...(keepPreset ? {} : { toolPreset: null, toolKey: tool === "select" || tool === "arrow" ? null : useDiagram.getState().toolKey }),
     });
 }
@@ -64,7 +65,7 @@ export function tileItem(key: string, m: DiagramMode, modes = text(MODES), gener
 export function pickTile(key: string): void {
     const item = tileItem(key, mode());
     if (!item) return;
-    useDiagram.getState().set({ tool: item.type, toolPreset: item.preset ?? null, toolKey: key, pendingFrom: null });
+    useDiagram.getState().set({ tool: item.type, toolPreset: item.preset ?? null, toolKey: key, pendingFrom: null, arrowOnce: false });
 }
 
 export function pickRelation(kind: RelationKind | "auto"): void {
@@ -171,39 +172,191 @@ function nextGuard(existing: string[]): string {
     return "[ ]";
 }
 
-/** Adds an edge from the clicked start node to `toId`. `toId` = start node: self message in a sequence diagram. */
+/**
+ * Adds an edge from the clicked start node to `toId`. `toId` = start node: self message (sequence), self transition
+ * (state) or reflexive association (class, object). Between two states several transitions are allowed, they
+ * usually differ in trigger and guard.
+ */
 export function connectTo(toId: number): void {
-    const { pendingFrom, pendingY, relation, change, set } = useDiagram.getState();
+    const { pendingFrom, pendingY, relation, arrowOnce, change, set } = useDiagram.getState();
     set({ pendingFrom: null });
     if (pendingFrom === null) return;
+    if (arrowOnce) {
+        setTool("select");
+        select("node", toId);
+    }
     const a = findNode(doc(), pendingFrom), b = findNode(doc(), toId);
     if (!a || !b) return;
     const kind = relation === "auto" ? autoRelation(a, b) : relation;
     const isMessage = !!RELATIONS[kind].seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type);
-    if (!isMessage && doc().edges.some(x => x.from === a.id && x.to === b.id)) return;
-    change(d => {
-        const e: Diagram["edges"][number] = { id: d.next++, from: a.id, to: b.id, label: "", kind };
-        if (isMessage) e.y = Math.max(20, Math.min(a.h - 10, snap(pendingY - a.y)));
-        if (a.type === "decision" && kind === "flow") {
-            const outgoing = d.edges.filter(x => x.from === a.id);
-            const isMerge = d.edges.filter(x => x.to === a.id).length > 1 && !outgoing.length;
-            e.label = isMerge ? "" : nextGuard(outgoing.map(x => x.label));
-        }
-        // ER: the first entity line of a diamond gets 1, every further one n
-        const rel = [ a, b ].find(n => n.type === "relship"), entity = [ a, b ].find(n => n.type === "entity");
-        if (kind === "erl" && rel && entity) {
-            const isEntityLine = (x: DiagramEdge): boolean => (x.from === rel.id || x.to === rel.id) && [ x.from, x.to ].some(id => findNode(d, id)?.type === "entity");
-            e.label = d.edges.some(isEntityLine) ? "n" : "1";
-        }
-        if (kind === "fk" && a.type === "table" && b.type === "table") [ e.m1, e.m2 ] = relationEnds(a, b);
-        d.edges.push(e);
-    });
+    if (a.id === b.id && !isMessage && !SELF_TYPES.has(a.type)) return;
+    const transition = kind === "flow" && a.type === "state" && b.type === "state";
+    // recursive relationship: two lines between the same entity and diamond, in whatever direction they were drawn
+    const recursive = kind === "erl" && [ a.type, b.type ].sort().join() === "entity,relship"
+        && doc().edges.filter(x => (x.from === a.id && x.to === b.id) || (x.from === b.id && x.to === a.id)).length < 2;
+    if (!isMessage && !transition && !recursive && doc().edges.some(x => x.from === a.id && x.to === b.id)) return;
+    change(d => pushEdge(d, a, b, kind, pendingY));
     notify(msg().relationSet(text(relationLabels)[kind]));
     unlock("first_arrow");
 }
 
+function entityLines(d: Diagram, relId: number): DiagramEdge[] {
+    return d.edges.filter(x => (x.from === relId || x.to === relId) && [ x.from, x.to ].some(id => findNode(d, id)?.type === "entity"));
+}
+
+function pushEdge(d: Diagram, a: DiagramNode, b: DiagramNode, kind: RelationKind, pendingY: number): void {
+    const isMessage = !!RELATIONS[kind].seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type);
+    const e: Diagram["edges"][number] = { id: d.next++, from: a.id, to: b.id, label: "", kind };
+    if (isMessage) e.y = Math.max(20, Math.min(a.h - 10, snap(pendingY - a.y)));
+    if (a.type === "decision" && kind === "flow") {
+        const outgoing = d.edges.filter(x => x.from === a.id);
+        const isMerge = d.edges.filter(x => x.to === a.id).length > 1 && !outgoing.length;
+        e.label = isMerge ? "" : nextGuard(outgoing.map(x => x.label));
+    }
+    // ER: the first entity line of a diamond gets 1, every further one n
+    const rel = [ a, b ].find(n => n.type === "relship"), entity = [ a, b ].find(n => n.type === "entity");
+    if (kind === "erl" && rel && entity) e.label = entityLines(d, rel.id).length ? "n" : "1";
+    if (kind === "fk" && a.type === "table" && b.type === "table") [ e.m1, e.m2 ] = relationEnds(a, b);
+    d.edges.push(e);
+}
+
+/** Element created by "+" or by dropping a handle on empty space. */
+export function successorType(type: NodeType, m: DiagramMode): NodeType | null {
+    switch (type) {
+        case "start": case "action": case "decision": case "bar": case "signal": case "accept": case "objnode": case "state": return m === "zu" ? "state" : "action";
+        case "entity": return "relship";
+        case "relship": return "entity";
+        case "actor": return "usecase";
+        case "lifeline": case "actline": return "lifeline";
+        case "end": case "flowend": case "erattr": case "note": case "usecase": case "activation": case "iface": case "text": case "sheet": return null;
+        default: return FRAME_TYPES.has(type) ? null : type;
+    }
+}
+
+function overlapsNode(d: Diagram, r: DiagramNode): boolean {
+    return d.nodes.some(n => n.id !== r.id && r.x < n.x + n.w + 20 && n.x < r.x + r.w + 20 && r.y < n.y + n.h + 20 && n.y < r.y + r.h + 20);
+}
+
+/** Without `p` the new element goes right of the source (below it in the activity diagram). One undo step. */
+export function spawnFrom(fromId: number, p?: Point): void {
+    const { relation, change } = useDiagram.getState();
+    setTool("select");
+    const src = findNode(doc(), fromId);
+    const type = src && successorType(src.type, mode());
+    if (!src || !type) return;
+    if (!p && (mode() === "akt" || mode() === "zu")) return appendAfter(src.id, type);
+    const sequence = SEQUENCE_TYPES.has(type);
+    let id = 0;
+    change(d => {
+        const a = findNode(d, src.id)!;
+        const n = createNode(d, type, p?.x ?? a.x + a.w + 90 + defaultWidth(type) / 2, p?.y ?? a.y + a.h / 2);
+        if (sequence) n.y = a.y;
+        while (!p && overlapsNode(d, n)) {
+            if (sequence) n.x += snap(n.w + 40);
+            else n.y += snap(n.h + 30);
+        }
+        d.nodes.push(n);
+        const ys = d.edges.filter(e => e.y !== undefined && (e.from === a.id || e.to === a.id)).map(e => e.y!);
+        pushEdge(d, a, n, relation === "auto" ? autoRelation(a, n) : relation, sequence ? a.y + (ys.length ? Math.max(...ys) + 40 : 60) : n.y);
+        id = n.id;
+    });
+    select("node", id);
+    bump("quick");
+    if (isUml(type)) unlock("uml_first");
+    if (type === "np") unlock("first_node");
+    if (!(isUml(type) && UML_TYPES[type].notext)) openEditor(id, null);
+}
+
+function defaultWidth(type: NodeType): number {
+    return isUml(type) ? UML_TYPES[type].w : 120;
+}
+
+/** The first attribute of an entity becomes its key. */
+export function addAttribute(nodeId: number): void {
+    let id = 0;
+    useDiagram.getState().change(d => {
+        const a = findNode(d, nodeId);
+        if (!a) return;
+        const attrs = d.edges.map(e => e.from === a.id ? e.to : e.to === a.id ? e.from : -1).map(i => findNode(d, i)).filter(n => n?.type === "erattr");
+        const k = attrs.length;
+        const off = (k % 2 ? 1 : -1) * (70 + Math.floor(k / 2) * 130);
+        const n = createNode(d, "erattr", a.x + a.w / 2 + off, a.y - 70);
+        while (overlapsNode(d, n)) n.y -= 60;
+        if (a.type === "entity" && !attrs.some(x => x?.stereo === "key")) {
+            n.stereo = "key";
+            n.text = "ID";
+        }
+        d.nodes.push(n);
+        pushEdge(d, n, a, "erl", n.y);
+        id = n.id;
+    });
+    if (!id) return;
+    select("node", id);
+    bump("quick");
+    openEditor(id, null);
+}
+
+/** 1:n => n:1. ER: swaps with the other entity line of the relationship. */
+export function flipCardinality(edgeId: number): void {
+    useDiagram.getState().change(d => {
+        const e = findEdge(d, edgeId);
+        if (!e) return;
+        if ((e.kind ?? "flow") === "erl") {
+            const other = partnerLine(d, e);
+            if (other) [ e.label, other.label ] = [ other.label, e.label ];
+            return;
+        }
+        [ e.m1, e.m2 ] = [ e.m2, e.m1 ];
+    });
+}
+
+/** ER: the other entity line of a binary relationship. */
+export function partnerLine(d: Diagram, e: DiagramEdge): DiagramEdge | undefined {
+    if ((e.kind ?? "flow") !== "erl") return undefined;
+    const relId = [ e.from, e.to ].find(id => findNode(d, id)?.type === "relship");
+    const lines = relId === undefined ? [] : entityLines(d, relId);
+    return lines.length === 2 && lines.some(x => x.id === e.id) ? lines.find(x => x.id !== e.id) : undefined;
+}
+
+export function canFlip(d: Diagram, e: DiagramEdge): boolean {
+    return (e.kind ?? "flow") === "erl" ? !!partnerLine(d, e) : !!(e.m1 || e.m2);
+}
+
+export function setErPair(edgeId: number, own: string, other: string): void {
+    useDiagram.getState().change(d => {
+        const e = findEdge(d, edgeId), p = e && partnerLine(d, e);
+        if (!e || !p) return;
+        e.label = own;
+        p.label = other;
+    });
+}
+
 export function startConnection(fromId: number, y: number): void {
     useDiagram.getState().set({ pendingFrom: fromId, pendingY: y });
+}
+
+/** With `y` the arrow is being dragged; without it the next clicked node is the target. */
+export function beginArrowFrom(fromId: number, y?: number): void {
+    const n = findNode(doc(), fromId);
+    if (!n) return;
+    useDiagram.getState().set({
+        tool: y === undefined ? "arrow" : useDiagram.getState().tool,
+        toolPreset: null, pendingFrom: n.id, pendingY: y ?? n.y + 60, arrowOnce: true,
+    });
+}
+
+export function setErCardinality(edgeId: number, value: string): void {
+    useDiagram.getState().change(d => {
+        const e = findEdge(d, edgeId);
+        if (e) e.label = value;
+    });
+}
+
+export function setRelationEnds(edgeId: number, start: string, end: string): void {
+    useDiagram.getState().change(d => {
+        const e = findEdge(d, edgeId);
+        if (e) [ e.m1, e.m2 ] = [ start, end ];
+    });
 }
 
 /* ---------- Editing on the canvas ---------- */
@@ -653,28 +806,22 @@ export function deletePlan(id: string): void {
 
 /* ---------- File import and export ---------- */
 
-export function importText(text: string, fileName?: string): void {
-    let data: unknown;
-    try {
-        data = JSON.parse(text);
-    } catch {
-        return notify(msg().invalidFile);
-    }
-    if (!looksLikeDiagram(data)) return notify(msg().invalidFile);
-    const rest = { ...data as Record<string, unknown> };
-    delete rest.app;
-    delete rest.version;
+export function importText(content: string, fileName?: string): void {
+    const result = parsePlanFile(content);
+    if (!result.ok) return notify(result.reason === "json" ? msg().brokenJson : msg().invalidFile);
     setTool("select");
-    useDiagram.getState().replace(normalize(rest));
+    useDiagram.getState().replace(result.diagram);
     useDiagram.getState().set({ checkActive: false });
     const { plans, persist } = usePlans.getState();
     persist(plans, null);
     useUi.getState().close();
     requestAnimationFrame(() => fitView());
-    notify(fileName ? msg().imported(fileName) : msg().planLoaded);
+    const done = fileName ? msg().imported(fileName) : msg().planLoaded;
+    notify(result.dropped ? `${done} ${msg().skipped(result.dropped)}` : done);
 }
 
 export function importFile(file: File): void {
+    if (/\.(png|pdf|jpe?g)$/i.test(file.name) || /^(image\/|application\/pdf)/.test(file.type)) return notify(msg().notReopenable(file.name));
     if (!/\.json$/i.test(file.name) && file.type !== "application/json") return notify(msg().needJson);
     const reader = new FileReader();
     reader.onload = (): void => importText(typeof reader.result === "string" ? reader.result : "", file.name);
@@ -684,17 +831,6 @@ export function importFile(file: File): void {
 
 export function fileBase(): string {
     return fileBaseName(text(MODES)[mode()].label);
-}
-
-export async function exportFile(): Promise<void> {
-    const data = JSON.stringify({ app: "AP2 Practice Lab", version: 1, ...doc() }, null, 1);
-    const plan = currentPlan();
-    const filename = safeFileName(plan ? plan.name : fileBase()) + ".json";
-    const outcome = await offerFile(filename, data);
-    if (outcome === "saved") return notify(msg().exported);
-    if (outcome === "declined") return notify(msg().saveCancelled);
-    if (outcome === "busy") return notify(msg().saveBusy);
-    useUi.getState().open({ type: "exportText", filename, data });
 }
 
 /* ---------- Dialogs ---------- */

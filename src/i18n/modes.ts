@@ -32,7 +32,7 @@ export const modeText = defineText({
         },
         zu: {
             label: "Zustandsdiagramm",
-            tips: [ "Startzustand und Zustände setzen.", "Übergänge mit dem Pfeil verbinden und das Ereignis daran schreiben.", "Mit Endzustand abschließen." ],
+            tips: [ "Startzustand und Zustände setzen.", "Übergänge mit dem Pfeil verbinden und das Ereignis daran schreiben.", "Selbsttransition: Pfeil am Zustand starten und denselben Zustand noch einmal anklicken.", "Mit Endzustand abschließen." ],
         },
         obj: {
             label: "Objektdiagramm",
@@ -142,7 +142,7 @@ export const modeText = defineText({
         },
         zu: {
             label: "State machine diagram",
-            tips: [ "Place an initial state and states.", "Connect transitions with the arrow and write the event on it.", "Finish with a final state." ],
+            tips: [ "Place an initial state and states.", "Connect transitions with the arrow and write the event on it.", "Self transition: start the arrow at a state and click the same state again.", "Finish with a final state." ],
         },
         obj: {
             label: "Object diagram",

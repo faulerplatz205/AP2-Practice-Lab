@@ -9,7 +9,7 @@ import { relationLabels } from "../../i18n/diagram";
 import { sidebarText } from "../../i18n/canvas";
 import { dbText } from "../../i18n/database";
 import { Icon } from "../Icon";
-import { NodePreview, RelationPreview } from "../Preview";
+import { ModePreview, NodePreview, RelationPreview } from "../Preview";
 
 function Tile({ item, tileKey, shortcut, pressed }: { item: PaletteItem; tileKey: string; shortcut?: number; pressed: boolean }): ReactElement {
     return (
@@ -46,7 +46,7 @@ function ModeMenu(): ReactElement {
                 style={rect ? { left: Math.max(12, Math.min(rect.left, innerWidth - 312)), top: rect.bottom + 6 } : undefined}>
                 {MODE_KEYS.map(k => (
                     <button key={k} type="button" data-mode={k} aria-current={k === mode} onClick={() => setMode(k)}>
-                        <NodePreview type={modes[k].items[0].type} preset={modes[k].items[0].preset} width={52} height={34} />
+                        <ModePreview mode={k} width={52} height={34} />
                         <span>{modes[k].label}</span>
                     </button>
                 ))}

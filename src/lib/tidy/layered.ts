@@ -118,7 +118,7 @@ export function layered(nodes: DiagramNode[], edges: [number, number][], opt: La
     }
 
     // 4. Coordinates
-    const x0 = Math.min(...nodes.map(n => n.x)), y0 = Math.min(...nodes.map(n => n.y));
+    const x0 = snap(Math.min(...nodes.map(n => n.x))), y0 = snap(Math.min(...nodes.map(n => n.y)));
     let y = y0;
     for (const row of rows) {
         const h = Math.max(0, ...row.map(id => node(id).h));

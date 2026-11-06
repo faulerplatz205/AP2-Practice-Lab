@@ -3,7 +3,8 @@ import type { Diagram, DiagramNode } from "../../types/diagram";
 import type { MarkSet } from "../../types/check";
 import type { Selection } from "../../state/diagramStore";
 import { isCriticalEdge } from "../../lib/netzplan/critical";
-import { sharedRails } from "../../lib/uml/routing";
+import { routeContext } from "../../lib/uml/routing";
+import { placeLabels } from "../../lib/uml/labels";
 import { UML_TYPES, isUml } from "../../lib/uml/types";
 import { EdgeView } from "./EdgeView";
 import { NodeView } from "./NodeView";
@@ -26,7 +27,8 @@ function layer(n: DiagramNode): number {
 /** The whole drawing: containers, then edges, then nodes. Critical edges are on top. */
 export function World({ doc, selection, pendingFrom, marks, exporting }: WorldProps): ReactElement {
     const byId = useMemo(() => new Map(doc.nodes.map(n => [ n.id, n ])), [ doc.nodes ]);
-    const rails = useMemo(() => sharedRails(doc), [ doc ]);
+    const ctx = useMemo(() => routeContext(doc), [ doc ]);
+    const labels = useMemo(() => placeLabels(doc, ctx), [ doc, ctx ]);
     const nodes = [ ...doc.nodes ].sort((a, b) => layer(a) - layer(b) || (layer(a) === 0 ? b.w * b.h - a.w * a.h : 0));
     const edges = doc.edges.filter(e => byId.has(e.from) && byId.has(e.to)).map(e => ({ e, critical: (e.kind ?? "flow") === "flow" && isCriticalEdge(doc, e) }));
     const sel = exporting ? null : selection;
@@ -36,7 +38,7 @@ export function World({ doc, selection, pendingFrom, marks, exporting }: WorldPr
     return <>
         {nodes.filter(n => layer(n) < 2).map(renderNode)}
         {[ ...edges.filter(x => !x.critical), ...edges.filter(x => x.critical) ].map(({ e, critical }) =>
-            <EdgeView key={e.id} doc={doc} edge={e} from={byId.get(e.from)!} to={byId.get(e.to)!} rails={rails} critical={critical}
+            <EdgeView key={e.id} doc={doc} edge={e} from={byId.get(e.from)!} to={byId.get(e.to)!} ctx={ctx} labels={labels} critical={critical}
                 selected={sel?.kind === "edge" && sel.id === e.id} marked={m?.has(`e:${e.id}`)} exporting={exporting} />)}
         {nodes.filter(n => layer(n) === 2).map(renderNode)}
     </>;

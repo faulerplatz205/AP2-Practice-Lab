@@ -49,9 +49,11 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li>Das Werkzeug bleibt aktiv, du kannst gleich weitere Pfeile setzen. <kbd>Esc</kbd> beendet es.</li>
             </ol>
             <ul>
+                <li><b>Ohne Werkzeugwechsel:</b> Knoten anklicken, dann einen der Punkte am Rand zum Ziel ziehen, in der kleinen Leiste neben dem Knoten auf den Pfeil klicken oder <kbd>A</kbd> / <kbd>C</kbd> drücken und den Zielknoten anklicken. Danach bist du wieder in der Auswahl.</li>
+                <li><b>Schneller bauen:</b> Einen Randpunkt auf eine freie Fläche ziehen oder <b>+</b> in der Leiste neben dem Knoten klicken legt das passende nächste Element an, verbindet es und du tippst gleich den Namen. Im ER-Modell hängt der Ellipsen-Knopf ein Attribut an, das erste einer Entität wird Schlüssel.</li>
                 <li>Pfeile laufen automatisch mit, wenn du Knoten verschiebst.</li>
                 <li>Gehen mehrere Vorgänge auf dieselben Nachfolger, werden die Pfeile über eine gemeinsame Linie zusammengeführt.</li>
-                <li>Pfeil anklicken: Richtung umdrehen, beschriften oder löschen.</li>
+                <li>Pfeil anklicken: Richtung umdrehen, beschriften oder löschen. Bei ER-Linien und Beziehungen im Tabellenmodell stellst du die Kardinalität direkt in der kleinen Leiste an der Linie um: im ER-Modell 1:1, 1:n, n:1 oder n:m für beide Linien der Beziehung auf einmal, im Tabellenmodell 1:n, n:1, 1:1. <b>⇄</b> tauscht 1 und n, auch bei Multiplizitäten im Klassendiagramm.</li>
             </ul>
         </>,
     },
@@ -118,12 +120,13 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
             <h4>Speichern, Bild und Teilen</h4>
             <ul>
                 <li>Dein Plan wird <b>automatisch</b> in diesem Browser gespeichert und ist beim nächsten Öffnen wieder da.</li>
-                <li><b>Bild</b> zeigt eine Vorschau. Du kannst sie als PNG speichern oder kopieren und mit <kbd>Strg+V</kbd> in Word oder PowerPoint einfügen.</li>
+                <li><b>Herunterladen</b> fragt nach dem Format: <b>Plan als Datei (.json)</b>, <b>Bild (.png)</b> oder <b>PDF</b>. Dort kannst du das Bild auch kopieren und mit <kbd>Strg+V</kbd> in Word oder PowerPoint einfügen.</li>
+                <li><b>Hochladen</b> öffnet eine Plandatei (.json), z. B. von einem anderen Gerät. Bilder und PDFs lassen sich nicht wieder öffnen, heb dir also die .json-Datei auf. Dateien kannst du auch einfach auf die Zeichenfläche ziehen.</li>
                 <li><b>Speichern</b> (<kbd>Strg+S</kbd>) speichert den Plan unter einem Namen hier im Browser. Oben neben dem Logo siehst du den Namen. Ein Punkt dahinter heißt: es gibt ungespeicherte Änderungen.</li>
-                <li><b>Öffnen</b> (<kbd>Strg+O</kbd>) zeigt <b>Meine Pläne</b>: öffnen, umbenennen, löschen. Dort kannst du Pläne auch als Datei exportieren oder importieren, z. B. für ein anderes Gerät. Dateien kannst du auch einfach auf die Zeichenfläche ziehen.</li>
+                <li><b>Öffnen</b> (<kbd>Strg+O</kbd>) zeigt <b>Meine Pläne</b>: öffnen, umbenennen, löschen. Diese Pläne liegen nur in diesem Browser.</li>
                 <li><b>Neu</b> leert die Fläche. Mit <kbd>Strg+Z</kbd> holst du alles zurück.</li>
             </ul>
-            <p><b>Sprache und Design:</b> Ganz rechts in der oberen Leiste wechselst du mit <b>DE/EN</b> zwischen Deutsch und Englisch. Der Button daneben stellt das Design um (wie das System, hell oder dunkel). Beides merkt sich der Browser.</p>
+            <p><b>Darstellung:</b> Ganz rechts in der oberen Leiste stellst du Sprache (Deutsch, Englisch), Design (wie das System, hell, dunkel), <b>hohen Kontrast</b> (kräftigere Schrift, Linien und Fokusrahmen) und die Akzentfarbe (Blau oder Grün wie in der Wissensdatenbank) ein. Alles merkt sich der Browser.</p>
             <div className="tip">Wer den Link hat, bekommt neue Versionen der App automatisch, einfach die Seite neu laden. Gezeichnete Pläne bleiben dabei erhalten.</div>
         </>,
     },
@@ -147,7 +150,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
             <h4>Tastenkürzel</h4>
             <div className="keys">
                 <kbd>V</kbd><span>Auswahl</span>
-                <kbd>A</kbd><span>Pfeil</span>
+                <kbd>A / C</kbd><span>Pfeil (mit ausgewähltem Knoten direkt von dort, danach wieder Auswahl)</span>
                 <kbd>1 – 9</kbd><span>Element aus der linken Leiste</span>
                 <kbd>L</kbd><span>Sauber anordnen</span>
                 <kbd>Umschalt + Klick</kbd><span>mehrere Elemente nacheinander setzen</span>
@@ -208,9 +211,11 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li>The tool stays active, so you can draw more arrows straight away. <kbd>Esc</kbd> ends it.</li>
             </ol>
             <ul>
+                <li><b>Without switching tools:</b> click a node, then drag one of the dots on its edge to the target, click the arrow in the small bar next to the node, or press <kbd>A</kbd> / <kbd>C</kbd> and click the target node. Afterwards you are back in select mode.</li>
+                <li><b>Build faster:</b> drop a dot from the edge on empty space or click <b>+</b> in the bar next to the node: the matching next element is created and connected, and you type its name right away. In the ER model the ellipse button adds an attribute; the first one of an entity becomes the key.</li>
                 <li>Arrows follow automatically when you move nodes.</li>
                 <li>If several activities lead to the same successors, their arrows are merged into a shared line.</li>
-                <li>Click an arrow to reverse it, label it or delete it.</li>
+                <li>Click an arrow to reverse it, label it or delete it. On ER lines and table relations you switch the cardinality in the small bar on the line: 1:1, 1:n, n:1 or n:m for both lines of an ER relationship at once, 1:n, n:1, 1:1 in the table model. <b>⇄</b> swaps 1 and n, also for multiplicities in the class diagram.</li>
             </ul>
         </>,
     },
@@ -277,12 +282,13 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
             <h4>Saving, images and sharing</h4>
             <ul>
                 <li>Your plan is saved <b>automatically</b> in this browser and is back the next time you open the app.</li>
-                <li><b>Image</b> shows a preview. You can save it as PNG or copy it and paste it into Word or PowerPoint with <kbd>Ctrl+V</kbd>.</li>
+                <li><b>Download</b> asks for the format: <b>plan as file (.json)</b>, <b>image (.png)</b> or <b>PDF</b>. There you can also copy the image and paste it into Word or PowerPoint with <kbd>Ctrl+V</kbd>.</li>
+                <li><b>Upload</b> opens a plan file (.json), e.g. from another device. Images and PDFs cannot be opened again, so keep the .json file. You can also simply drop files onto the canvas.</li>
                 <li><b>Save</b> (<kbd>Ctrl+S</kbd>) saves the plan under a name here in the browser. You see the name at the top next to the logo. A dot after it means there are unsaved changes.</li>
-                <li><b>Open</b> (<kbd>Ctrl+O</kbd>) shows <b>My plans</b>: open, rename, delete. There you can also export plans as a file or import them, e.g. for another device. You can also simply drop files onto the canvas.</li>
+                <li><b>Open</b> (<kbd>Ctrl+O</kbd>) shows <b>My plans</b>: open, rename, delete. These plans only live in this browser.</li>
                 <li><b>New</b> clears the canvas. <kbd>Ctrl+Z</kbd> brings everything back.</li>
             </ul>
-            <p><b>Language and theme:</b> at the right end of the top bar, <b>DE/EN</b> switches between German and English. The button next to it changes the theme (follow the system, light or dark). The browser remembers both.</p>
+            <p><b>Display:</b> at the right end of the top bar you set the language (German, English), the theme (follow the system, light, dark), <b>high contrast</b> (stronger text, lines and focus rings) and the accent color (blue, or green like the knowledge base). The browser remembers all of it.</p>
             <div className="tip">Anyone with the link gets new versions of the app automatically, just reload the page. Your drawn plans are kept.</div>
         </>,
     },
@@ -306,7 +312,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
             <h4>Keyboard shortcuts</h4>
             <div className="keys">
                 <kbd>V</kbd><span>Select</span>
-                <kbd>A</kbd><span>Arrow</span>
+                <kbd>A / C</kbd><span>Arrow (with a node selected: right from it, then back to select)</span>
                 <kbd>1 – 9</kbd><span>Element from the left sidebar</span>
                 <kbd>L</kbd><span>Tidy up</span>
                 <kbd>Shift + click</kbd><span>place several elements in a row</span>

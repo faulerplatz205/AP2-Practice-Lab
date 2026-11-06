@@ -5,7 +5,7 @@ import { useText } from "../../i18n/locale";
 import { subnetText } from "../../i18n/subnet";
 import { Card, Message, ResultTable, type ResultRow, formatCount } from "./common";
 
-function BinaryRow({ label, value, prefix }: { label: string; value: number; prefix: number }): ReactElement {
+export function BinaryRow({ label, value, prefix }: { label: string; value: number; prefix: number }): ReactElement {
     const bits = toBits(value);
     return (
         <div className="bin-row">

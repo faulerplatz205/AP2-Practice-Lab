@@ -1,9 +1,9 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import clsx from "clsx";
 import { useAchievements } from "../../state/achievementStore";
 import { useUi } from "../../state/uiStore";
 import { showRainer } from "../../state/actions";
-import { ACHIEVEMENTS, levelFor, xpFor } from "../../lib/achievements";
+import { ACHIEVEMENTS, type Achievement, levelFor, xpFor } from "../../lib/achievements";
 import { RAINER_GALLERY } from "../../data/rainer";
 import { localeTag, useText } from "../../i18n/locale";
 import { achievementText, achievementUi, levelTitles } from "../../i18n/achievements";
@@ -17,6 +17,16 @@ export function AchievementsDialog({ tab }: { tab: "ach" | "gal" }): ReactElemen
     const got = ACHIEVEMENTS.filter(a => u[a.id]).length;
     const galleryUnlocked = RAINER_GALLERY.filter(g => u[g.unlockedBy]).length;
     const galleryIndex = (id: string): number => RAINER_GALLERY.findIndex(g => g.unlockedBy === id);
+    const secret = (a: Achievement): boolean => !!a.hidden && !u[a.id];
+    const howTo = (a: Achievement): string => {
+        const n = names[a.id];
+        return secret(a) ? "hint" in n ? n.hint : t.secretHint : n.description;
+    };
+    const progress = (a: Achievement): ReactNode => {
+        if (!a.counter || !a.target || u[a.id] || secret(a)) return null;
+        const count = Math.min(c[a.counter] ?? 0, a.target);
+        return <><span className="mini"><i style={{ width: `${count / a.target * 100}%` }} /></span><small>{count} / {a.target}</small></>;
+    };
 
     return <>
         <div className="achhead">
@@ -35,16 +45,15 @@ export function AchievementsDialog({ tab }: { tab: "ach" | "gal" }): ReactElemen
         {tab === "ach"
             ? <div className="achgrid">
                 {ACHIEVEMENTS.map(a => {
-                    const on = !!u[a.id], hidden = a.hidden && !on;
-                    const count = a.counter && !on ? Math.min(c[a.counter] ?? 0, a.target ?? 0) : null;
+                    const on = !!u[a.id], hidden = secret(a);
                     const reward = galleryIndex(a.id);
                     return (
                         <div key={a.id} className={clsx("ach", on && "on")}>
                             <span className="ai">{hidden ? "?" : a.icon}</span>
                             <div>
                                 <b>{hidden ? t.secret : names[a.id].name}</b>
-                                <small>{hidden ? t.secretHint : names[a.id].description}</small>
-                                {count !== null && !hidden && <><span className="mini"><i style={{ width: `${count / (a.target ?? 1) * 100}%` }} /></span><small>{count} / {a.target}</small></>}
+                                <small>{howTo(a)}</small>
+                                {progress(a)}
                                 {on && <small className="when">{new Date(u[a.id]).toLocaleDateString(localeTag())}</small>}
                                 {reward >= 0 && <span className="rw">{t.unlocksRainer(reward + 1)}</span>}
                             </div>
@@ -59,7 +68,17 @@ export function AchievementsDialog({ tab }: { tab: "ach" | "gal" }): ReactElemen
                     {RAINER_GALLERY.map((g, i) => {
                         const a = ACHIEVEMENTS.find(x => x.id === g.unlockedBy)!;
                         if (!u[g.unlockedBy]) {
-                            return <div key={i} className="gcard locked"><div className="gimg">#{i + 1}</div><div className="gt"><b>{t.locked}</b><small>{a.hidden ? t.secret : t.unlockWith(names[a.id].name)}</small></div></div>;
+                            return (
+                                <div key={i} className="gcard locked">
+                                    <div className="gimg">#{i + 1}</div>
+                                    <div className="gt">
+                                        <b>{t.locked}</b>
+                                        <div><small>{secret(a) ? t.secret : t.unlockWith(names[a.id].name)}</small></div>
+                                        <div>{howTo(a)}</div>
+                                        {progress(a)}
+                                    </div>
+                                </div>
+                            );
                         }
                         return (
                             <button key={i} type="button" className="gcard" data-gi={i} onClick={() => {

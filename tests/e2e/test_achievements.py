@@ -1,5 +1,6 @@
 """Achievements and levels: unlocking, counters, mental-arithmetic rule, overview."""
 import asyncio
+from datetime import datetime
 
 from playwright.async_api import async_playwright
 
@@ -36,6 +37,8 @@ async def main():
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.route('**/fonts.googleapis.com/**', lambda r: r.abort())
+        # Daytime, so the secret night achievement stays locked
+        await pg.clock.set_fixed_time(datetime(2026, 10, 15, 12, 0))
         await pg.goto(APP)
         await pg.wait_for_timeout(500)
         while await pg.locator('#gNext').count():
@@ -94,6 +97,20 @@ async def main():
         await pg.screenshot(path=out('a3.png'))
         t = await pg.inner_text('#dlg')
         ok('Geheimes Achievement' in t and 'Rainer!' in t, 'Achievement overview with secret entries')
+        ok('wenn andere längst schlafen' in t and 'Tippe „rainer“' in t, 'Secret shows a hint, Rainer is described')
+        ok('Prüfe 4 verschiedene Diagrammarten' in t and '0 / 4' in t, 'Description and progress of a counter achievement')
+        await pg.click('[data-tab="gal"]')
+        await pg.wait_for_timeout(200)
+        cards = pg.locator('.gcard')
+        uml = await cards.nth(2).inner_text()
+        ok('Freischalten mit „Richtiges UML-Diagramm“' in uml and 'ohne Fehler und ohne Hinweise' in uml, 'Locked picture #3 names its achievement and what to do: ' + uml)
+        streak = await cards.nth(5).inner_text()
+        ok('Ihr werdet mich niemals besiegen' in streak and '/ 5' in streak, 'Locked picture #6 shows the streak progress: ' + streak)
+        night = await cards.nth(8).inner_text()
+        ok('Geheimes Achievement' in night and 'wenn andere längst schlafen' in night, 'Locked picture #9 keeps the secret but gives a hint')
+        ok(await pg.locator('.gcard:not(.locked)').count() == 4, 'Pictures of rainer, check_ok, rainer10 and mental are unlocked')
+        await pg.screenshot(path=out('a5.png'))
+        await pg.click('[data-tab="ach"]')
         await pg.emulate_media(color_scheme='dark')
         await pg.screenshot(path=out('a4.png'))
         ok(not errs, 'No JS errors ' + str(errs))

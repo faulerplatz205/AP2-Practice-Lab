@@ -66,6 +66,7 @@ UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end
 | `label` | string | label; edges leaving a decision always store it with `[ ]` |
 | `y` | number | messages only: height relative to the top of the sender |
 | `m1`, `m2` | string | multiplicity at the start and the end |
+| `route` | object | optional detour found by „Sauber anordnen“: `key` (position and size of both nodes) and `ws` (waypoints). Ignored as soon as a node moves or the way is blocked |
 
 Relation kinds: `flow`, `assoc`, `dir`, `inherit`, `realize`, `aggr`, `comp`, `dep`, `include`, `extend`, `msg`, `async`, `reply`, `anchor` (note link), `erl` (ER line, cardinality in `label`), `fk` (table relationship, cardinalities in `m1`/`m2`).
 
@@ -99,6 +100,8 @@ All keys start with `netzplan-zeichner-v1` (`STORAGE_KEY`). Suffixes are in `KEY
 | `netzplan-zeichner-v1-guide` | `"1"` once the guide was shown automatically |
 | `netzplan-zeichner-v1-lang` | `de` or `en` |
 | `netzplan-zeichner-v1-theme` | `system`, `light` or `dark` |
+| `netzplan-zeichner-v1-contrast` | `normal` or `high` (high contrast) |
+| `netzplan-zeichner-v1-accent` | `blue` or `green` (accent color) |
 | `netzplan-zeichner-v1-workspace` | `draw` or `subnet` |
 | `netzplan-zeichner-v1-panel` | `open` or `closed` (right panel); missing => open |
 

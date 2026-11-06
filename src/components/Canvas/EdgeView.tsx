@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import type { Diagram, DiagramEdge, DiagramNode } from "../../types/diagram";
-import type { EdgeGeometry } from "../../lib/uml/routing";
-import { edgeGeometry } from "../../lib/uml/routing";
+import { edgeGeometry, type RouteContext } from "../../lib/uml/routing";
+import { edgeLabel, labelKey, type LabelPlacement } from "../../lib/uml/labels";
+import type { LabelSpot } from "../../lib/uml/detour";
 import { RELATIONS } from "../../lib/uml/types";
 
 interface Props {
@@ -9,7 +10,9 @@ interface Props {
     edge: DiagramEdge;
     from: DiagramNode;
     to: DiagramNode;
-    rails: Map<number, number>;
+    ctx: RouteContext;
+    /** From `placeLabels()` */
+    labels: Map<string, LabelPlacement>;
     critical: boolean;
     selected?: boolean;
     marked?: boolean;
@@ -17,25 +20,17 @@ interface Props {
     exporting?: boolean;
 }
 
-function EdgeLabel({ x, y, text, anchor = "middle" }: { x: number; y: number; text: string; anchor?: "start" | "middle" | "end" }): ReactElement {
-    return <text x={x} y={y} textAnchor={anchor} fontSize="12.5" fontWeight="500" fontFamily="var(--fui)" fill="var(--ink)" stroke="var(--paper)" strokeWidth="4" paintOrder="stroke" strokeLinejoin="round">{text}</text>;
-}
-
-/** Multiplicity next to the line end, above/below or beside it depending on the direction. */
-function Multiplicity({ point, dir, text }: { point: [number, number]; dir: [number, number]; text: string }): ReactElement {
-    const horizontal = Math.abs(dir[0]) >= Math.abs(dir[1]);
-    return horizontal
-        ? <EdgeLabel x={point[0] + dir[0] * 10} y={point[1] + dir[1] * 10 + 16} text={text} anchor={dir[0] > 0 ? "start" : "end"} />
-        : <EdgeLabel x={point[0] + dir[0] * 10 + 8} y={point[1] + dir[1] * 10 + (dir[1] > 0 ? 12 : -4)} text={text} anchor="start" />;
+function EdgeLabel({ spot, text }: { spot: LabelSpot; text: string }): ReactElement {
+    return <text x={spot.x} y={spot.y} textAnchor={spot.a} fontSize="12.5" fontWeight="500" fontFamily="var(--fui)" fill="var(--ink)" stroke="var(--paper)" strokeWidth="4" paintOrder="stroke" strokeLinejoin="round">{text}</text>;
 }
 
 /** `data-eid` maps clicks to the edge. */
-export function EdgeView({ doc, edge: e, from, to, rails, critical, selected, marked, exporting }: Props): ReactElement {
-    const kind = e.kind ?? "flow", rel = RELATIONS[kind] ?? RELATIONS.flow;
-    const g: EdgeGeometry = edgeGeometry(doc, e, from, to, rails);
+export function EdgeView({ doc, edge: e, from, to, ctx, labels, critical, selected, marked, exporting }: Props): ReactElement {
+    const rel = RELATIONS[e.kind ?? "flow"] ?? RELATIONS.flow;
+    const g = edgeGeometry(doc, e, from, to, ctx);
     const color = selected ? "var(--accent)" : marked ? "var(--warn)" : critical ? "var(--crit)" : "var(--ink)";
     const suffix = selected ? "s" : marked ? "w" : critical ? "c" : "";
-    const label = [ rel.tag, e.label ].filter(Boolean).join(" ");
+    const label = edgeLabel(e), at = (part: "label" | "m1" | "m2"): LabelSpot | undefined => labels.get(labelKey(e, part));
     return (
         <g className="eg" data-eid={e.id}>
             {!exporting && <path d={g.d} stroke="transparent" strokeWidth="14" fill="none" />}
@@ -45,9 +40,9 @@ export function EdgeView({ doc, edge: e, from, to, rails, critical, selected, ma
                 markerEnd={rel.end ? `url(#${rel.end}${suffix})` : undefined}
                 markerStart={rel.start ? `url(#${rel.start}${suffix})` : undefined}
             />
-            {label && <EdgeLabel x={g.lx} y={g.ly} text={label} anchor={g.anc ?? "middle"} />}
-            {e.m1 && <Multiplicity point={g.s} dir={g.sd} text={e.m1} />}
-            {e.m2 && <Multiplicity point={g.t} dir={g.td} text={e.m2} />}
+            {label && <EdgeLabel spot={at("label") ?? { x: g.lx, y: g.ly, a: g.anc ?? "middle" }} text={label} />}
+            {e.m1 && <EdgeLabel spot={at("m1") ?? { x: g.s[0], y: g.s[1] + 16, a: "start" }} text={e.m1} />}
+            {e.m2 && <EdgeLabel spot={at("m2") ?? { x: g.t[0], y: g.t[1] + 16, a: "start" }} text={e.m2} />}
         </g>
     );
 }

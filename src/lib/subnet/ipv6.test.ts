@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expandIpv6, ipv6Kind, ipv6Network, parseIpv6, parseIpv6Cidr, shortenIpv6, subnetCount, subnets64 } from "./ipv6";
+import { eui64, expandIpv6, ipv6Kind, ipv6Network, parseIpv6, parseIpv6Cidr, parseMac, shortenIpv6, subnetCount, subnets64 } from "./ipv6";
 
 const v6 = (text: string): number[] => parseIpv6(text)!;
 
@@ -74,5 +74,17 @@ describe("prefixes", () => {
         expect(ipv6Kind(v6("2001:db8::1"))).toBe("documentation");
         expect(ipv6Kind(v6("2a00:1450::1"))).toBe("globalUnicast");
         expect(ipv6Kind(v6("::ffff:10.0.0.1"))).toBe("ipv4Mapped");
+    });
+});
+
+describe("eui64", () => {
+    it("inserts ff:fe and flips the universal/local bit", () => {
+        expect(eui64(parseMac("00:1A:2B:3C:4D:5E")!)).toEqual([ 0x021a, 0x2bff, 0xfe3c, 0x4d5e ]);
+        expect(eui64(parseMac("02-00-00-00-00-01")!)).toEqual([ 0, 0xff, 0xfe00, 1 ]);
+    });
+    it("parses MAC notations and rejects broken ones", () => {
+        expect(parseMac("001a.2b3c.4d5e")).toEqual([ 0, 0x1a, 0x2b, 0x3c, 0x4d, 0x5e ]);
+        expect(parseMac("00:1a:2b:3c:4d")).toBe(null);
+        expect(parseMac("00:1a:2b-3c:4d:5e")).toBe(null);
     });
 });

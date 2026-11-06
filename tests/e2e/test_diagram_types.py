@@ -3,7 +3,7 @@ import asyncio
 
 from playwright.async_api import async_playwright
 
-from common import APP, out, finish
+from common import APP, out, finish, set_pref
 
 fails = []
 
@@ -46,6 +46,60 @@ async def main():
             await pg.click('#bLayout')
             await pg.wait_for_timeout(50)
             await pg.screenshot(path=out(f'mode_{m}.png'))
+        # knowledge base link per diagram kind, in the language of the UI
+        for m in modes:
+            await pg.click('#bNew')
+            await pg.click(f'[data-newmode="{m}"]')
+            link = pg.locator('#panel #hKnowledge')
+            if m == 'frei':
+                ok(await link.count() == 0, 'frei: no knowledge base link')
+                continue
+            href = await link.get_attribute('href') if await link.count() else ''
+            ok(href.startswith('https://knowledge.moritz-grimm.dev/de/docs/'), f'{m}: German knowledge base link {href}')
+            ok(await link.get_attribute('target') == '_blank' and await link.get_attribute('rel') == 'noopener noreferrer',
+               f'{m}: link opens in a new tab with noopener')
+        await pg.click('#bNew')
+        await pg.click('[data-newmode="er"]')
+        await pg.screenshot(path=out('help_knowledge.png'))
+        await set_pref(pg, 'Lang', 'en')
+        href = await pg.get_attribute('#panel #hKnowledge', 'href')
+        ok(href == 'https://knowledge.moritz-grimm.dev/docs/fundamentals/databases/er-model', 'English UI: English article ' + href)
+        ok('knowledge base' in await pg.inner_text('#hKnowledge'), 'English link text')
+        # one "Darstellung" menu with language, theme, contrast and accent, all remembered
+        await pg.click('#bView')
+        ok(all([await pg.locator(f'#viewMenu #pref{g}').count() == 1 for g in ['Lang', 'Theme', 'Contrast', 'Accent']]),
+           'Display menu has language, theme, contrast and accent')
+        await pg.keyboard.press('Escape')
+        ok(await pg.locator('#viewMenu').count() == 0, 'Escape closes the display menu')
+        await set_pref(pg, 'Theme', 'dark')
+        await set_pref(pg, 'Contrast', 'high')
+        await set_pref(pg, 'Accent', 'green')
+        await pg.reload()
+        await pg.wait_for_timeout(400)
+        await pg.keyboard.press('Escape')
+        html = "[document.documentElement.lang, document.documentElement.dataset.theme || 'system', document.documentElement.dataset.contrast || 'normal', document.documentElement.dataset.accent || 'blue']"
+        attrs = await pg.evaluate(html)
+        ok(attrs == ['en', 'dark', 'high', 'green'], 'Language, theme, contrast and accent remembered: ' + str(attrs))
+        await pg.click('#bView')
+        ok(await pg.get_attribute('#prefContrast [data-value="high"]', 'aria-pressed') == 'true', 'Menu shows the stored contrast')
+        await pg.keyboard.press('Escape')
+        ok(await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--focus-w').trim()") == '3px', 'High contrast: thicker focus ring')
+        ok(await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == '#d4ff3d', 'Dark, high contrast, green: lime accent')
+        await pg.screenshot(path=out('prefs_dark_hc_green.png'))
+        await set_pref(pg, 'Theme', 'light')
+        ok(await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == '#155232', 'Light, high contrast, green: dark green accent')
+        await pg.click('#bView')
+        await pg.screenshot(path=out('prefs_menu_light_hc_green.png'))
+        await pg.keyboard.press('Escape')
+        await set_pref(pg, 'Contrast', 'normal')
+        await set_pref(pg, 'Accent', 'blue')
+        await set_pref(pg, 'Lang', 'de')
+        await pg.reload()
+        await pg.wait_for_timeout(400)
+        await pg.keyboard.press('Escape')
+        attrs = await pg.evaluate(html)
+        ok(attrs == ['de', 'light', 'normal', 'blue'], 'Switching back is remembered too: ' + str(attrs))
+        await set_pref(pg, 'Theme', 'system')
         # digit shortcut + Shift for series
         await pg.click('#bNew')
         await pg.click('[data-newmode="akt"]')

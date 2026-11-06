@@ -64,7 +64,13 @@ export const SEQUENCE_TYPES = new Set<NodeType>([ "lifeline", "actline", "activa
 /** ER model (Chen notation) */
 export const ER_TYPES = new Set<NodeType>([ "entity", "relship", "erattr" ]);
 
+/** Frames are drawn around other elements and are never connected; node and package are containers that are. */
+export const FRAME_TYPES = new Set<NodeType>([ "boundary", "lane", "fragment" ]);
+
 export const FLOW_TYPES = new Set<NodeType>([ "start", "end", "flowend", "action", "decision", "bar", "signal", "accept", "objnode", "state" ]);
+
+/** Elements that may be connected to themselves: self transition (state), reflexive association (class, object), self-referencing table. */
+export const SELF_TYPES = new Set<NodeType>([ "state", "class", "object", "table" ]);
 
 /** Arrowheads, see `Markers.tsx`. */
 export type MarkerKind = "ah" | "op" | "tr" | "dh" | "df";

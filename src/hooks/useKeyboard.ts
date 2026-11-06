@@ -2,14 +2,21 @@ import { useEffect } from "react";
 import { useDiagram } from "../state/diagramStore";
 import { useUi } from "../state/uiStore";
 import {
-    closeRainer, copySelection, deleteSelection, duplicateSelection, nudgeSelection, openEditor, paste, pickTile, savePlan, select, setTool, showRainer, tidy,
+    beginArrowFrom, closeRainer, copySelection, deleteSelection, duplicateSelection, nudgeSelection, openEditor, paste, pickTile, savePlan, select, setTool, showRainer, tidy,
 } from "../state/actions";
+import { findNode } from "../lib/diagram";
+import { FRAME_TYPES } from "../lib/uml/types";
+import type { DiagramNode } from "../types/diagram";
 
 const TOOL_KEYS: Record<string, "select" | "np" | "rect" | "ellipse" | "diamond" | "text" | "arrow"> = {
-    v: "select", n: "np", r: "rect", e: "ellipse", d: "diamond", t: "text", a: "arrow",
+    v: "select", n: "np", r: "rect", e: "ellipse", d: "diamond", t: "text", a: "arrow", c: "arrow",
 };
 
 const SECRET = "rainer";
+
+function isFrame(n: DiagramNode | undefined): boolean {
+    return !n || FRAME_TYPES.has(n.type);
+}
 
 /** All keyboard shortcuts. List: guide, chapter „Tastenkürzel“ (shortcuts). */
 export function useKeyboard(): void {
@@ -65,7 +72,7 @@ export function useKeyboard(): void {
                     deleteSelection();
                 }
             } else if (k === "escape") {
-                if (doc.tool !== "select") setTool("select");
+                if (doc.tool !== "select" || doc.pendingFrom !== null) setTool("select");
                 else if (doc.selection) select(null);
             } else if (k === "enter" && doc.selection?.kind === "node") {
                 e.preventDefault();
@@ -74,6 +81,8 @@ export function useKeyboard(): void {
                 pickTile(`m${Number(k) - 1}`);
             } else if (!ctrl && !e.altKey && k === "l") {
                 tidy();
+            } else if (!ctrl && !e.altKey && TOOL_KEYS[k] === "arrow" && doc.tool === "select" && doc.selection?.kind === "node" && !isFrame(findNode(doc.doc, doc.selection.id))) {
+                beginArrowFrom(doc.selection.id);
             } else if (!ctrl && !e.altKey && TOOL_KEYS[k]) {
                 setTool(TOOL_KEYS[k]);
             } else if (doc.selection?.kind === "node" && k.startsWith("arrow")) {

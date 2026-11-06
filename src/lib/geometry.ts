@@ -41,3 +41,29 @@ export function anchorPoint(n: DiagramNode, outline: Outline, tx: number, ty: nu
     else t = Math.min(dx ? a / Math.abs(dx) : Infinity, dy ? b / Math.abs(dy) : Infinity);
     return [ cx + dx * t, cy + dy * t ];
 }
+
+export type Vec = [number, number];
+
+/** Whether the point (x, y) lies inside the outline with center (cx, cy) and half sizes rx, ry. */
+export function insideOutline(outline: Outline, cx: number, cy: number, rx: number, ry: number, x: number, y: number): boolean {
+    const dx = (x - cx) / rx, dy = (y - cy) / ry;
+    if (outline === "ellipse") return dx * dx + dy * dy < 1;
+    if (outline === "diamond") return Math.abs(dx) + Math.abs(dy) < 1;
+    return Math.abs(dx) < 1 && Math.abs(dy) < 1;
+}
+
+/** Samples the segment p–q every `step` px (at least 40 samples, without `margin` samples at both ends). */
+export function segmentTouches(p: Vec, q: Vec, hit: (x: number, y: number) => boolean, step = 5, margin = 1): boolean {
+    const samples = Math.max(40, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / step));
+    for (let k = margin; k <= samples - margin; k++) {
+        const t = k / samples;
+        if (hit(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)) return true;
+    }
+    return false;
+}
+
+/** Proper crossing of the segments a–b and c–d (touching ends do not count). */
+export function segmentsCross(a: Vec, b: Vec, c: Vec, d: Vec): boolean {
+    const side = (p: Vec, q: Vec, r: Vec): number => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+    return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+}

@@ -36,6 +36,9 @@ export const KEYS = {
     guideShown: "-guide",
     locale: "-lang",
     theme: "-theme",
+    contrast: "-contrast",
+    accent: "-accent",
     workspace: "-workspace",
     panel: "-panel",
+    subnetStats: "-subnet-stats",
 } as const;

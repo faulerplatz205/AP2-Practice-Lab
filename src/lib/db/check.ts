@@ -1,14 +1,14 @@
 import type { DiagramEdge, DiagramNode } from "../../types/diagram";
 import type { Context } from "../uml/check";
 import { ER_TYPES } from "../uml/types";
-import { type Column, columnKey, referencesTable, tableColumns } from "./columns";
+import { type Column, columnKey, fkPointsTo, referencesTable, tableColumns } from "./columns";
 import { type NormTable, checkNormalization } from "./normalize";
 import { NORM_SCENARIOS, isNormId } from "../../data/normalization";
 import { text } from "../../i18n/locale";
 import { dbCheckText } from "../../i18n/database";
 
 /** Chen: 1, n, m, c, mc, *, numbers, ranges like 0..1 and (min,max) */
-const CARDINALITY = /^(?:[1nmc*]|mc|\d+|[0-9]+\.\.[0-9nm*]+|\(\s*[0-9nm*]+\s*,\s*[0-9nm*]+\s*\))$/i;
+const CARDINALITY = /^(?:[1nmpc*]|mc|\d+|[0-9]+\.\.[0-9nmp*]+|\(\s*[0-9nmp*]+\s*,\s*[0-9nmp*]+\s*\))$/i;
 /** "many" ends of a table relationship */
 const MANY = /^(?:[nm*]|[0-9]+\.\.[nm*]|0\.\.\*|1\.\.\*|\(\s*[0-9]+\s*,\s*[nm*]\s*\))$/i;
 
@@ -67,8 +67,8 @@ export function checkTables(c: Context): void {
     const tables: ParsedTable[] = c.ofType("table").map(n => ({ node: n, name: String(n.text).trim(), columns: tableColumns(n) }));
     if (!tables.length && !c.ofType("sheet").length) return;
     c.kinds.add("rel");
-    const pkOwners = (column: string, except: ParsedTable): ParsedTable[] =>
-        tables.filter(x => x !== except && x.columns.some(k => k.pk && columnKey(k.name) === columnKey(column)));
+    const pkOwners = (column: Column, except: ParsedTable): ParsedTable[] =>
+        tables.filter(x => x !== except && fkPointsTo(column, x.node, x.columns.filter(k => k.pk)));
     const linked = (a: ParsedTable, b: ParsedTable): boolean => c.edges.some(e => (e.from === a.node.id && e.to === b.node.id) || (e.from === b.node.id && e.to === a.node.id));
 
     const names = new Set<string>();
@@ -88,7 +88,9 @@ export function checkTables(c: Context): void {
             if (key && seen.has(key)) c.add("error", t.columnDuplicate(label, k.name), tb.node);
             seen.add(key);
             if (!k.fk) continue;
-            const targets = pkOwners(k.name, tb);
+            const targets = pkOwners(k, tb);
+            // self-referencing table (e.g. the superior of an employee): the foreign key has its own name
+            if (!targets.length && linked(tb, tb)) continue;
             if (!targets.length) c.add("warn", t.fkUnknown(label, k.name), tb.node, t.fkUnknownTip);
             else if (!targets.some(x => linked(tb, x))) c.add("warn", t.fkNoLine(label, targets[0].name || c.name(targets[0].node)), tb.node, t.fkNoLineTip);
         }
@@ -105,6 +107,10 @@ export function checkTables(c: Context): void {
         if (!m1 || !m2) c.add("warn", t.relationNoCardinality(an, bn), null, t.relationNoCardinalityTip, [ e.id ]);
         if (MANY.test(m1) && MANY.test(m2)) {
             c.add("error", t.relationMn(an, bn), null, t.relationMnTip, [ e.id ]);
+            continue;
+        }
+        if (a === b) {
+            if (!a.columns.some(k => k.fk)) c.add("error", t.relationNoFk(an, bn), null, t.relationNoFkTip, [ e.id ]);
             continue;
         }
         const aRefB = referencesTable(a.node, b.node), bRefA = referencesTable(b.node, a.node);

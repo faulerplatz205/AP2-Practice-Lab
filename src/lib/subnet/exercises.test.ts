@@ -61,7 +61,7 @@ describe("checkField", () => {
         expect(checkField(f("prefix", "/26"), "26").correct).toBe(true);
         expect(checkField(f("prefix", "/26"), "/26").correct).toBe(true);
         expect(checkField(f("prefix", "/26"), "/27").tip).toBe("wrong");
-        expect(checkField(f("prefix", "/26"), "255.255.255.192").tip).toBe("format");
+        expect(checkField(f("prefix", "/26"), "255.255.255.192").tip).toBe("maskInsteadOfPrefix");
     });
     it("accepts a dotted mask or a prefix for netmask fields", () => {
         expect(checkField(f("netmask", "/27"), "255.255.255.224").correct).toBe(true);
@@ -71,7 +71,7 @@ describe("checkField", () => {
     it("wants a dotted mask for mask fields", () => {
         const mask = formatIpv4(prefixToMask(20));
         expect(checkField(f("mask", mask), "255.255.240.0").correct).toBe(true);
-        expect(checkField(f("mask", mask), "/20").tip).toBe("format");
+        expect(checkField(f("mask", mask), "/20").tip).toBe("prefixInsteadOfMask");
         expect(checkField(f("mask", mask), "255.240.255.0").tip).toBe("maskNotContiguous");
     });
     it("reads integers in several notations", () => {
@@ -87,7 +87,7 @@ describe("checkField", () => {
         expect(checkField(short, "2001:DB8::1").correct).toBe(true);
         expect(checkField(short, "2001:db8:0:0:0:0:0:1").tip).toBe("notShortened");
         expect(checkField(short, "2001:db8::2").tip).toBe("wrong");
-        expect(checkField(short, "2001:db8:::1").tip).toBe("format");
+        expect(checkField(short, "2001:db8:::1").tip).toBe("ipv6DoubleColon");
         const full = f("ipv6Full", "2001:0db8:0000:0000:0000:0000:0000:0001");
         expect(checkField(full, "2001:0DB8:0000:0000:0000:0000:0000:0001").correct).toBe(true);
         expect(checkField(full, "2001:db8::1").tip).toBe("notExpanded");

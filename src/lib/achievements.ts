@@ -41,8 +41,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     { id: "subnet_ok", xp: 40, icon: "∧" },
     { id: "subnet10", xp: 120, icon: "⌗", counter: "subnets", target: 10 },
     { id: "night", xp: 30, icon: "☾", hidden: true },
-    { id: "rainer", xp: 50, icon: "R", hidden: true },
-    { id: "rainer10", xp: 75, icon: "R", hidden: true, counter: "rainer", target: 10 },
+    { id: "rainer", xp: 50, icon: "R" },
+    { id: "rainer10", xp: 75, icon: "R", counter: "rainer", target: 10 },
 ];
 
 /** XP needed for each level. Titles: src/i18n/achievements.ts */

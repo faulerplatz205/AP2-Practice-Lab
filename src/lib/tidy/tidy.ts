@@ -1,10 +1,13 @@
 import type { Diagram, DiagramNode } from "../../types/diagram";
-import { centerX, inside, overlaps } from "../geometry";
+import { centerX, inside, overlaps, type Vec } from "../geometry";
 import { snap } from "../math";
 import { layoutActivities } from "../netzplan/layout";
 import { fitToContent } from "../uml/size";
 import { FLOW_TYPES, RELATIONS, isUml } from "../uml/types";
+import { routeAll } from "../uml/astar";
+import { tidyEr } from "./er";
 import { layered } from "./layered";
+import { tidyUseCase } from "./useCase";
 
 /** Activity and state machine diagram from top to bottom, with bars and partitions. */
 function tidyFlow(d: Diagram): DiagramNode[] | null {
@@ -43,9 +46,9 @@ function tidyFlow(d: Diagram): DiagramNode[] | null {
             b.w = Math.max(60, snap(right) - b.x);
         }
     };
-    const first = layered(nodes, edges, { gx: 50, gy: 46, first: true });
+    const first = layered(nodes, edges, { gx: 50, gy: 70, first: true });
     fitBars(first.pred, first.succ, first.rows, false);
-    const final = layered(nodes, edges, { gx: 50, gy: 46, first: true });
+    const final = layered(nodes, edges, { gx: 50, gy: 70, first: true });
     fitBars(final.pred, final.succ, final.rows, true);
 
     if (!lanes.length) return nodes;
@@ -74,70 +77,6 @@ function tidyFlow(d: Diagram): DiagramNode[] | null {
         laneX += lane.w;
     });
     return [ ...nodes, ...lanes ];
-}
-
-/** Use case: use cases in one or two columns inside the system boundary, actors outside. */
-function tidyUseCase(d: Diagram): DiagramNode[] | null {
-    const actors = d.nodes.filter(n => n.type === "actor"), cases = d.nodes.filter(n => n.type === "usecase");
-    if (!cases.length && !actors.length) return null;
-    const boundary = d.nodes.find(n => n.type === "boundary");
-    const byId = new Map(d.nodes.map(n => [ n.id, n ]));
-    const edges = d.edges.filter(e => byId.has(e.from) && byId.has(e.to));
-    const neighbours = (n: DiagramNode): DiagramNode[] => edges.filter(e => e.from === n.id || e.to === n.id).map(e => byId.get(e.from === n.id ? e.to : e.from)!);
-
-    const sorted = actors.slice().sort((a, b) => a.x - b.x || a.y - b.y);
-    const left = sorted.slice(0, sorted.length > 1 ? Math.ceil(sorted.length / 2) : 1), right = sorted.slice(left.length);
-    const side = (u: DiagramNode): number => {
-        const a = neighbours(u).filter(x => x.type === "actor");
-        if (a.some(x => right.includes(x)) && !a.some(x => left.includes(x))) return 1;
-        if (a.some(x => left.includes(x))) return 0;
-        return -1;
-    };
-    cases.forEach(u => {
-        u.w = Math.max(150, snap(String(u.text).length * 8.4 + 44));
-        u.h = 70;
-    });
-    const twoColumns = cases.length > 4 || right.length > 0;
-    const colL: DiagramNode[] = [], colR: DiagramNode[] = [];
-    cases.filter(u => side(u) >= 0).forEach(u => (side(u) === 1 && twoColumns ? colR : colL).push(u));
-    for (const u of cases.filter(x => side(x) < 0)) {
-        const nb = neighbours(u), r = nb.some(x => colR.includes(x)), l = nb.some(x => colL.includes(x));
-        (twoColumns && ((r && !l) || (!l && colR.length < colL.length)) ? colR : colL).push(u);
-    }
-    colL.sort((a, b) => a.y - b.y);
-    colR.sort((a, b) => a.y - b.y);
-
-    const x0 = boundary ? boundary.x : Math.min(...cases.map(u => u.x));
-    const y0 = boundary ? boundary.y : Math.min(...cases.map(u => u.y));
-    const pad = 40, top = 56, gy = 38, cw = Math.max(150, ...cases.map(u => u.w));
-    const place = (col: DiagramNode[], ci: number): void => col.forEach((u, i) => {
-        u.x = snap(x0 + pad + ci * (cw + 50) + cw / 2) - u.w / 2;
-        u.y = snap(y0 + top + i * (u.h + gy) + (ci ? (u.h + gy) / 2 : 0));
-    });
-    place(colL, 0);
-    place(colR, 1);
-    const bw = pad * 2 + cw + (twoColumns && colR.length ? cw + 50 : 0);
-    const bh = top + Math.max(colL.length, colR.length + 0.5) * (70 + gy) + pad - gy / 2;
-    if (boundary) {
-        boundary.w = snap(bw);
-        boundary.h = snap(bh);
-    }
-    const width = boundary ? boundary.w : bw;
-    const actorY = (a: DiagramNode): number => {
-        const u = neighbours(a).filter(x => x.type === "usecase");
-        return u.length ? u.reduce((s, x) => s + x.y + x.h / 2, 0) / u.length : y0 + bh / 2;
-    };
-    const putActors = (list: DiagramNode[], x: number): void => {
-        let last = -1e9;
-        for (const { a, y } of list.map(a => ({ a, y: actorY(a) })).sort((p, q) => p.y - q.y)) {
-            a.x = snap(x) - a.w / 2;
-            a.y = snap(Math.max(y - a.h / 2, last + 20));
-            last = a.y + a.h;
-        }
-    };
-    putActors(left, x0 - 110);
-    putActors(right, x0 + width + 110);
-    return [ ...cases, ...actors, ...(boundary ? [ boundary ] : []) ];
 }
 
 /** Classes layered by inheritance: superclasses and interfaces at the top. */
@@ -251,59 +190,6 @@ function tidyActivities(d: Diagram): DiagramNode[] | null {
     return [ ...activities, ...loose ];
 }
 
-/**
- * ER model: entities and relationships in a row in the order of their connections (wrapping after 7),
- * attributes fanned out above and below their element.
- */
-function tidyEr(d: Diagram): DiagramNode[] | null {
-    const core = d.nodes.filter(n => n.type === "entity" || n.type === "relship");
-    if (!core.length) return null;
-    const byId = new Map(d.nodes.map(n => [ n.id, n ]));
-    const neighbours = (n: DiagramNode): DiagramNode[] => d.edges
-        .filter(e => e.from === n.id || e.to === n.id)
-        .map(e => byId.get(e.from === n.id ? e.to : e.from))
-        .filter((m): m is DiagramNode => !!m);
-    // Walk the entity–relationship graph from the left-most element, so connected elements end up side by side
-    const order: DiagramNode[] = [];
-    for (const start of core.slice().sort((a, b) => a.x - b.x || a.y - b.y)) {
-        const stack = [ start ];
-        while (stack.length) {
-            const n = stack.pop()!;
-            if (order.includes(n)) continue;
-            order.push(n);
-            stack.push(...neighbours(n).filter(m => core.includes(m) && !order.includes(m)).sort((a, b) => b.x - a.x));
-        }
-    }
-    const x0 = Math.min(...core.map(n => n.x)), y0 = Math.min(...core.map(n => n.y));
-    const attrsOf = new Map(order.map(n => [ n.id, neighbours(n).filter(m => m.type === "erattr") ]));
-    const placed = new Set<number>();
-    let x = x0, row = 0;
-    order.forEach((n, i) => {
-        if (i && i % 7 === 0) {
-            x = x0;
-            row++;
-        }
-        const mine = attrsOf.get(n.id)!.filter(a => !placed.has(a.id));
-        const fan = Math.max(n.w, Math.ceil(mine.length / 2) * 130);
-        const cx = x + fan / 2, cy = y0 + 130 + row * 380;
-        n.x = snap(cx - n.w / 2);
-        n.y = snap(cy - n.h / 2);
-        mine.forEach((a, k) => {
-            const above = k % 2 === 0, slot = Math.floor(k / 2), count = above ? Math.ceil(mine.length / 2) : Math.floor(mine.length / 2);
-            a.x = snap(cx + (slot - (count - 1) / 2) * 130 - a.w / 2);
-            a.y = snap(cy + (above ? -110 : 110) - a.h / 2);
-            placed.add(a.id);
-        });
-        x += fan + 70;
-    });
-    const loose = d.nodes.filter(n => n.type === "erattr" && !placed.has(n.id));
-    loose.forEach((a, k) => {
-        a.x = snap(x0 + k * 140);
-        a.y = snap(y0 + 130 + (row + 1) * 380);
-    });
-    return [ ...core, ...d.nodes.filter(n => n.type === "erattr") ];
-}
-
 /** Layers `tables` with the referenced table (1 side) above the one holding the foreign key; top left corner at (left, top). Mutates the nodes. */
 export function arrangeTables(d: Diagram, tables: DiagramNode[], left: number, top: number): void {
     if (!tables.length) return;
@@ -348,12 +234,32 @@ function tidyNotes(d: Diagram): void {
     }
 }
 
-/** Several diagrams on one canvas end up side by side without overlapping. Mutates `d`. */
+/** Several diagrams on one canvas end up side by side without overlapping; lines through shapes get detours. Mutates `d`. */
 export function tidyDiagram(d: Diagram): void {
+    arrangeGroups(d);
+    routeAll(d);
+}
+
+/** Moves `group` so the top left corner of its bounding box stays where it was before the layout, so tidying twice changes nothing. */
+function keepCorner(group: DiagramNode[], before: Map<number, Vec>): void {
+    const old = group.map(n => before.get(n.id)).filter(p => p !== undefined);
+    if (!old.length) return;
+    const dx = snap(Math.min(...old.map(p => p[0])) - Math.min(...group.map(n => n.x)));
+    const dy = snap(Math.min(...old.map(p => p[1])) - Math.min(...group.map(n => n.y)));
+    group.forEach(n => {
+        n.x += dx;
+        n.y += dy;
+    });
+}
+
+function arrangeGroups(d: Diagram): void {
     const groups: DiagramNode[][] = [];
+    const before = new Map(d.nodes.map(n => [ n.id, [ n.x, n.y ] as Vec ]));
     for (const step of [ tidyActivities, tidyFlow, tidyUseCase, tidyClasses, tidySequence, tidyEr, tidyTables ]) {
         const group = step(d);
-        if (group?.length) groups.push(group);
+        if (!group?.length) continue;
+        keepCorner(group, before);
+        groups.push(group);
     }
     tidyNotes(d);
     if (groups.length < 2) return;

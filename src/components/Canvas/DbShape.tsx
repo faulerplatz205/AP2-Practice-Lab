@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import type { DiagramNode } from "../../types/diagram";
 import { KEY_COL, SHEET_ROW, TABLE_HEADER, TABLE_ROW, sheetLayout, tableLayout } from "../../lib/db/columns";
-import { MultilineText } from "./SvgText";
+import { MultilineText, Underline } from "./SvgText";
 
 const STROKE = "var(--ink)";
 const line = { stroke: STROKE, strokeWidth: 1.4 };
@@ -12,18 +12,18 @@ export function ErShape({ node: n, fill }: { node: DiagramNode; fill: string }):
     const { w, h } = n;
     switch (n.type) {
         case "entity":
-            return <><rect width={w} height={h} fill={fill} {...line} /><MultilineText text={n.text} x={w / 2} y={h / 2} size={14.5} weight="700" /></>;
+            return <><rect width={w} height={h} fill={fill} {...line} /><MultilineText text={n.text} x={w / 2} y={h / 2} size={14.5} weight="700" maxWidth={w - 12} /></>;
         case "relship":
             return <>
                 <path d={`M${w / 2} 0L${w} ${h / 2}L${w / 2} ${h}L0 ${h / 2}Z`} fill={fill} {...line} strokeLinejoin="round" />
-                <MultilineText text={n.text} x={w / 2} y={h / 2} size={13.5} />
+                <MultilineText text={n.text} x={w / 2} y={h / 2} size={13.5} maxWidth={w * 0.56} />
             </>;
         case "erattr": {
             const key = n.stereo === "key";
             return <>
                 <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} strokeDasharray={n.stereo === "derived" ? "5 4" : undefined} />
                 {n.stereo === "multi" && <ellipse cx={w / 2} cy={h / 2} rx={w / 2 - 4} ry={h / 2 - 4} fill="none" {...line} />}
-                <text x={w / 2} y={h / 2 + 4.5} textAnchor="middle" fontSize={13} fontWeight={key ? "700" : "500"} textDecoration={key ? "underline" : undefined} {...font}>{n.text}</text>
+                <MultilineText text={n.text} x={w / 2} y={h / 2} size={13} weight={key ? "700" : "500"} underline={key} maxWidth={w * 0.78} />
             </>;
         }
         default:
@@ -45,7 +45,8 @@ export function TableShape({ node: n, fill }: { node: DiagramNode; fill: string 
             const marker = [ c.pk && "PK", c.fk && "FK" ].filter(Boolean).join(" ");
             return <g key={i}>
                 {marker && <text x={KEY_COL / 2} y={y} textAnchor="middle" fontSize={10.5} fontWeight="700" fontFamily="var(--fmono)" fill="var(--ink)">{marker}</text>}
-                <text x={KEY_COL + 8} y={y} fontSize={13} fontWeight={c.pk ? "700" : "500"} textDecoration={c.pk ? "underline" : undefined} {...font}>{c.name}</text>
+                <text x={KEY_COL + 8} y={y} fontSize={13} fontWeight={c.pk ? "700" : "500"} {...font}>{c.name}</text>
+                {c.pk && <Underline text={c.name} x={KEY_COL + 8} y={y} size={13} weight="700" anchor="start" />}
                 {c.type && <text x={w - 8} y={y} textAnchor="end" fontSize={11.5} fontFamily="var(--fmono)" fill="var(--muted)">{c.type}</text>}
             </g>;
         })}

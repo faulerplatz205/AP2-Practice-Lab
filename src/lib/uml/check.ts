@@ -115,6 +115,16 @@ function checkFlow(c: Context): void {
         for (const e of c.edges.filter(x => c.node(x.from).type === "state" && c.node(x.to).type === "state" && !(x.label || "").trim())) {
             c.add("warn", t.transitionNoEvent, null, t.transitionNoEventTip, [ e.id ]);
         }
+        for (const s of c.ofType("state")) {
+            const byLabel = new Map<string, number[]>();
+            for (const e of c.outs(s)) {
+                const label = (e.label || "").trim().replace(/\s+/g, " ").toLowerCase();
+                if (label) byLabel.set(label, [ ...(byLabel.get(label) ?? []), e.id ]);
+            }
+            for (const ids of byLabel.values()) {
+                if (ids.length > 1) c.add("warn", t.transitionDuplicate(c.name(s), String(c.edges.find(e => e.id === ids[0])!.label).trim()), s, t.transitionDuplicateTip, ids);
+            }
+        }
     }
     if (starts.length) {
         const seen = new Set(starts.map(s => s.id)), queue = [ ...seen ];

@@ -1,11 +1,12 @@
 import type { ReactElement } from "react";
-import type { DiagramNode, NodeType, RelationKind } from "../types/diagram";
+import type { DiagramMode, DiagramNode, NodeType, RelationKind } from "../types/diagram";
 import { defaultSize } from "../lib/diagram";
 import { fitToContent } from "../lib/uml/size";
 import { RELATIONS, UML_TYPES, isUml } from "../lib/uml/types";
 import { useText } from "../i18n/locale";
 import { diagramText, umlText } from "../i18n/diagram";
 import { modeText } from "../i18n/modes";
+import { MODES } from "../data/modes";
 import { NodeView } from "./Canvas/NodeView";
 
 export function NodePreview({ type, preset, width = 64, height = 44 }: { type: NodeType; preset?: Partial<DiagramNode>; width?: number; height?: number }): ReactElement {
@@ -25,6 +26,18 @@ export function NodePreview({ type, preset, width = 64, height = 44 }: { type: N
             <NodeView node={n} />
         </svg>
     );
+}
+
+/**
+ * Element shown for a diagram kind in the mode menu and the "new" dialog: the first palette element, except where
+ * that would look the same as another kind (activity and state machine diagram both start with the initial node).
+ */
+const PREVIEW_ITEM: Partial<Record<DiagramMode, number>> = { akt: 1, zu: 2 };
+
+/** Small picture of a diagram kind: one typical element, like a template thumbnail. */
+export function ModePreview({ mode, width, height }: { mode: DiagramMode; width: number; height: number }): ReactElement {
+    const items = useText(MODES)[mode].items, item = items[PREVIEW_ITEM[mode] ?? 0] ?? items[0];
+    return <NodePreview type={item.type} preset={item.preset} width={width} height={height} />;
 }
 
 export function RelationPreview({ kind }: { kind: RelationKind }): ReactElement {

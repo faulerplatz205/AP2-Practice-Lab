@@ -106,3 +106,18 @@ function countTrailingZeros(value: number): number {
     while (n < 32 && value % 2 ** (n + 1) === 0) n++;
     return n;
 }
+
+/** Smallest single block (summary route) that contains every given block. */
+export function summarizeBlocks(blocks: Block[]): Block {
+    const first = Math.min(...blocks.map(b => networkOf(b.network, b.prefix)));
+    const last = Math.max(...blocks.map(b => networkOf(b.network, b.prefix) + blockSize(b.prefix) - 1));
+    let prefix = Math.min(...blocks.map(b => b.prefix));
+    while (prefix > 0 && networkOf(first, prefix) !== networkOf(last, prefix)) prefix--;
+    return { network: networkOf(first, prefix), prefix };
+}
+
+/** Whether two blocks share at least one address. */
+export function overlaps(a: Block, b: Block): boolean {
+    const startA = networkOf(a.network, a.prefix), startB = networkOf(b.network, b.prefix);
+    return startA < startB + blockSize(b.prefix) && startB < startA + blockSize(a.prefix);
+}

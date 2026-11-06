@@ -13,12 +13,14 @@ export function Hint(): ReactElement {
     const toolKey = useDiagram(s => s.toolKey);
     const mode = useDiagram(s => s.doc.cfg.mode);
     const pending = useDiagram(s => s.pendingFrom);
+    const dragging = useDiagram(s => s.pendingFrom !== null && s.tool === "select");
     let text = (t.hints as Record<string, string>)[tool] ?? "";
     if (isUml(tool as never)) {
         // Label of the picked tile in the current language, else the element name
         const item = toolKey ? tileItem(toolKey, mode, modes, generic) : undefined;
         text = t.places(item && item.type === tool ? item.label : uml[tool as keyof typeof uml].label);
     }
-    if (tool === "arrow") text = pending === null ? t.arrowStart : t.arrowTarget;
+    if (tool === "arrow" || pending !== null) text = pending === null ? t.arrowStart : t.arrowTarget;
+    if (dragging) text = t.port;
     return <div className="hint" id="hint">{text}</div>;
 }

@@ -6,7 +6,7 @@ The second workspace („Subnetting“ in the toolbar, `data-ws="subnet"`). The 
 | --- | --- |
 | UI | `src/components/Subnet/` (`SubnetView`, one component per tab, `common.tsx` for tables and copy buttons) |
 | State | `src/state/subnetStore.ts` (`useSubnet`, trainer functions, achievement triggers) |
-| Logic | `src/lib/subnet/` (`ipv4.ts`, `divide.ts`, `ipv6.ts`, `exercises.ts`, re-exported by `index.ts`) |
+| Logic | `src/lib/subnet/` (`ipv4.ts`, `divide.ts`, `ipv6.ts`, `exercises.ts` types and entry points, `generators.ts`, `answers.ts` checks, `explain.ts` worked solutions, `random.ts`, re-exported by `index.ts`) |
 | Texts | `src/i18n/subnet.ts` (`workspaceText`, `subnetText`) |
 | Tests | `src/lib/subnet/*.test.ts` (Vitest), `tests/e2e/test_subnetting.py` |
 
@@ -56,9 +56,27 @@ Everything in `src/lib/subnet` is pure: no React, no store, no language. Address
 | `vlsm` | /24 and three departments with distinct block sizes | network and prefix per department |
 | `ipv6Shorten` | documentation address written out | short form |
 | `ipv6Expand` | documentation address shortened | full form |
-| `ipv6Subnets` | prefix /32 to /56 and a target length | number of subnets |
+| `ipv6Subnets` | prefix /29 to /60 and a target length | number of subnets |
+| `hostSubnet` | network split into /n, a host | subnet number (from 1), network, broadcast |
+| `sameSubnet` | two devices with one mask | network of each, same subnet yes/no |
+| `hostsToPrefix` | host count incl. edge cases 2^n − 2 and 2^n − 1 | smallest prefix or mask, usable hosts |
+| `subnetsToPrefix` | network, subnet count, optional minimum hosts | prefix or mask, real subnet count, hosts per subnet |
+| `reverseMask` | network and broadcast | prefix or mask, hosts |
+| `wildcard` | network => wildcard, or ACL line => prefix and hosts | wildcard or prefix and hosts |
+| `summarize` | 2 to 8 networks (hard: mixed sizes, gaps) | smallest covering route (`cidr`) |
+| `routeContents` | route and a longer prefix | count, first and last network |
+| `findMistake` | device table (IP, mask, gateway) or address plan with one injected mistake | faulty row, mistake (both `choice`) |
+| `vlsmScenario` | company, school or branches text, optional reserve and WAN links | network and prefix per segment; any aligned, non-overlapping plan inside the network counts (`checkPlan`) |
+| `ipv6Prefix` | address with prefix, optional site prefix | network prefix, subnet ID (hex) |
+| `ipv6NthSubnet` | site prefix and n | n-th /64 (counted from 1) |
+| `ipv6Type` | address | type (`choice`) |
+| `eui64` | MAC address | interface ID, link-local address |
 
-- `generateExercise(random, kind?)` takes a random function; tests use `seededRandom(seed)` (mulberry32) for reproducible tasks
+- `generateExercise(random, kind?, level?)` takes a random function and a difficulty (`easy` only touches the 4th octet, `medium` reaches the 3rd, `hard` uses class A/B ranges, public addresses and IPv6 traps); tests use `seededRandom(seed)` (mulberry32) for reproducible tasks
+- Every task has a `variant` that picks one of several phrasings in `subnetText.prompts`
+- `nextKind(random, previous)` is used for „Gemischt“ and never returns the previous kind
+- Fields can carry `traps` (typical wrong values with their own tip), `options`/`accepted` for `choice` fields and `prefix` for network addresses written with /n
+- `explain(exercise)` returns the worked solution as typed steps; the trainer shows them after „Lösung zeigen“
 - `checkField()` accepts several notations per answer kind; see the table in `docs/check-rules.md`
 - Department names are ids (`DepartmentId`) and are translated at render time
 

@@ -5,7 +5,7 @@ import json
 
 from playwright.async_api import async_playwright
 
-from common import APP, out, finish
+from common import APP, out, finish, set_pref
 
 fails = []
 
@@ -37,9 +37,9 @@ async def main():
         await pg.click('[data-ws="subnet"]')
         ok(await pg.locator('#subnetView').is_visible() and await pg.locator('#svg').count() == 0,
            'Subnetting replaces the canvas')
-        ok(all([await pg.locator(s).count() == 0 for s in ['#bCheck', '#bUndo', '[data-tool=select]', '#bSave', '#bNew', '#bImg', '#planName']]),
+        ok(all([await pg.locator(s).count() == 0 for s in ['#bCheck', '#bUndo', '[data-tool=select]', '#bSave', '#bNew', '#bDownload', '#bUpload', '#planName']]),
            'Drawing buttons hidden')
-        ok(all([await pg.locator(s).is_visible() for s in ['#bAch', '#bHelp', '#bLang', '#bTheme']]),
+        ok(all([await pg.locator(s).is_visible() for s in ['#bAch', '#bHelp', '#bView']]),
            'Achievements, guide, language, theme remain')
 
         await pg.fill('#snAddr', '172.16.45.130/21')
@@ -129,11 +129,11 @@ async def main():
         a = await A()
         ok('subnet10' in a['u'] and a['c'].get('subnets') == 10, 'Achievement: 10 exercises')
 
-        await pg.click('#bLang')
+        await set_pref(pg, 'Lang', 'en')
         await pg.wait_for_timeout(100)
         ok(await pg.inner_text('[data-tab="calc"]') == 'Calculator' and await pg.inner_text('[data-ws="draw"]') == 'Draw'
            and await pg.inner_text('#snCheck') == 'Check', 'English labels')
-        ok('Find the network address' in await pg.inner_text('#snPrompt'), 'Task text in English')
+        ok('network and broadcast' in (await pg.inner_text('#snTask')).lower(), 'Task card in English')
         await pg.reload()
         await pg.wait_for_timeout(400)
         ok(await pg.locator('#subnetView').is_visible(), 'Workspace remembered after reload')

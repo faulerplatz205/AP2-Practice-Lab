@@ -52,6 +52,8 @@ interface DiagramState {
     /** Arrow tool: clicked start node */
     pendingFrom: number | null;
     pendingY: number;
+    /** The arrow was started from a handle or the node bar: after one arrow the tool returns to "select" */
+    arrowOnce: boolean;
     checkActive: boolean;
     reveal: boolean;
     editor: EditorState | null;
@@ -96,6 +98,7 @@ export const useDiagram = create<DiagramState>()((set, get) => ({
     relation: "auto",
     pendingFrom: null,
     pendingY: 0,
+    arrowOnce: false,
     checkActive: false,
     reveal: false,
     editor: null,
@@ -112,7 +115,7 @@ export const useDiagram = create<DiagramState>()((set, get) => ({
 
     replace: (doc, options): void => {
         if (options?.history !== false) get().pushHistory();
-        set({ doc: produce(normalize(doc), fitAll), selection: null, editor: null, pendingFrom: null });
+        set({ doc: produce(normalize(doc), fitAll), selection: null, editor: null, pendingFrom: null, arrowOnce: false });
     },
 
     undoStep: (): void => {

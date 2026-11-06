@@ -5,7 +5,7 @@ import { newDiagram } from "../../state/actions";
 import { MODES, MODE_KEYS } from "../../data/modes";
 import { useText } from "../../i18n/locale";
 import { dialogText, newDiagramText } from "../../i18n/dialogs";
-import { NodePreview } from "../Preview";
+import { ModePreview } from "../Preview";
 
 export function NewDiagramDialog(): ReactElement {
     const t = useText(newDiagramText), common = useText(dialogText), modes = useText(MODES);
@@ -17,7 +17,7 @@ export function NewDiagramDialog(): ReactElement {
         <div className="nm-grid">
             {MODE_KEYS.map(k => (
                 <button key={k} type="button" data-newmode={k} onClick={() => newDiagram(k)}>
-                    <NodePreview type={modes[k].items[0].type} preset={modes[k].items[0].preset} width={60} height={40} />
+                    <ModePreview mode={k} width={60} height={40} />
                     <span>{modes[k].label}</span>
                 </button>
             ))}

@@ -24,3 +24,11 @@ def finish(fails):
     """Exit the suite with exit code 1 if any check failed."""
     if fails:
         sys.exit(1)
+
+
+async def set_pref(pg, group: str, value: str):
+    """Picks an option in the "Darstellung" menu (group: Lang, Theme, Contrast, Accent) and closes the menu."""
+    if await pg.locator('#viewMenu').count() == 0:
+        await pg.click('#bView')
+    await pg.click(f'#pref{group} [data-value="{value}"]')
+    await pg.keyboard.press('Escape')

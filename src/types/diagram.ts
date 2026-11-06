@@ -73,6 +73,14 @@ export interface DiagramEdge {
     m1?: string;
     /** Multiplicity at the end */
     m2?: string;
+    /** Detour found by "tidy up", valid while `key` matches the position and size of both nodes */
+    route?: EdgeRoute;
+}
+
+export interface EdgeRoute {
+    key: string;
+    /** Waypoints between the two nodes */
+    ws: [number, number][];
 }
 
 export type DiagramMode = "netz" | "akt" | "uc" | "kl" | "seq" | "zu" | "obj" | "komp" | "vert" | "pak" | "er" | "rel" | "frei";

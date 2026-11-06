@@ -1,21 +1,70 @@
-import { analyzeIpv4, formatIpv4, maskToPrefix, parseIpv4, parsePrefixOrMask, prefixForHosts, prefixToMask } from "./ipv4";
-import { splitEqual, vlsm } from "./divide";
-import { expandIpv6, parseIpv6, shortenIpv6, subnetCount } from "./ipv6";
+import { type Random, pick } from "./random";
+import { GENERATORS } from "./generators";
+import { checkPlan, checkField } from "./answers";
+
+export { seededRandom, type Random } from "./random";
+export { checkField, parseInteger } from "./answers";
 
 export type ExerciseKind =
     | "networkBroadcast" | "hostRange" | "hostCount" | "maskToPrefix" | "prefixToMask"
-    | "split" | "vlsm" | "ipv6Shorten" | "ipv6Expand" | "ipv6Subnets";
+    | "split" | "vlsm" | "ipv6Shorten" | "ipv6Expand" | "ipv6Subnets"
+    | "hostSubnet" | "sameSubnet" | "hostsToPrefix" | "subnetsToPrefix" | "reverseMask" | "wildcard"
+    | "summarize" | "routeContents" | "findMistake" | "vlsmScenario"
+    | "ipv6Prefix" | "ipv6NthSubnet" | "ipv6Type" | "eui64";
 
+/** Order of the kind menu: related kinds next to each other. */
 export const EXERCISE_KINDS: ExerciseKind[] = [
-    "networkBroadcast", "hostRange", "hostCount", "maskToPrefix", "prefixToMask", "split", "vlsm", "ipv6Shorten", "ipv6Expand", "ipv6Subnets",
+    "networkBroadcast", "hostRange", "hostSubnet", "sameSubnet", "hostCount", "hostsToPrefix",
+    "maskToPrefix", "prefixToMask", "reverseMask", "wildcard",
+    "split", "subnetsToPrefix", "vlsm", "vlsmScenario", "summarize", "routeContents", "findMistake",
+    "ipv6Shorten", "ipv6Expand", "ipv6Prefix", "ipv6Subnets", "ipv6NthSubnet", "ipv6Type", "eui64",
 ];
 
-export type DepartmentId = "sales" | "it" | "admin" | "production" | "support" | "marketing" | "purchasing" | "management";
+export type Difficulty = "easy" | "medium" | "hard";
+
+export const DIFFICULTIES: Difficulty[] = [ "easy", "medium", "hard" ];
+
+export type Topic = "basics" | "masks" | "subnetting" | "routing" | "troubleshooting" | "ipv6";
+
+export const TOPICS: Topic[] = [ "basics", "masks", "subnetting", "routing", "troubleshooting", "ipv6" ];
+
+export const TOPIC_OF: Record<ExerciseKind, Topic> = {
+    networkBroadcast: "basics", hostRange: "basics", hostSubnet: "basics", sameSubnet: "basics", hostCount: "basics",
+    hostsToPrefix: "masks", maskToPrefix: "masks", prefixToMask: "masks", reverseMask: "masks", wildcard: "masks",
+    split: "subnetting", subnetsToPrefix: "subnetting", vlsm: "subnetting", vlsmScenario: "subnetting",
+    summarize: "routing", routeContents: "routing", findMistake: "troubleshooting",
+    ipv6Shorten: "ipv6", ipv6Expand: "ipv6", ipv6Prefix: "ipv6", ipv6Subnets: "ipv6", ipv6NthSubnet: "ipv6", ipv6Type: "ipv6", eui64: "ipv6",
+};
+
+export type DepartmentId =
+    | "sales" | "it" | "admin" | "production" | "support" | "marketing" | "purchasing" | "management"
+    | "servers" | "voip" | "guestWifi" | "teachers" | "pupils" | "library" | "computerLab" | "printers"
+    | "headquarters" | "branchNorth" | "branchSouth" | "branchEast" | "branchWest" | "warehouse" | "wan1" | "wan2";
 
 export const DEPARTMENTS: DepartmentId[] = [ "sales", "it", "admin", "production", "support", "marketing", "purchasing", "management" ];
 
-export type ExerciseTask =
-    | { kind: "networkBroadcast" | "hostRange"; address: string; prefix: number }
+export type ScenarioId = "company" | "school" | "branches";
+
+export type DeviceId = "pc1" | "pc2" | "pc3" | "laptop" | "printer" | "server" | "phone" | "accessPoint";
+
+export type MistakeId = "gatewayOutside" | "broadcastAsHost" | "networkAsHost" | "wrongMask" | "overlap" | "notAligned" | "outside";
+
+export interface DeviceConfig {
+    id: DeviceId;
+    address: string;
+    prefix: number;
+    gateway: string;
+}
+
+export interface PlanEntry {
+    id: DepartmentId;
+    network: string;
+    prefix: number;
+}
+
+/** `variant` picks one of several phrasings; the UI takes it modulo the number of templates. */
+export type ExerciseTask = { variant: number } & (
+    | { kind: "networkBroadcast" | "hostRange"; address: string; prefix: number; showMask: boolean }
     /** `mask` is set when the task shows the dotted mask instead of the prefix */
     | { kind: "hostCount"; prefix: number; mask: string | null }
     | { kind: "maskToPrefix"; mask: string }
@@ -24,20 +73,74 @@ export type ExerciseTask =
     | { kind: "split"; network: string; prefix: number; count: number; nth: number }
     | { kind: "vlsm"; network: string; prefix: number; departments: { id: DepartmentId; hosts: number }[] }
     | { kind: "ipv6Shorten" | "ipv6Expand"; address: string }
-    | { kind: "ipv6Subnets"; network: string; prefix: number; target: number };
+    | { kind: "ipv6Subnets"; network: string; prefix: number; target: number }
+    | { kind: "hostSubnet"; network: string; prefix: number; subPrefix: number; host: string }
+    | { kind: "sameSubnet"; hosts: { id: DeviceId; address: string }[]; prefix: number; showMask: boolean }
+    | { kind: "hostsToPrefix"; hosts: number; segment: DepartmentId }
+    /** `minHosts` adds the second condition „at least n hosts per subnet“ */
+    | { kind: "subnetsToPrefix"; network: string; prefix: number; count: number; minHosts: number | null }
+    | { kind: "reverseMask"; network: string; broadcast: string }
+    | { kind: "wildcard"; network: string; prefix: number; wildcard: string; reverse: boolean }
+    /** `networks` in CIDR notation */
+    | { kind: "summarize"; networks: string[] }
+    | { kind: "routeContents"; network: string; prefix: number; target: number }
+    | { kind: "findMistake"; setting: "devices"; devices: DeviceConfig[]; showMask: boolean }
+    | { kind: "findMistake"; setting: "plan"; network: string; prefix: number; entries: PlanEntry[] }
+    /** `name` indexes the company or school names of the scenario, `reserve` is a percentage (0 = none) */
+    | { kind: "vlsmScenario"; scenario: ScenarioId; name: number; network: string; prefix: number; reserve: number; segments: { id: DepartmentId; hosts: number }[] }
+    /** `site` is the prefix of the whole site when the subnet id is asked */
+    | { kind: "ipv6Prefix"; address: string; prefix: number; site: number | null }
+    /** `nth` counts from 1, the first subnet has the subnet id 0 */
+    | { kind: "ipv6NthSubnet"; network: string; prefix: number; nth: number }
+    | { kind: "ipv6Type"; address: string }
+    | { kind: "eui64"; mac: string }
+);
 
-export type FieldKey = "network" | "broadcast" | "firstHost" | "lastHost" | "hosts" | "mask" | "prefix" | "subnetCount" | "ipv6Short" | "ipv6Full";
+export type FieldKey =
+    | "network" | "broadcast" | "firstHost" | "lastHost" | "hosts" | "mask" | "prefix" | "subnetCount" | "ipv6Short" | "ipv6Full"
+    | "netmask" | "wildcard" | "subnetIndex" | "same" | "item" | "mistake" | "summary" | "firstNetwork" | "lastNetwork"
+    | "ipv6Network" | "subnetId" | "addressType" | "interfaceId" | "linkLocal";
 
-/** `netmask` accepts a prefix or a dotted mask; `prefix` and `mask` only their own notation. */
-export type AnswerKind = "ipv4" | "prefix" | "mask" | "netmask" | "integer" | "ipv6Short" | "ipv6Full";
+/**
+ * `netmask` accepts a prefix or a dotted mask; `prefix` and `mask` only their own notation.
+ * `cidr` is an address with prefix or mask, `ipv6Net` an IPv6 network with optional length,
+ * `ipv6Any` any valid IPv6 notation, `iid` four hex groups, `hex` one hex number.
+ */
+export type AnswerKind =
+    | "ipv4" | "prefix" | "mask" | "netmask" | "integer" | "ipv6Short" | "ipv6Full"
+    | "wildcard" | "cidr" | "choice" | "hex" | "ipv6Net" | "ipv6Any" | "iid";
+
+export type Tip =
+    | "empty" | "format" | "wrong"
+    | "comma" | "octets" | "octetRange" | "prefixRange" | "prefixSuffix"
+    | "maskNotContiguous" | "maskInsteadOfPrefix" | "prefixInsteadOfMask" | "isWildcard" | "isMask" | "wildcardNotContiguous"
+    | "cidrPrefix" | "hostBits" | "notAnOption"
+    | "notShortened" | "notExpanded" | "leadingZeros" | "singleZero" | "longestRun" | "tieFirst" | "lowerCase"
+    | "ipv6Hex" | "ipv6DoubleColon" | "ipv6GroupLength" | "ipv6Groups" | "ipv6PrefixLength" | "hostBits6"
+    | "isBroadcast" | "isNetwork" | "isGivenAddress" | "isNextNetwork" | "countedAll" | "forgotReserved"
+    | "zeroBased" | "isExponent" | "subnetIdBits" | "flipBit"
+    | "planAligned" | "planOutside" | "planOverlap";
+
+/** A typical wrong answer with its own tip. */
+export interface Trap {
+    value: string;
+    tip: Tip;
+}
 
 export interface ExerciseField {
     id: string;
     key: FieldKey;
     answer: AnswerKind;
     solution: string;
-    /** Index of the department in a VLSM task */
+    /** Index of the department or device the field belongs to */
     group?: number;
+    traps?: Trap[];
+    /** Values a `choice` field offers */
+    options?: string[];
+    /** Further correct values of a `choice` field */
+    accepted?: string[];
+    /** Prefix that may follow an `ipv4` answer, e.g. `192.168.1.0/24` for a network address */
+    prefix?: number;
 }
 
 export interface Exercise {
@@ -45,230 +148,59 @@ export interface Exercise {
     fields: ExerciseField[];
 }
 
-export type Tip = "empty" | "format" | "maskNotContiguous" | "notShortened" | "notExpanded" | "wrong";
-
 export interface FieldResult {
     id: string;
     correct: boolean;
     tip: Tip | null;
+    /** Hint on a correct answer, e.g. that RFC 5952 prefers another notation */
+    note?: Tip;
 }
 
-export type Random = () => number;
-
-/** Small deterministic generator (mulberry32) for reproducible tasks in tests. */
-export function seededRandom(seed: number): Random {
-    let state = seed >>> 0;
-    return (): number => {
-        state = (state + 0x6d2b79f5) >>> 0;
-        let t = state;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
-    };
+export function generateExercise(random: Random = Math.random, kind: ExerciseKind = pick(random, EXERCISE_KINDS), level: Difficulty = "medium"): Exercise {
+    return GENERATORS[kind](random, level);
 }
 
-function int(random: Random, min: number, max: number): number {
-    return min + Math.floor(random() * (max - min + 1));
-}
-
-function pick<T>(random: Random, list: readonly T[]): T {
-    return list[Math.floor(random() * list.length)];
-}
-
-function shuffled<T>(random: Random, list: readonly T[]): T[] {
-    const a = list.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [ a[i], a[j] ] = [ a[j], a[i] ];
-    }
-    return a;
-}
-
-function field(key: FieldKey, answer: AnswerKind, solution: string, group?: number): ExerciseField {
-    return { id: group === undefined ? key : `${key}${group}`, key, answer, solution, group };
-}
-
-/** Random address from a private range, with a prefix that fits into that range. */
-function privateAddress(random: Random, minPrefix: number): { address: number; prefix: number } {
-    const range = pick(random, [
-        { base: 10 << 24, prefix: 8 },
-        { base: (172 << 24 | 16 << 16) >>> 0, prefix: 12 },
-        { base: (192 << 24 | 168 << 16) >>> 0, prefix: 16 },
-    ]);
-    const hostPart = Math.floor(random() * 2 ** (32 - range.prefix));
-    return { address: range.base + hostPart, prefix: int(random, Math.max(minPrefix, range.prefix + 1), 30) };
-}
-
-function networkBroadcast(random: Random): Exercise {
-    const { address, prefix } = privateAddress(random, 16);
-    const info = analyzeIpv4(address, prefix);
-    return {
-        task: { kind: "networkBroadcast", address: formatIpv4(address), prefix },
-        fields: [ field("network", "ipv4", formatIpv4(info.network)), field("broadcast", "ipv4", formatIpv4(info.broadcast!)) ],
-    };
-}
-
-function hostRange(random: Random): Exercise {
-    const { address, prefix } = privateAddress(random, 18);
-    const info = analyzeIpv4(address, prefix);
-    return {
-        task: { kind: "hostRange", address: formatIpv4(address), prefix },
-        fields: [
-            field("firstHost", "ipv4", formatIpv4(info.firstHost)),
-            field("lastHost", "ipv4", formatIpv4(info.lastHost)),
-            field("hosts", "integer", String(info.usableHosts)),
-        ],
-    };
-}
-
-function hostCount(random: Random): Exercise {
-    const prefix = int(random, 18, 30);
-    const mask = random() < 0.5 ? formatIpv4(prefixToMask(prefix)) : null;
-    return { task: { kind: "hostCount", prefix, mask }, fields: [ field("hosts", "integer", String(2 ** (32 - prefix) - 2)) ] };
-}
-
-function maskToPrefixTask(random: Random): Exercise {
-    const prefix = int(random, 9, 30);
-    return { task: { kind: "maskToPrefix", mask: formatIpv4(prefixToMask(prefix)) }, fields: [ field("prefix", "prefix", `/${prefix}`) ] };
-}
-
-function prefixToMaskTask(random: Random): Exercise {
-    const prefix = int(random, 9, 30);
-    return { task: { kind: "prefixToMask", prefix }, fields: [ field("mask", "mask", formatIpv4(prefixToMask(prefix))) ] };
-}
-
-function split(random: Random): Exercise {
-    const base = pick(random, [
-        { network: (192 << 24 | 168 << 16 | int(random, 0, 255) << 8) >>> 0, prefix: 24 },
-        { network: (172 << 24 | int(random, 16, 31) << 16) >>> 0, prefix: 16 },
-        { network: (10 << 24 | int(random, 0, 255) << 16) >>> 0, prefix: 16 },
-        { network: (10 << 24) >>> 0, prefix: pick(random, [ 20, 22 ]) },
-    ]);
-    const count = int(random, 3, 14);
-    const nth = int(random, 2, count);
-    const result = splitEqual(base.network, base.prefix, count);
-    if (!result.ok) throw new Error("split exercise out of range");
-    const subnet = result.subnets[nth - 1];
-    return {
-        task: { kind: "split", network: formatIpv4(base.network), prefix: base.prefix, count, nth },
-        fields: [
-            field("prefix", "netmask", `/${result.prefix}`),
-            field("network", "ipv4", formatIpv4(subnet.network)),
-            field("broadcast", "ipv4", formatIpv4(subnet.broadcast!)),
-        ],
-    };
-}
-
-function vlsmTask(random: Random): Exercise {
-    let hosts: number[];
-    do {
-        hosts = shuffled(random, [ int(random, 33, 120), int(random, 10, 60), int(random, 2, 29) ]);
-    } while (new Set(hosts.map(prefixForHosts)).size < hosts.length);
-    const ids = shuffled(random, DEPARTMENTS).slice(0, 3);
-    const departments = ids.map((id, k) => ({ id, hosts: hosts[k] }));
-    const network = (192 << 24 | 168 << 16 | int(random, 0, 255) << 8) >>> 0;
-    const result = vlsm(network, 24, departments.map(d => ({ name: d.id, hosts: d.hosts })));
-    const fields = departments.flatMap((_, k) => {
-        const a = result.allocations.find(x => x.index === k)!;
-        return [ field("network", "ipv4", formatIpv4(a.network), k), field("prefix", "netmask", `/${a.prefix}`, k) ];
-    });
-    return { task: { kind: "vlsm", network: formatIpv4(network), prefix: 24, departments }, fields };
-}
-
-/** Documentation prefix with leading zeros and zero runs, so that there is something to shorten. */
-function randomIpv6(random: Random): number[] {
-    const groups = [ 0x2001, 0x0db8 ];
-    for (let k = 2; k < 8; k++) {
-        const roll = random();
-        groups.push(roll < 0.4 ? 0 : roll < 0.7 ? int(random, 1, 0xff) : roll < 0.85 ? int(random, 0x100, 0xfff) : int(random, 0x1000, 0xffff));
-    }
-    const runStart = int(random, 2, 5);
-    const runLength = int(random, 2, 8 - runStart - 1);
-    for (let k = runStart; k < runStart + runLength; k++) groups[k] = 0;
-    return groups;
-}
-
-function ipv6Shorten(random: Random): Exercise {
-    const address = randomIpv6(random);
-    return { task: { kind: "ipv6Shorten", address: expandIpv6(address) }, fields: [ field("ipv6Short", "ipv6Short", shortenIpv6(address)) ] };
-}
-
-function ipv6Expand(random: Random): Exercise {
-    const address = randomIpv6(random);
-    return { task: { kind: "ipv6Expand", address: shortenIpv6(address) }, fields: [ field("ipv6Full", "ipv6Full", expandIpv6(address)) ] };
-}
-
-function ipv6Subnets(random: Random): Exercise {
-    const prefix = pick(random, [ 32, 40, 44, 48, 52, 56 ]);
-    const target = pick(random, prefix < 48 ? [ 48, 56, 64 ] : [ 56, 64, 64 ].filter(t => t > prefix));
-    const groups = [ 0x2001, 0x0db8, int(random, 0, 0xffff), 0, 0, 0, 0, 0 ];
-    groups[2] &= prefix >= 48 ? 0xffff : (0xffff << (48 - prefix)) & 0xffff;
-    if (prefix > 48) groups[3] = int(random, 0, 0xffff) & (0xffff << (64 - prefix)) & 0xffff;
-    return {
-        task: { kind: "ipv6Subnets", network: shortenIpv6(groups), prefix, target },
-        fields: [ field("subnetCount", "integer", subnetCount(prefix, target).toString()) ],
-    };
-}
-
-const GENERATORS: Record<ExerciseKind, (random: Random) => Exercise> = {
-    networkBroadcast, hostRange, hostCount, maskToPrefix: maskToPrefixTask, prefixToMask: prefixToMaskTask, split, vlsm: vlsmTask, ipv6Shorten, ipv6Expand, ipv6Subnets,
-};
-
-export function generateExercise(random: Random = Math.random, kind: ExerciseKind = pick(random, EXERCISE_KINDS)): Exercise {
-    return GENERATORS[kind](random);
-}
-
-/** Accepts `1024`, `1.024`, `1 024`, `2^10` and `2**10`. */
-export function parseInteger(input: string): bigint | null {
-    const text = input.replace(/[\s.,'_ ]/g, "");
-    const power = /^(\d+)(?:\^|\*\*)(\d+)$/.exec(text);
-    if (power) return BigInt(power[1]) ** BigInt(power[2]);
-    return /^\d+$/.test(text) ? BigInt(text) : null;
-}
-
-const strip = (input: string): string => input.replace(/\s+/g, "");
-
-export function checkField(f: ExerciseField, input: string): FieldResult {
-    const result = (correct: boolean, tip: Tip | null): FieldResult => ({ id: f.id, correct, tip: correct ? null : tip });
-    const answer = strip(input);
-    if (!answer) return result(false, "empty");
-    switch (f.answer) {
-        case "ipv4": {
-            const value = parseIpv4(answer);
-            return value === null ? result(false, "format") : result(value === parseIpv4(f.solution), "wrong");
-        }
-        case "prefix": {
-            const match = /^\/?(\d{1,2})$/.exec(answer);
-            return match ? result(`/${Number(match[1])}` === f.solution, "wrong") : result(false, "format");
-        }
-        case "mask": {
-            const value = parseIpv4(answer);
-            if (value === null) return result(false, "format");
-            if (maskToPrefix(value) === null) return result(false, "maskNotContiguous");
-            return result(value === parseIpv4(f.solution), "wrong");
-        }
-        case "netmask": {
-            const value = parsePrefixOrMask(answer);
-            if (!value.ok) return result(false, value.error === "maskNotContiguous" ? "maskNotContiguous" : "format");
-            const solution = parsePrefixOrMask(f.solution);
-            return result(solution.ok && value.value === solution.value, "wrong");
-        }
-        case "integer": {
-            const value = parseInteger(answer);
-            return value === null ? result(false, "format") : result(value === parseInteger(f.solution), "wrong");
-        }
-        case "ipv6Short":
-        case "ipv6Full": {
-            const value = parseIpv6(answer);
-            if (!value) return result(false, "format");
-            if (expandIpv6(value) !== expandIpv6(parseIpv6(f.solution)!)) return result(false, "wrong");
-            const notation = f.answer === "ipv6Short" ? "notShortened" : "notExpanded";
-            return result(answer.toLowerCase() === f.solution, notation);
-        }
-    }
+/** Random kind from `kinds` that differs from `previous` whenever there is a choice. */
+export function nextKind(random: Random, previous: ExerciseKind | null, kinds: readonly ExerciseKind[] = EXERCISE_KINDS): ExerciseKind {
+    const choices = kinds.filter(k => k !== previous);
+    return pick(random, choices.length ? choices : kinds);
 }
 
 export function checkExercise(exercise: Exercise, answers: Record<string, string>): { results: FieldResult[]; allCorrect: boolean } {
-    const results = exercise.fields.map(f => checkField(f, answers[f.id] ?? ""));
+    const results = exercise.task.kind === "vlsmScenario"
+        ? checkPlan(exercise, answers)
+        : exercise.fields.map(f => checkField(f, answers[f.id] ?? ""));
     return { results, allCorrect: results.every(r => r.correct) };
+}
+
+/** Right and wrong first checks per kind, `[ right, wrong ]`. */
+export type KindStats = Partial<Record<ExerciseKind, [ number, number ]>>;
+
+export function recordResult(stats: KindStats, kind: ExerciseKind, correct: boolean): KindStats {
+    const [ right, wrong ] = stats[kind] ?? [ 0, 0 ];
+    return { ...stats, [kind]: correct ? [ right + 1, wrong ] : [ right, wrong + 1 ] };
+}
+
+/** Up to `limit` kinds with mistakes, the highest share of wrong answers first. */
+export function weakKinds(stats: KindStats, limit = 4): ExerciseKind[] {
+    const share = (k: ExerciseKind): number => {
+        const [ right, wrong ] = stats[k] ?? [ 0, 0 ];
+        return wrong / (right + wrong || 1);
+    };
+    return EXERCISE_KINDS.filter(k => (stats[k]?.[1] ?? 0) > 0).sort((a, b) => share(b) - share(a)).slice(0, limit);
+}
+
+export const ROUND_LENGTH = 10;
+
+export interface RoundResult {
+    kind: ExerciseKind;
+    correct: boolean;
+}
+
+/** Right and total per topic, only topics that occurred, in the order of `TOPICS`. */
+export function topicScores(results: RoundResult[]): { topic: Topic; right: number; total: number }[] {
+    return TOPICS.map(topic => {
+        const own = results.filter(r => TOPIC_OF[r.kind] === topic);
+        return { topic, right: own.filter(r => r.correct).length, total: own.length };
+    }).filter(s => s.total > 0);
 }

@@ -2,6 +2,58 @@
 
 Newest entries at the top. The versions match the releases of the Claude Artifact.
 
+## 2.2.0 – 2026-10-17
+
+Subnet trainer with many new task types, cleaner arrows in every diagram kind, self transitions and reflexive relations, PDF export and the „Darstellung“ menu.
+
+### Added
+
+- **Self transitions and reflexive relations:** a state, class, object or table can be connected to itself: start the arrow (handle, node bar or arrow tool) and click the same element again, or drag a handle back onto it. The line is a loop around a free corner; several loops take different corners
+- **Several transitions between two states:** a second arrow between the same states is allowed (different event or guard) and runs beside the first one; the check warns when two transitions leaving a state carry the same event and guard
+- **Recursive ER relationship:** a second line between the same entity and relationship can be drawn in any direction
+- **Table model, more ways to write keys:** besides `PK kundenNr INT` the columns may say `kundenNr INT (PK)`, `kundenNr INT PK`, `PRIMARY KEY`, `REFERENCES Kunde` or `↑kundenNr`; a foreign key named like table plus key (`kunde_id` => `Kunde` with `PK id`) is found as well
+- **Self-referencing table:** a table with a line to itself (e.g. the superior of an employee) needs a foreign key, which may have its own name
+- **Subnet trainer, many more task types:** which subnet a host belongs to, same subnet or not, smallest mask for n hosts or n subnets, mask from network and broadcast, wildcard mask both ways, route summarization and what a route contains, find the mistake in a device table or address plan, VLSM from a short scenario text (company, school, branches, with reserve and WAN links; every valid non-overlapping plan counts), IPv6 prefix and subnet ID, n-th /64, address type and EUI-64. Several phrasings per type
+- **Subnet trainer, difficulty and mixing:** Leicht / Mittel / Schwer change the numbers (4th octet only up to class A/B and IPv6 traps); "Gemischt" never repeats the same type twice in a row
+- **Subnet trainer, worked solution:** "Lösung zeigen" also shows the working: binary view with network and host bits, interesting octet and block size, formulas per type
+- **Subnet trainer, smarter checking:** answers with spaces, leading zeros, /24 or 255.255.255.0, upper case IPv6 or another valid shortening are accepted; wrong input gets a tip that names the actual mistake (comma instead of dot, broadcast instead of network, wildcard instead of mask, counted network and broadcast as hosts …)
+- **Arrows without switching tools:** a selected node shows four handles on its edge; drag one to the target node (or release and click the target). A small bar next to the node offers arrow, edit text, append next action (activity diagram) and delete. Key `A` with a selected node starts the arrow right from it; `C` is a second key for the arrow tool. After such an arrow the tool is back on "Select" and the target is selected
+- **Cardinality on the line:** a selected ER line shows 1:1, 1:n, n:1 and n:m and sets both lines of the relationship at once; a table relation shows 1:n, n:1, 1:1. ⇄ swaps 1 and n on every line that has them (ER, table model, class diagram)
+- **Save as PDF:** the image dialog saves the drawing as an A4 page with title and date. A status line says what is happening while saving
+- **Gantt chart as image:** "As image" in the Gantt dialog saves the chart with its legend as PNG or PDF
+- **One download button:** "Download" in the top bar asks for the format: plan as file (.json), image (.png) or PDF, plus "Copy image". "Upload" opens a plan file (.json); the file picker only offers .json, and an image or PDF gets an honest note that it cannot be opened again
+- **Works as a normal website:** without the Claude runtime the browser downloads the file directly instead of showing text to copy. Inside the artifact downloads still go through the `downloads` capability
+- **„Darstellung“ menu:** language, theme, contrast and accent color in one place at the right end of the top bar (replaces the separate DE/EN and theme buttons). **High contrast** makes text, borders, lines and focus rings stronger, in light and dark. The **accent color** green is the look of Moritz Grimm's knowledge base (green in light, lime in dark). Everything is remembered; exported images and PDFs keep the normal light palette
+- **Knowledge base links:** the short help on the right links the matching article in Moritz Grimm's knowledge base (knowledge.moritz-grimm.dev) for every diagram kind except free drawing, in the language of the UI
+- **Faster building:** drop a handle on empty space or click + in the node bar to create the matching next element in every diagram kind (entity => relationship, class => class, action => action, state => state, lifeline => lifeline with a message below the last one, package => package …), connected and ready for typing. In the ER model the node bar adds an attribute; the first one of an entity is the key
+
+### Changed
+
+- Arrows in activity and state machine diagrams never lie on top of each other or run through other shapes: there and back run as two parallel lines, slightly offset shapes get a straight line instead of a small kink, loops back up take the free side, and every other case takes the shortest free way over the side points of the shapes
+- Two relations between the same classes, tables or use cases run as parallel straight lines when the shapes face each other, so arrowheads and diamonds keep their full size
+- The arrow handles of a selected node are hollow, so an arrowhead under a handle stays visible
+- The diagram kind menu and "New" show an action for the activity diagram and a state with activities for the state machine diagram (both showed the start node)
+- "Tidy up" for the ER model: entities on a grid so related ones are neighbours, relationships between them, attributes around their entity where no line runs
+- "Tidy up" for use case diagrams: columns from base to included or extending use case, ordered so lines stay short
+- Lines that run through other shapes take a detour; several relations between the same elements fan out. "Tidy up" stores clean detours for the remaining cases
+- Labels, cardinalities and multiplicities move to a free spot instead of covering lines or shapes
+- Exported images are sharper (up to triple resolution)
+- The separate "Image" button is gone; image, PDF and plan file are in the download menu. "Save" and "Open" (My plans in this browser) have their own disk and folder icons
+- ER model: the cardinality sits next to the entity it belongs to (`Kunde 1 ◇ n Bestellung`), as in IHK solutions and Chen notation, instead of next to the diamond
+- Importing a plan file checks every node and line: broken ones (unknown type, missing position, line to a missing node, duplicate id) are skipped and counted in the message instead of breaking the drawing; JSON that is no plan gets its own message
+
+### Fixed
+
+- Activity diagram: parallel arrows between the same rows no longer lie on top of each other; loops back up keep a distance
+- Activity diagram: arrows into or out of a decision no longer run through the diamond when the other node lies above or below it
+- "Reverse" swaps the multiplicities with the nodes, so they stay at the same table or class
+- Long texts in shapes (action, use case, entity, relationship, attribute, rectangle, ellipse, diamond) wrap instead of running out of the shape
+- Image export and "Show everything" include arrows, labels and multiplicities, so loops and labels at the edge are no longer cut off
+- The arrow being drawn starts at the node edge instead of its center
+- Key attributes, primary keys and object names are underlined in Safari too (drawn as a line), text wrapping measures the real font
+- Attribute lines in the ER model no longer offer a cardinality
+- ER example: "Bestellung n ◇ enthält ◇ m Artikel" instead of m and n swapped, so it matches the n:m button of the line bar
+
 ## 2.1.0 – 2026-10-04
 
 First published version of the React rewrite (artifact version 12), together with the database kinds.

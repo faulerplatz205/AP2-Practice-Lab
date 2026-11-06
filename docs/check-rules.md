@@ -92,6 +92,7 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 | Fork: 1 in, at least 2 out. Join: at least 2 in, 1 out | error |
 | Only control flow arrows between flow elements | warn |
 | A transition between states has an event | warn |
+| Two transitions leaving one state do not carry the same event and guard (self transitions included) | warn |
 | Every element with an incoming arrow is reachable from the start | warn |
 | A partition contains at least one flow element | warn |
 
@@ -143,7 +144,7 @@ Code: `src/lib/db/check.ts` (rules), `src/lib/db/normalize.ts` (normal forms), `
 
 ### ER Model (Chen Notation)
 
-Entities are rectangles, relationships diamonds, attributes ellipses; a key attribute is underlined (`stereo: "key"`). The cardinality of a line between entity and relationship is its `label`.
+Entities are rectangles, relationships diamonds, attributes ellipses; a key attribute is underlined (`stereo: "key"`). The cardinality of a line between entity and relationship is its `label` and is drawn next to the entity. Chen notation reads across the relationship: in `Kunde 1 ◇ bestellt ◇ n Bestellung` one customer places n orders, one order belongs to 1 customer. New lines get 1 on the first and n on every further line of a diamond.
 
 | Rule | Level |
 | --- | --- |
@@ -160,7 +161,7 @@ Entities are rectangles, relationships diamonds, attributes ellipses; a key attr
 
 ### Table Model
 
-A table lists one column per line: optional `PK`/`FK` (both for junction tables), the name, an optional data type (`PK kundenNr INT`, `FK plz CHAR(5)`, `name : VARCHAR(50)`). Names are compared with `columnKey()`: case, umlauts and separators do not matter, a trailing `Nummer`, `Number`, `No` or `Id` counts as `Nr`.
+A table lists one column per line: optional `PK`/`FK` (both for junction tables), the name, an optional data type (`PK kundenNr INT`, `FK plz CHAR(5)`, `name : VARCHAR(50)`). Names are compared with `columnKey()`: case, umlauts and separators do not matter, a trailing `Nummer`, `Number`, `No` or `Id` counts as `Nr`. Keys may also follow the name (`kundenNr INT (PK)`, `kundenNr INT PK`), be written in SQL (`PRIMARY KEY`, `FOREIGN KEY`, `REFERENCES Kunde`) or as `↑kundenNr` for a foreign key (`#` is not read, textbooks use it for both). A foreign key points to a table when it names it after `REFERENCES`, has the name of one of its primary keys, or the table name plus that key (`kunde_id`, `kundenId` => `Kunde` with `PK id`; `fkPointsTo()`).
 
 | Rule | Level |
 | --- | --- |

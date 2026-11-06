@@ -2,12 +2,14 @@ import { type PointerEvent as ReactPointerEvent, type ReactElement, type WheelEv
 import clsx from "clsx";
 import type { DiagramEdge, DiagramNode, Point } from "../../types/diagram";
 import { useDiagram } from "../../state/diagramStore";
-import { carriedBy, closeEditor, connectTo, handleDoubleClick, importFile, placeNode, select, startConnection } from "../../state/actions";
+import { beginArrowFrom, carriedBy, closeEditor, connectTo, handleDoubleClick, importFile, placeNode, select, setTool, spawnFrom, startConnection } from "../../state/actions";
 import { registerCanvas, toWorld, zoomAt } from "../../state/viewport";
 import { runCheck } from "../../lib/check";
 import { findNode, minSize } from "../../lib/diagram";
 import { snap } from "../../lib/math";
-import { RELATIONS, SEQUENCE_TYPES } from "../../lib/uml/types";
+import { RELATIONS, SELF_TYPES, SEQUENCE_TYPES } from "../../lib/uml/types";
+import { outline } from "../../lib/uml/outline";
+import { anchorPoint } from "../../lib/geometry";
 import { useSpaceKey } from "../../hooks/useSpaceKey";
 import { Markers } from "./Markers";
 import { World } from "./World";
@@ -15,6 +17,8 @@ import { InlineEditor } from "./InlineEditor";
 import { ZoomControls } from "./ZoomControls";
 import { LevelChip } from "./LevelChip";
 import { RelationBar } from "./RelationBar";
+import { NodeBar } from "./NodeBar";
+import { EdgeBar } from "./EdgeBar";
 import { Hint } from "./Hint";
 import { Toast } from "../Feedback/Toast";
 
@@ -23,7 +27,7 @@ type Drag =
     | { type: "move"; id: number; carried: number[]; ox: number; oy: number; moved: boolean }
     | { type: "resize"; id: number; ox: number; oy: number; w: number; h: number; moved: boolean }
     | { type: "message"; edgeId: number; offset: number; moved: boolean }
-    | { type: "arrow" };
+    | { type: "arrow"; port?: { sx: number; sy: number } };
 
 /** Distance and time below which two clicks count as a double click. */
 const DOUBLE_CLICK_MS = 450, DOUBLE_CLICK_PX = 8;
@@ -50,6 +54,10 @@ export function Canvas(): ReactElement {
         svgRef.current = el;
         registerCanvas(el);
     }, []);
+
+    useEffect(() => {
+        if (pendingFrom === null) setCursor(null);
+    }, [ pendingFrom ]);
 
     // Mouse wheel zooms; non-passive listener so that the page does not scroll
     useEffect(() => {
@@ -92,7 +100,11 @@ export function Canvas(): ReactElement {
         if (state.tool !== "select" && state.tool !== "arrow") return placeNode(state.tool, p, e.shiftKey);
 
         if (state.tool === "arrow") {
-            if (!nodeEl) return state.set({ pendingFrom: null });
+            if (!nodeEl) {
+                if (state.arrowOnce) setTool("select");
+                else state.set({ pendingFrom: null });
+                return;
+            }
             const id = Number(nodeEl.dataset.id);
             const pendingNode = state.pendingFrom !== null ? findNode(state.doc, state.pendingFrom) : undefined;
             if (state.pendingFrom === null) {
@@ -102,6 +114,8 @@ export function Canvas(): ReactElement {
                 connectTo(id);
             } else if (pendingNode && SEQUENCE_TYPES.has(pendingNode.type) && Math.abs(p.y - state.pendingY) > 12) {
                 connectTo(id); // self message
+            } else if (pendingNode && SELF_TYPES.has(pendingNode.type)) {
+                connectTo(id); // second click on the same state or class: self transition, reflexive association
             }
             return;
         }
@@ -110,6 +124,14 @@ export function Canvas(): ReactElement {
         if (handle) {
             const n = findNode(state.doc, Number(handle.dataset.handle))!;
             drag.current = { type: "resize", id: n.id, ox: p.x, oy: p.y, w: n.w, h: n.h, moved: false };
+            return;
+        }
+        const port = target.closest<SVGElement>("[data-port]");
+        if (port) {
+            const id = Number(port.dataset.port);
+            beginArrowFrom(id, p.y);
+            setCursor(p);
+            drag.current = { type: "arrow", port: { sx: e.clientX, sy: e.clientY } };
             return;
         }
         if (nodeEl) {
@@ -133,7 +155,7 @@ export function Canvas(): ReactElement {
     const onPointerMove = (e: ReactPointerEvent<SVGSVGElement>): void => {
         const state = useDiagram.getState();
         const p = toWorld(e.clientX, e.clientY);
-        if (state.tool === "arrow" && state.pendingFrom !== null) setCursor(p);
+        if (state.pendingFrom !== null) setCursor(p);
         const d = drag.current;
         if (!d) return;
         if (d.type === "pan") {
@@ -194,12 +216,17 @@ export function Canvas(): ReactElement {
             const pending = findNode(state.doc, state.pendingFrom);
             if (el && Number(el.dataset.id) !== state.pendingFrom) connectTo(Number(el.dataset.id));
             else if (el && pending && SEQUENCE_TYPES.has(pending.type) && Math.abs(toWorld(e.clientX, e.clientY).y - state.pendingY) > 12) connectTo(state.pendingFrom);
-        }
+            else if (d.port && Math.hypot(e.clientX - d.port.sx, e.clientY - d.port.sy) < 6) beginArrowFrom(state.pendingFrom);
+            else if (el && d.port && pending && SELF_TYPES.has(pending.type) && Math.hypot(e.clientX - d.port.sx, e.clientY - d.port.sy) > 20) connectTo(state.pendingFrom); // handle dragged back onto its own node
+            else if (d.port && !el) spawnFrom(state.pendingFrom, toWorld(e.clientX, e.clientY));
+            else if (d.port) setTool("select");
+        } else if (d?.type === "arrow" && d.port) setTool("select");
         if (d?.type === "pan") setPanning(false);
         drag.current = null;
     };
 
     const pending = pendingFrom !== null ? findNode(doc, pendingFrom) : undefined;
+    const anchor = pending && cursor ? anchorPoint(pending, outline(pending), cursor.x, cursor.y) : null;
     const t = `translate(${view.x} ${view.y}) scale(${view.z})`;
 
     return (
@@ -224,7 +251,7 @@ export function Canvas(): ReactElement {
         >
             <svg
                 id="svg" ref={svgCallback} xmlns="http://www.w3.org/2000/svg"
-                className={clsx((panning || spaceDown.current) && "pan", tool !== "select" && tool !== "arrow" && "add", tool === "arrow" && "arrow")}
+                className={clsx((panning || spaceDown.current) && "pan", tool !== "select" && tool !== "arrow" && "add", (tool === "arrow" || pendingFrom !== null) && "arrow")}
                 onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
                 onWheel={(e: ReactWheelEvent) => e.stopPropagation()}
             >
@@ -239,13 +266,15 @@ export function Canvas(): ReactElement {
                     <World doc={doc} selection={selection} pendingFrom={pendingFrom} marks={marks} />
                 </g>
                 <g id="overlay" transform={t}>
-                    {pending && cursor && tool === "arrow" &&
-                        <line x1={pending.x + pending.w / 2} y1={pending.y + pending.h / 2} x2={cursor.x} y2={cursor.y} pointerEvents="none" stroke="var(--accent)" strokeWidth="1.6" strokeDasharray="5 4" />}
+                    {anchor && cursor &&
+                        <line x1={anchor[0]} y1={anchor[1]} x2={cursor.x} y2={cursor.y} pointerEvents="none" stroke="var(--accent)" strokeWidth="1.6" strokeDasharray="5 4" />}
                 </g>
             </svg>
             <InlineEditor />
             <Hint />
             <RelationBar />
+            <NodeBar />
+            <EdgeBar />
             <LevelChip />
             <ZoomControls />
             <Toast />

@@ -2,8 +2,11 @@ import type { ReactElement } from "react";
 import { useDiagram } from "../../state/diagramStore";
 import { addExample, openGuide } from "../../state/actions";
 import { MODES } from "../../data/modes";
-import { useText } from "../../i18n/locale";
+import { knowledgeUrl } from "../../data/knowledge";
+import type { DiagramMode } from "../../types/diagram";
+import { useLocale, useText } from "../../i18n/locale";
 import { panelText } from "../../i18n/panel";
+import { Icon } from "../Icon";
 import { ActivityLegend } from "../ActivityLegend";
 import { CountingMode, ExerciseBanner, NormBanner, Rich } from "./common";
 
@@ -17,6 +20,7 @@ export function HelpPanel(): ReactElement {
             <div><div className="eyebrow">{info.label}</div><h2>{t.howTo}</h2></div>
             <ol className="tips">{info.tips.map(tip => <li key={tip}>{tip}</li>)}</ol>
             {info.example && <button className="btn ghost" id="hEx" style={{ alignSelf: "flex-start" }} onClick={() => addExample(info.example!)}>{t.showExample}</button>}
+            <KnowledgeLink mode={mode} />
             <p><Rich text={t.modeHelp} /></p>
             <button className="btn primary" id="hGuide" style={{ alignSelf: "flex-start" }} onClick={() => openGuide(0)}>{t.openGuide}</button>
         </>;
@@ -25,6 +29,7 @@ export function HelpPanel(): ReactElement {
         <ExerciseBanner />
         <div><div className="eyebrow">{t.netzplan}</div><h2>{t.howItWorks}</h2></div>
         <p>{t.netzplanIntro}</p>
+        <KnowledgeLink mode={mode} />
         <button className="btn primary" id="hGuide" style={{ alignSelf: "flex-start" }} onClick={() => openGuide(0)}>{t.openGuide}</button>
         <CountingMode />
         <p><Rich text={t.netzplanTools} /></p>
@@ -34,6 +39,18 @@ export function HelpPanel(): ReactElement {
         </div>
         <p>{t.autosave}</p>
     </>;
+}
+
+/** Opens the matching article of the knowledge base in the current language; nothing when there is none. */
+function KnowledgeLink({ mode }: { mode: DiagramMode }): ReactElement | null {
+    const t = useText(panelText), modes = useText(MODES);
+    const url = knowledgeUrl(mode, useLocale(s => s.locale));
+    if (!url) return null;
+    return (
+        <a className="kblink" id="hKnowledge" href={url} target="_blank" rel="noopener noreferrer" title={t.knowledgeTitle(modes[mode].label)}>
+            {t.knowledge}<Icon name="external" size={14} />
+        </a>
+    );
 }
 
 function KeyRow({ keys, action }: { keys: string; action: string }): ReactElement {

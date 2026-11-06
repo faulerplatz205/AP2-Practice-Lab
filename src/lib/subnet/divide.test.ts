@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { freeBlocks, splitEqual, vlsm } from "./divide";
+import { freeBlocks, overlaps, splitEqual, summarizeBlocks, vlsm } from "./divide";
 import { formatIpv4, parseIpv4 } from "./ipv4";
 
 const ip = (text: string): number => parseIpv4(text)!;
@@ -77,5 +77,24 @@ describe("freeBlocks", () => {
         expect(freeBlocks(ip("10.0.0.4"), ip("10.0.0.16")).map(cidr)).toEqual([ "10.0.0.4/30", "10.0.0.8/29" ]);
         expect(freeBlocks(0, 2 ** 32).map(cidr)).toEqual([ "0.0.0.0/0" ]);
         expect(freeBlocks(5, 5)).toEqual([]);
+    });
+});
+
+describe("summarizeBlocks", () => {
+    const b = (text: string): { network: number; prefix: number } => ({ network: ip(text.split("/")[0]), prefix: Number(text.split("/")[1]) });
+    it("summarizes adjacent networks", () => {
+        expect(cidr(summarizeBlocks([ b("172.16.8.0/24"), b("172.16.9.0/24"), b("172.16.10.0/24"), b("172.16.11.0/24") ]))).toBe("172.16.8.0/22");
+    });
+    it("takes the smallest block that covers networks across an octet border", () => {
+        expect(cidr(summarizeBlocks([ b("10.0.14.0/23"), b("10.0.16.0/23") ]))).toBe("10.0.0.0/19");
+        expect(cidr(summarizeBlocks([ b("192.168.1.0/24"), b("192.168.2.0/24") ]))).toBe("192.168.0.0/22");
+    });
+});
+
+describe("overlaps", () => {
+    it("detects shared addresses", () => {
+        const b = (network: string, prefix: number): { network: number; prefix: number } => ({ network: ip(network), prefix });
+        expect(overlaps(b("10.0.0.0", 24), b("10.0.0.128", 25))).toBe(true);
+        expect(overlaps(b("10.0.0.0", 25), b("10.0.0.128", 25))).toBe(false);
     });
 });

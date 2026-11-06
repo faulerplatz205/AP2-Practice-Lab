@@ -110,3 +110,17 @@ export function ipv6Kind(address: Ipv6): Ipv6Kind {
     if (startsWith(address, "2000::", 3)) return "globalUnicast";
     return "other";
 }
+
+/** Modified EUI-64 interface id from a 48-bit MAC (six bytes): ff:fe in the middle, universal/local bit (0x02 of the first byte) flipped. */
+export function eui64(mac: number[]): number[] {
+    const bytes = [ mac[0] ^ 0x02, mac[1], mac[2], 0xff, 0xfe, mac[3], mac[4], mac[5] ];
+    return [ 0, 2, 4, 6 ].map(k => bytes[k] << 8 | bytes[k + 1]);
+}
+
+/** Accepts `00:1A:2B:3C:4D:5E`, `00-1a-2b-3c-4d-5e` and `001a.2b3c.4d5e`. */
+export function parseMac(input: string): number[] | null {
+    const hex = input.trim().toLowerCase();
+    if (!/^[0-9a-f]{2}([:-])([0-9a-f]{2}\1){4}[0-9a-f]{2}$/.test(hex) && !/^([0-9a-f]{4}\.){2}[0-9a-f]{4}$/.test(hex)) return null;
+    const digits = hex.replace(/[:.-]/g, "");
+    return Array.from({ length: 6 }, (_, k) => parseInt(digits.slice(k * 2, k * 2 + 2), 16));
+}

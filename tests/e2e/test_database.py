@@ -3,7 +3,7 @@ import asyncio
 
 from playwright.async_api import async_playwright
 
-from common import APP, out, finish
+from common import APP, out, finish, set_pref
 
 fails = []
 
@@ -69,10 +69,18 @@ async def main():
             t = await check(pg)
             ok('Alles richtig' in t and kind in t, f'{kind}: example passes the check')
             await pg.screenshot(path=out(f'db_example_{mode}.png'))
-            await pg.click('#bTheme')
-            await pg.click('#bTheme')
+            await set_pref(pg, 'Theme', 'dark')
             await pg.screenshot(path=out(f'db_example_{mode}_dark.png'))
-            await pg.click('#bTheme')
+            await set_pref(pg, 'Contrast', 'high')
+            await pg.screenshot(path=out(f'db_example_{mode}_dark_hc.png'))
+            await set_pref(pg, 'Accent', 'green')
+            await pg.screenshot(path=out(f'db_example_{mode}_dark_hc_green.png'))
+            await set_pref(pg, 'Theme', 'light')
+            await pg.screenshot(path=out(f'db_example_{mode}_hc_green.png'))
+            await set_pref(pg, 'Contrast', 'normal')
+            await pg.screenshot(path=out(f'db_example_{mode}_green.png'))
+            await set_pref(pg, 'Accent', 'blue')
+            await set_pref(pg, 'Theme', 'system')
 
         # ER: cardinalities are prefilled, mistakes are found
         await new(pg, 'er')

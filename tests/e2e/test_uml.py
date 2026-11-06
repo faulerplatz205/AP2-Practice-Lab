@@ -215,10 +215,10 @@ async def main():
         d = [a['x'] - b[0] for a, b in zip(ucs2, before)]
         ok(len(set(d)) == 1 and d[0] > 30, 'System boundary takes its content along ' + str(d))
         # image export with UML
-        await pg.click('#bImg')
-        await pg.wait_for_timeout(900)
-        ok(await pg.locator('#dlg img').count() == 1 or 'kopiert' in await pg.inner_text('#toast'), 'Image export with UML')
-        await pg.keyboard.press('Escape')
+        await pg.click('#bDownload')
+        async with pg.expect_download() as dl:
+            await pg.click('#dlPng')
+        ok((await dl.value).suggested_filename.endswith('.png'), 'Image export with UML (PNG download)')
         # rainer gallery & random
         await pg.mouse.click(700, 200)
         seen = set()

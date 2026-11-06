@@ -1,7 +1,7 @@
 /**
- * File download via the Claude artifact capability `downloads`.
- * Outside an artifact (or without permission) it does not exist; then
- * `getDownloads()` returns `null` and the app shows the text for copying.
+ * File download. Inside a Claude artifact through the capability `downloads`
+ * (without permission `getDownloads()` returns `null` and the app shows a fallback).
+ * On a normal website (no `window.claude`) as a plain browser download.
  */
 
 interface DownloadsCapability {
@@ -26,7 +26,7 @@ declare global {
 function requestCapability<T>(name: string): Promise<T | null> {
     try {
         if (!window.claude?.use) return Promise.resolve(null);
-        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 4000));
+        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 10000));
         return Promise.race([ window.claude.use(name) as Promise<T | null>, timeout ]);
     } catch {
         return Promise.resolve(null);
@@ -50,10 +50,43 @@ export function getPermissions(): Promise<PermissionsCapability | null> {
     return requestCapability<PermissionsCapability>("permissions");
 }
 
+/** True inside the Claude artifact viewer, where downloads need the capability. */
+export function insideArtifact(): boolean {
+    return typeof window !== "undefined" && typeof window.claude?.use === "function";
+}
+
+const MIME_TYPES: Record<string, string> = { json: "application/json", png: "image/png", pdf: "application/pdf" };
+
+/** Media type by file extension, `application/octet-stream` for unknown ones. */
+export function mimeType(filename: string): string {
+    return MIME_TYPES[filename.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+}
+
+/** Plain browser download through a temporary object URL. */
+export function browserDownload(filename: string, data: string | Blob): boolean {
+    try {
+        const blob = typeof data === "string" ? new Blob([ data ], { type: mimeType(filename) }) : data;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        // revoking right away can cancel the download in some browsers
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export type SaveOutcome = "saved" | "declined" | "busy" | "denied" | "unavailable";
 
-/** Offers a file for saving. The user confirms in a dialog by Claude. */
+/** Offers a file for saving. In the artifact the user confirms in a dialog by Claude, on a website the browser downloads it. */
 export async function offerFile(filename: string, data: string | Blob): Promise<SaveOutcome> {
+    if (!insideArtifact()) return browserDownload(filename, data) ? "saved" : "unavailable";
     const dl = await getDownloads();
     if (!dl) return "unavailable";
     try {
