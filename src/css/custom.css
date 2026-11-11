@@ -1,4 +1,4 @@
-/* Colors only as tokens on :root, each with a dark variant (see CLAUDE.md, Theming). */
+/* Colors only as tokens on :root, each with a dark variant (see docs/development.md, Theming). */
 /* Look: quiet system chrome around the drawing. System font, filled controls without borders, translucent bars that float over the canvas, one accent color. */
 /* Corners: four steps, picked by what a thing is. --rs marks and badges inside a control, --r every control (button, field, tile, menu row), --r2 floating bars, menus and cards, --r3 dialogs. No pills; round is only what is a dot (status icon, port). */
 /* Layout: toolbar on top, elements on the left, canvas on a dot grid, properties on the right (phone: at the bottom). The drawing keeps its own typeface (--fui). */

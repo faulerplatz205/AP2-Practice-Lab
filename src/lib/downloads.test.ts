@@ -9,7 +9,7 @@ describe("downloads", () => {
         expect(mimeType("readme")).toBe("application/octet-stream");
     });
 
-    it("is not inside an artifact without the Claude runtime", () => {
+    it("is not inside an artifact without the artifact runtime", () => {
         expect(insideArtifact()).toBe(false);
     });
 

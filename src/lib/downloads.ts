@@ -1,5 +1,5 @@
 /**
- * File download. Inside a Claude artifact through the capability `downloads`
+ * File download. Inside the artifact through the capability `downloads`
  * (without permission `getDownloads()` returns `null` and the app shows a fallback).
  * On a normal website (no `window.claude`) as a plain browser download.
  */
@@ -13,13 +13,13 @@ interface PermissionsCapability {
     manage(): Promise<void>;
 }
 
-interface ClaudeRuntime {
+interface ArtifactRuntime {
     use(name: string): Promise<unknown>;
 }
 
 declare global {
     interface Window {
-        claude?: ClaudeRuntime;
+        claude?: ArtifactRuntime;
     }
 }
 
@@ -53,7 +53,7 @@ export function getPermissions(): Promise<PermissionsCapability | null> {
     return requestCapability<PermissionsCapability>("permissions");
 }
 
-/** True inside the Claude artifact viewer, where downloads need the capability. */
+/** True inside the artifact viewer, where downloads need the capability. */
 export function insideArtifact(): boolean {
     return typeof window !== "undefined" && typeof window.claude?.use === "function";
 }
@@ -87,7 +87,7 @@ export function browserDownload(filename: string, data: string | Blob): boolean 
 
 export type SaveOutcome = "saved" | "declined" | "busy" | "denied" | "unavailable";
 
-/** Offers a file for saving. In the artifact the user confirms in a dialog by Claude, on a website the browser downloads it. */
+/** Offers a file for saving. In the artifact the user confirms in a dialog of the viewer, on a website the browser downloads it. */
 export async function offerFile(filename: string, data: string | Blob): Promise<SaveOutcome> {
     if (!insideArtifact()) return browserDownload(filename, data) ? "saved" : "unavailable";
     const dl = await getDownloads();

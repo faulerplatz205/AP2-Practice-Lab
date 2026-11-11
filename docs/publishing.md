@@ -16,22 +16,18 @@ npm run build
 1. `npm run typecheck`, `npm run lint`, `npm run test:unit`
 2. `npm run build`, then `npm run test:e2e`; all suites green
 3. Look at the screenshots in `tests/output/` for the changed areas
-4. Publish as Claude Artifact (below)
+4. Publish as artifact (below)
 5. Add an entry to `CHANGELOG.md`, commit
 
-The skill `/publish` runs these steps.
+## As Artifact
 
-## As Claude Artifact
-
-With Claude Code in the repository:
-
-> Publish `dist/ap2-practice-lab.html` as an update of the existing artifact <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>.
+Publish `dist/ap2-practice-lab.html` as an update of the existing artifact <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>.
 
 - **Always update the existing artifact:** a new artifact has a different address and its own browser storage, so users would not find their plans and achievements there
 - **Capability `downloads`:** must stay declared, otherwise saving files does not work. An update without `capabilities` keeps it; passing `{}` would remove it
 - **Open views:** load the new version on their next reload
 
-## Without Claude
+## As a Plain Website
 
 `dist/index.html` also works when opened directly in a browser or as a self-hosted website (any static web space, no server code). There is no `window.claude`, so the download menu uses a normal browser download (`browserDownload()` in `src/lib/downloads.ts`) for the plan file, PNG and PDF. „Meine Pläne“ and everything else work everywhere. The browser storage of the website is separate from the artifact's: plans move between them only as a downloaded `.json` file.
 

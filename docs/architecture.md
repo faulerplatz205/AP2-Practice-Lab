@@ -102,6 +102,6 @@ A double click opens the floating text field `#ed` (`InlineEditor`) above the ri
 - **Import:** `importFile()` in `actions.ts` refuses images and PDFs with a note, reads `.json` and hands it to `parsePlanFile()` (`lib/diagram.ts`), which tells broken JSON from JSON that is no plan and lets `normalize()` drop broken nodes and edges (counted in the message)
 - **Import:** file input `#file` (button in „Meine Pläne“) or a `.json` file dropped onto the canvas; `importFile()` reads it, `importText()` validates, normalises and replaces the drawing (undoable)
 
-## Capabilities in the Claude Artifact
+## Capabilities in the Artifact
 
 `lib/downloads.ts` requests `downloads` via `window.claude.use("downloads")` with a 10 s timeout and caches the result. Outside an artifact there is no `window.claude` (`insideArtifact()` is false); then `offerFile()` downloads through a temporary object URL and `<a download>` (`browserDownload()`), so the app works as a plain website too.

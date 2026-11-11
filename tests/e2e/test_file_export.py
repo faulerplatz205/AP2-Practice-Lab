@@ -155,7 +155,7 @@ async def main():
         await pg.wait_for_timeout(200)
         ok((await pg.evaluate("window.__saves"))[-1]['filename'].endswith('.json'), 'My plans: download as file')
         await pg.keyboard.press('Escape')
-        # plain website (no Claude runtime): normal browser downloads
+        # plain website (no artifact runtime): normal browser downloads
         web = await b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
         p2 = await web.new_page()
         await p2.route('**/fonts.googleapis.com/**', lambda r: r.abort())

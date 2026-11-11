@@ -4,7 +4,7 @@
 
 Practice app for the AP2, the second part of the final exam for IT specialists in application development in Germany. Network diagrams and UML diagrams are drawn, checked automatically and tidied up. There is also a subnetting workspace with a calculator and exercises, achievements with a level system and a hidden Rainer gallery.
 
-The app is a single HTML file without a server. It runs as a Claude Artifact or directly in the browser.
+The app is a single HTML file without a server. It runs as a hosted artifact or directly in the browser.
 
 **Online:** <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>
 
@@ -18,7 +18,7 @@ The app is a single HTML file without a server. It runs as a Claude Artifact or 
 - **Subnetting:** IPv4 calculator with binary view, splitting a network into equal subnets, VLSM by host demand, shortening and expanding IPv6 addresses, exercises with a check per field
 - **Achievements:** 27 achievements, 9 levels and a Rainer gallery with 9 unlockable pictures. Tip: type "rainer" anywhere
 - **My plans:** save plans under a name in the browser, open, rename, delete
-- **Download and upload:** one download menu for the plan as `.json` file, image (PNG) and PDF; upload opens the `.json` file again (also by drag and drop). Works in the Claude artifact and as a plain website
+- **Download and upload:** one download menu for the plan as `.json` file, image (PNG) and PDF; upload opens the `.json` file again (also by drag and drop). Works in the artifact and as a plain website
 - **German and English:** switch at the top right under “Display”
 - **Light, dark, high contrast, accent color:** theme like the system, always light or always dark, optionally with high contrast and in blue or green (like the knowledge base)
 - **Knowledge base:** the short help links the matching article on [knowledge.moritz-grimm.dev](https://knowledge.moritz-grimm.dev) for every diagram kind
@@ -60,13 +60,7 @@ pip install playwright
 python -m playwright install chromium
 ```
 
-Structure, rules and commands are in [CLAUDE.md](CLAUDE.md), details in [docs/](docs/README.md). So a short instruction is enough for Claude Code, e.g.:
-
-- "Add a check rule for empty partitions to the activity diagram."
-- "Add a communication diagram as a new diagram kind."
-- "Make a subnetting exercise about supernetting."
-
-The folder [.claude/skills](.claude/skills) holds ready-made workflows: `new-element` for new shapes or diagram kinds and `publish` for testing and publishing. How to contribute is described in [CONTRIBUTING.md](CONTRIBUTING.md).
+Structure, rules and commands are in [docs/development.md](docs/development.md), details in [docs/](docs/README.md). How to contribute is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Structure
 

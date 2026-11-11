@@ -4,7 +4,7 @@
 
 Übungs-App für die AP2 (Abschlussprüfung Teil 2) der Fachinformatiker Anwendungsentwicklung. Netzpläne und UML-Diagramme werden gezeichnet, automatisch geprüft und sauber angeordnet. Dazu gibt es einen Subnetting-Bereich mit Rechner und Übungsaufgaben, Erfolge mit Level-System und eine versteckte Rainer-Galerie.
 
-Die App ist eine einzige HTML-Datei ohne Server. Sie läuft als Claude Artifact oder direkt im Browser.
+Die App ist eine einzige HTML-Datei ohne Server. Sie läuft als gehostetes Artifact oder direkt im Browser.
 
 **Online:** <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>
 
@@ -18,7 +18,7 @@ Die App ist eine einzige HTML-Datei ohne Server. Sie läuft als Claude Artifact 
 - **Subnetting:** IPv4-Rechner mit Binäransicht, Netz in gleich große Subnetze aufteilen, VLSM nach Hostbedarf, IPv6 kürzen und ausschreiben, Übungsaufgaben mit Prüfung pro Feld
 - **Erfolge:** 27 Achievements, 9 Level und eine Rainer-Galerie mit 9 freischaltbaren Bildern. Tipp: irgendwo „rainer“ tippen
 - **Meine Pläne:** Pläne unter einem Namen im Browser speichern, öffnen, umbenennen, löschen
-- **Herunterladen und Hochladen:** ein Menü für den Plan als `.json`-Datei, als Bild (PNG) und als PDF; Hochladen öffnet die `.json`-Datei wieder (auch per Ziehen und Ablegen). Funktioniert im Claude-Artifact und als normale Webseite
+- **Herunterladen und Hochladen:** ein Menü für den Plan als `.json`-Datei, als Bild (PNG) und als PDF; Hochladen öffnet die `.json`-Datei wieder (auch per Ziehen und Ablegen). Funktioniert im Artifact und als normale Webseite
 - **Deutsch und Englisch:** Umschalten oben rechts unter „Darstellung“
 - **Hell, dunkel, hoher Kontrast, Akzentfarbe:** Design wie das System, immer hell oder immer dunkel, wahlweise mit hohem Kontrast und in Blau oder Grün (wie die Wissensdatenbank)
 - **Wissensdatenbank:** Die Kurzhilfe verlinkt zu jeder Diagrammart den passenden Artikel auf [knowledge.moritz-grimm.dev](https://knowledge.moritz-grimm.dev)
@@ -60,13 +60,7 @@ pip install playwright
 python -m playwright install chromium
 ```
 
-Aufbau, Regeln und Befehle stehen in [CLAUDE.md](CLAUDE.md), Details in [docs/](docs/README.md) (beides englisch). Damit reicht Claude Code eine kurze Anweisung, z. B.:
-
-- „Füg dem Aktivitätsdiagramm eine Prüfregel für leere Partitionen hinzu.“
-- „Bau ein Kommunikationsdiagramm als neue Diagrammart ein.“
-- „Mach eine Subnetting-Übung zum Supernetting.“
-
-Im Ordner [.claude/skills](.claude/skills) liegen fertige Abläufe: `new-element` für neue Formen oder Diagrammarten und `publish` für Test und Veröffentlichung. Wie man mitmacht, steht in [CONTRIBUTING.md](CONTRIBUTING.md).
+Aufbau, Regeln und Befehle stehen in [docs/development.md](docs/development.md), Details in [docs/](docs/README.md) (beides englisch). Wie man mitmacht, steht in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Aufbau
 

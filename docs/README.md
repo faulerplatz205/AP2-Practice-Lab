@@ -1,6 +1,6 @@
 # Developer Documentation
 
-Knowledge base for working on AP2 Practice Lab. Start with `CLAUDE.md` in the repository root for commands, structure and rules; the files here go into detail.
+Knowledge base for working on AP2 Practice Lab. Start with [development.md](development.md) for commands, structure and rules; the files here go into detail.
 
 | File | Content |
 | --- | --- |
@@ -11,6 +11,6 @@ Knowledge base for working on AP2 Practice Lab. Start with `CLAUDE.md` in the re
 | [new-diagram-type.md](new-diagram-type.md) | adding elements, relation kinds and diagram kinds |
 | [subnetting.md](subnetting.md) | subnet workspace, `src/lib/subnet`, exercises |
 | [i18n.md](i18n.md) | German and English UI, `defineText`, terms |
-| [publishing.md](publishing.md) | build, test, publish the Claude artifact |
+| [publishing.md](publishing.md) | build, test, publish the artifact |
 
 When behaviour changes, the matching file is updated in the same commit.

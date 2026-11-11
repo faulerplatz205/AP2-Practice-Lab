@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { fileURLToPath } from "node:url";
 
-// Everything is inlined into dist/index.html: a Claude artifact is a single file
+// Everything is inlined into dist/index.html: the artifact is a single file
 // without external scripts or images. scripts/artifact.mjs turns it into the artifact.
 export default defineConfig({
     plugins: [ react(), viteSingleFile() ],

@@ -1,6 +1,6 @@
 # Changelog
 
-Newest entries at the top. The versions match the releases of the Claude Artifact.
+Newest entries at the top. The versions match the releases of the artifact.
 
 ## 2.4.0 – 2026-11-11
 
@@ -97,7 +97,7 @@ Subnet trainer with many new task types, cleaner arrows in every diagram kind, s
 - **Save as PDF:** the image dialog saves the drawing as an A4 page with title and date. A status line says what is happening while saving
 - **Gantt chart as image:** "As image" in the Gantt dialog saves the chart with its legend as PNG or PDF
 - **One download button:** "Download" in the top bar asks for the format: plan as file (.json), image (.png) or PDF, plus "Copy image". "Upload" opens a plan file (.json); the file picker only offers .json, and an image or PDF gets an honest note that it cannot be opened again
-- **Works as a normal website:** without the Claude runtime the browser downloads the file directly instead of showing text to copy. Inside the artifact downloads still go through the `downloads` capability
+- **Works as a normal website:** without the artifact runtime the browser downloads the file directly instead of showing text to copy. Inside the artifact downloads still go through the `downloads` capability
 - **„Darstellung“ menu:** language, theme, contrast and accent color in one place at the right end of the top bar (replaces the separate DE/EN and theme buttons). **High contrast** makes text, borders, lines and focus rings stronger, in light and dark. The **accent color** green is the look of Moritz Grimm's knowledge base (green in light, lime in dark). Everything is remembered; exported images and PDFs keep the normal light palette
 - **Knowledge base links:** the short help on the right links the matching article in Moritz Grimm's knowledge base (knowledge.moritz-grimm.dev) for every diagram kind except free drawing, in the language of the UI
 - **Faster building:** drop a handle on empty space or click + in the node bar to create the matching next element in every diagram kind (entity => relationship, class => class, action => action, state => state, lifeline => lifeline with a message below the last one, package => package …), connected and ready for typing. In the ER model the node bar adds an attribute; the first one of an entity is the key

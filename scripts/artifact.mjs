@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds the Claude artifact fragment from dist/index.html: dist/ap2-practice-lab.html
+// Builds the artifact fragment from dist/index.html: dist/ap2-practice-lab.html
 // Publishing wraps the page in its own document skeleton, so this file only
 // holds <title>, stylesheets, styles, the body content and the script.
 
