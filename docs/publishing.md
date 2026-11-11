@@ -24,7 +24,7 @@ npm run build
 Publish `dist/ap2-practice-lab.html` as an update of the existing artifact <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>.
 
 - **Always update the existing artifact:** a new artifact has a different address and its own browser storage, so users would not find their plans and achievements there
-- **Capability `downloads`:** must stay declared, otherwise saving files does not work. An update without `capabilities` keeps it; passing `{}` would remove it
+- **Capabilities:** `downloads` must stay declared, otherwise saving files does not work; `user` with the scope `profile` gives the viewer's display name, which opens the whole gallery for a viewer called Rainer. An update without `capabilities` keeps both; passing `{}` would remove them
 - **Open views:** load the new version on their next reload
 
 ## As a Plain Website

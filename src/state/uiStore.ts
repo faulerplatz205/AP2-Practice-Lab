@@ -37,12 +37,14 @@ interface UiState {
     toast: Toast | null;
     egg: Egg | null;
     modeMenuOpen: boolean;
+    /** The viewer is called Rainer: every gallery picture is open. Never stored */
+    galleryOpen: boolean;
     /** Right panel expanded (folded: only a narrow strip with the toggle button) */
     panelOpen: boolean;
     open: (d: Dialog) => void;
     close: () => void;
     notify: (text: string) => void;
-    set: (patch: Partial<Pick<UiState, "toast" | "egg" | "modeMenuOpen">>) => void;
+    set: (patch: Partial<Pick<UiState, "toast" | "egg" | "modeMenuOpen" | "galleryOpen">>) => void;
     setWorkspace: (workspace: Workspace) => void;
     setPanelOpen: (panelOpen: boolean) => void;
 }
@@ -59,6 +61,7 @@ export const useUi = create<UiState>()(set => ({
     toast: null,
     egg: null,
     modeMenuOpen: false,
+    galleryOpen: false,
     panelOpen: storage.readText(KEYS.panel) !== "closed",
     open: (dialog): void => set({ dialog }),
     close: (): void => set({ dialog: null }),

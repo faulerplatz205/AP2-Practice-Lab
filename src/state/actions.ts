@@ -26,10 +26,10 @@ import { labelKey, placeLabels } from "../lib/uml/labels";
 import { FRAME_TYPES, RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
 import { SELF_DROP, activationAt, fragmentOf, headHeight, isLifeline, messageOffset, messageY, moveMessage, nearestLifeline, ownerOf, pinnedTarget, settleActivations } from "../lib/uml/sequence";
 import { inside } from "../lib/geometry";
-import { fileBaseName } from "../lib/downloads";
+import { fileBaseName, requestCapability } from "../lib/downloads";
 import { MODES, type ExampleKey, EXAMPLE_MODE, GENERIC_ITEMS, type PaletteItem } from "../data/modes";
 import { insertExample } from "../data/examples";
-import { RAINER_GALLERY } from "../data/rainer";
+import { RAINER_GALLERY, isRainer } from "../data/rainer";
 import { GUIDE } from "../data/guide";
 import { localeTag, text } from "../i18n/locale";
 import { diagramText, modeRelationLabels, relationLabels, relationName } from "../i18n/diagram";
@@ -1082,11 +1082,24 @@ export function openGantt(): void {
 
 /* ---------- Rainer ---------- */
 
+/**
+ * A viewer whose display name contains „Rainer“ sees the whole gallery. The name comes from the artifact viewer
+ * (capability `user`, scope `profile`), is only compared and never stored; achievements and XP stay as they are.
+ */
+export async function greetRainer(): Promise<void> {
+    const viewer = await requestCapability<{ me(): Promise<{ name: string }> }>("user");
+    const name = viewer ? (await viewer.me().catch(() => ({ name: "" }))).name : "";
+    if (!isRainer(name)) return;
+    useUi.getState().set({ galleryOpen: true });
+    notify(msg().rainerWelcome);
+}
+
 let lastRainer = -1;
 
 function pickRainer(): number {
     const { unlocked: done } = useAchievements.getState();
-    const unlocked = RAINER_GALLERY.map((g, i) => done[g.unlockedBy] ? i : -1).filter(i => i >= 0);
+    const all = useUi.getState().galleryOpen;
+    const unlocked = RAINER_GALLERY.map((g, i) => all || done[g.unlockedBy] ? i : -1).filter(i => i >= 0);
     if (!unlocked.length) return 0;
     let candidates = unlocked.filter(i => i !== lastRainer);
     if (!candidates.length) candidates = unlocked;

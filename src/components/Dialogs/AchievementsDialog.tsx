@@ -15,7 +15,8 @@ export function AchievementsDialog({ tab }: { tab: "ach" | "gal" }): ReactElemen
     const close = useUi(s => s.close);
     const xp = xpFor(u), level = levelFor(xp);
     const got = ACHIEVEMENTS.filter(a => u[a.id]).length;
-    const galleryUnlocked = RAINER_GALLERY.filter(g => u[g.unlockedBy]).length;
+    const galleryOpen = useUi(s => s.galleryOpen);
+    const galleryUnlocked = RAINER_GALLERY.filter(g => galleryOpen || u[g.unlockedBy]).length;
     const galleryIndex = (id: string): number => RAINER_GALLERY.findIndex(g => g.unlockedBy === id);
     const secret = (a: Achievement): boolean => !!a.hidden && !u[a.id];
     const howTo = (a: Achievement): string => {
@@ -67,7 +68,7 @@ export function AchievementsDialog({ tab }: { tab: "ach" | "gal" }): ReactElemen
                 <div className="gal">
                     {RAINER_GALLERY.map((g, i) => {
                         const a = ACHIEVEMENTS.find(x => x.id === g.unlockedBy)!;
-                        if (!u[g.unlockedBy]) {
+                        if (!galleryOpen && !u[g.unlockedBy]) {
                             return (
                                 <div key={i} className="gcard locked">
                                     <div className="gimg">#{i + 1}</div>

@@ -3,6 +3,7 @@ import { defineText } from "./locale";
 /** Short messages (toasts) and texts that the actions in `src/state` produce. */
 export const messageText = defineText({
     relationSet: (relation: string) => `${relation} gesetzt.`,
+    rainerWelcome: "Hallo Rainer! Für dich ist die ganze Galerie freigeschaltet.",
     guardPlaceholder: "Bedingung, z. B. ja",
     labelPlaceholder: "Beschriftung",
     transitionPlaceholder: "Ereignis [Bedingung] / Aktion",
@@ -49,6 +50,7 @@ export const messageText = defineText({
     imageFailed: "Das Bild konnte nicht erstellt werden.",
 }, {
     relationSet: (relation: string) => `${relation} added.`,
+    rainerWelcome: "Hello Rainer! The whole gallery is unlocked for you.",
     guardPlaceholder: "Condition, e.g. yes",
     labelPlaceholder: "Label",
     transitionPlaceholder: "event [guard] / action",

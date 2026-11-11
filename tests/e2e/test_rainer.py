@@ -51,6 +51,21 @@ async def main():
             await pg.wait_for_timeout(50)
         else:
             ok(True, '20x in quick succession without a miss')
+        # a viewer called Rainer sees the whole gallery, anyone else only what they unlocked
+        for name, expect_all in (('Rainer Beispiel', True), ('Trainer Tom', False), ('', False)):
+            page = await b.new_page(viewport={'width': 1280, 'height': 800})
+            await page.route('**/fonts.googleapis.com/**', lambda r: r.abort())
+            await page.add_init_script("window.claude={use:async n=>n==='user'?{me:async()=>({name:%r})}:null};" % name)
+            await page.goto(APP)
+            await page.wait_for_timeout(600)
+            await page.keyboard.press('Escape')
+            await page.click('#bAch')
+            await page.click('[data-tab="gal"]')
+            locked, cards = await page.locator('.gcard.locked').count(), await page.locator('.gcard').count()
+            ok(cards == 9 and (locked == 0) == expect_all, f'Gallery for the viewer "{name}": {cards - locked} of {cards} open')
+            if expect_all:
+                await page.screenshot(path=out('rainer_viewer.png'))
+            await page.close()
         ok(not errs, 'No JS errors ' + str(errs[:2]))
         await b.close()
     print('FAILS', fails)

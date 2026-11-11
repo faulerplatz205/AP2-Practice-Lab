@@ -9,6 +9,11 @@ import img07 from "@site/static/img/rainer/rainer-07.jpg";
 import img08 from "@site/static/img/rainer/rainer-08.jpg";
 import img09 from "@site/static/img/rainer/rainer-09.jpg";
 
+/** True for a display name with the word „Rainer“ in it, in any case: „Rainer“, „rainer müller“, „Hans-Rainer“. */
+export function isRainer(name: string): boolean {
+    return /(^|[^\p{L}])rainer($|[^\p{L}])/iu.test(name);
+}
+
 /** Each picture is unlocked by an achievement; embedded as data: URIs at build time. */
 export const RAINER_GALLERY: { image: string; unlockedBy: AchievementId }[] = [
     { image: img01, unlockedBy: "rainer" },

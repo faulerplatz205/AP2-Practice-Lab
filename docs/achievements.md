@@ -93,6 +93,8 @@ Typing „rainer“ (case-insensitive, not in input fields, also with an open di
 | #8 | `rainer-08.jpg` | `architect` |
 | #9 | `rainer-09.jpg` | `night` |
 
+A viewer of the artifact whose display name contains the word „Rainer“ (`isRainer()` in `src/data/rainer.ts`) sees every picture unlocked: `greetRainer()` in `src/state/actions.ts` asks the viewer for the name once at the start (capability `user`, scope `profile`), sets `galleryOpen` in `useUi` and shows a greeting. The name is never stored, and achievements, XP and levels do not change.
+
 A locked tile in the gallery shows the name of its achievement (or „Geheimes Achievement“), what to do (or the hint) and, if there is a counter, the progress.
 
 The order of `RAINER_GALLERY` is the picture number shown to users. New pictures are only appended.

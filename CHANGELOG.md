@@ -2,6 +2,12 @@
 
 Newest entries at the top. The versions match the releases of the artifact.
 
+## 2.4.1 – 2026-11-11
+
+### Added
+
+- **Rainer sees everything:** a viewer of the artifact whose display name contains „Rainer“ gets the whole gallery unlocked and a short greeting. The name is only compared, never stored; achievements, XP and levels stay as earned. On the plain website and for viewers without a name nothing changes
+
 ## 2.4.0 – 2026-11-11
 
 Everything the IHK Belegsatz and the exam sheets show can now be drawn the way it is printed there.

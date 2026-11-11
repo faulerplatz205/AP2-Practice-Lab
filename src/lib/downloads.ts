@@ -23,7 +23,8 @@ declare global {
     }
 }
 
-function requestCapability<T>(name: string): Promise<T | null> {
+/** A capability of the artifact viewer, or null: outside the artifact, not granted, or no answer within 10 s. */
+export function requestCapability<T>(name: string): Promise<T | null> {
     try {
         if (!window.claude?.use) return Promise.resolve(null);
         const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 10000));

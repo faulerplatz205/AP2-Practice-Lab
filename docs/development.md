@@ -231,7 +231,7 @@ The pictures in `static/img/rainer/` show a real person and are only used for th
 
 1. Tests green, `npm run build`
 2. Publish `dist/ap2-practice-lab.html` as an **update** of the existing artifact <https://claude.ai/artifact/8gN6BVXa34YUPqtZECEp9f>. Updating keeps the link and the users' stored data; a new artifact has its own storage
-3. The artifact declares the capability `downloads`. Omitting `capabilities` on an update keeps it
+3. The artifact declares the capabilities `downloads` and `user` with the scope `profile` (the viewer's display name, for the gallery of a viewer called Rainer). Omitting `capabilities` on an update keeps them
 4. Add an entry to `CHANGELOG.md`
 
 `dist/` is not committed; the build creates it. Details: `docs/publishing.md`.
@@ -280,7 +280,7 @@ In case of doubt, check `git log --format=%s` and follow the existing pattern.
 
 ## Current State and Open Ideas
 
-Version 2.4.0, all checks green, published as an update of the artifact on 2026-11-11 (see **Publishing**).
+Version 2.4.1, all checks green, published as an update of the artifact on 2026-11-11 (see **Publishing**).
 
 Known rough edges:
 
