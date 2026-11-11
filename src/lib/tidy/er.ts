@@ -4,6 +4,7 @@ import { snap } from "../math";
 import { blockWidth } from "../textWidth";
 import { attributeRow, extentWith, type Extent, type Obstacle, type Row, type Side } from "./erAttributes";
 import { placeEntities, type EntityLink } from "./erGrid";
+import { isErEntity, isErRelationship } from "../uml/types";
 
 type Cell = Vec;
 
@@ -43,8 +44,8 @@ function fitWidth(n: DiagramNode, size: number, weight: string, ratio: number, p
  * attributes in rows around their owner where no line runs. Mutates the nodes.
  */
 export function tidyEr(d: Diagram): DiagramNode[] | null {
-    const ents = d.nodes.filter(n => n.type === "entity");
-    const rels = d.nodes.filter(n => n.type === "relship");
+    const ents = d.nodes.filter(n => isErEntity(n.type));
+    const rels = d.nodes.filter(n => isErRelationship(n.type));
     const attrs = d.nodes.filter(n => n.type === "erattr");
     if (!ents.length && !rels.length) return null;
     // Time budgets only cap huge models; normal models get the same result every time
@@ -68,7 +69,7 @@ export function tidyEr(d: Diagram): DiagramNode[] | null {
     const owner = new Map<number, number>(), kids = new Map<number, DiagramNode[]>(), own = new Map<number, DiagramNode[]>();
     [ ...ents, ...rels ].forEach(n => own.set(n.id, []));
     for (const a of attrs) {
-        const nb = neighbours(a.id), o = nb.find(n => n.type === "entity") ?? nb.find(n => n.type === "relship");
+        const nb = neighbours(a.id), o = nb.find(n => isErEntity(n.type)) ?? nb.find(n => isErRelationship(n.type));
         if (o) {
             owner.set(a.id, o.id);
             own.get(o.id)!.push(a);
@@ -87,7 +88,7 @@ export function tidyEr(d: Diagram): DiagramNode[] | null {
     }
     const orphans = attrs.filter(a => !owner.has(a.id));
     const sortAttrs = (list: DiagramNode[]): DiagramNode[] => list.slice().sort((a, b) => Number(b.stereo === "key") - Number(a.stereo === "key") || a.id - b.id);
-    const parts = new Map(rels.map(r => [ r.id, [ ...new Set(neighbours(r.id).filter(n => n.type === "entity").map(n => n.id)) ]]));
+    const parts = new Map(rels.map(r => [ r.id, [ ...new Set(neighbours(r.id).filter(n => isErEntity(n.type)).map(n => n.id)) ]]));
 
     const links: EntityLink[] = [];
     for (const r of rels) {
@@ -294,7 +295,7 @@ export function tidyEr(d: Diagram): DiagramNode[] | null {
     };
 
     const insideShape = (n: DiagramNode, c: Vec, x: number, y: number): boolean =>
-        insideOutline(n.type === "relship" ? "diamond" : n.type === "erattr" ? "ellipse" : "rect", c[0], c[1], n.w / 2 + 10, n.h / 2 + 10, x, y);
+        insideOutline(isErRelationship(n.type) ? "diamond" : n.type === "erattr" ? "ellipse" : "rect", c[0], c[1], n.w / 2 + 10, n.h / 2 + 10, x, y);
     const segmentCache = new WeakMap<Geometry, Map<number, [Vec, Vec, number][]>>();
     const otherSegments = (geo: Geometry): Map<number, [Vec, Vec, number][]> => {
         let m = segmentCache.get(geo);

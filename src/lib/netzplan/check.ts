@@ -1,6 +1,6 @@
 import type { Issue, MarkSet } from "../../types/check";
 import type { Diagram } from "../../types/diagram";
-import { fmt, num } from "../math";
+import { fmt, num, strictNum } from "../math";
 import { type ActivityGraph, reachableIndirectly } from "./graph";
 import { text } from "../../i18n/locale";
 import { checkText } from "../../i18n/check";
@@ -20,17 +20,33 @@ export function checkStructure(g: ActivityGraph): StructureResult {
     if (!g.nodes.length) return { items: [{ level: "error", text: t.noActivities }], marks, blocking: true };
 
     if (g.cyclic) {
-        const inCycle = g.nodes.filter(n => !g.order.includes(n.id));
+        // only activities that reach themselves again, not everything after the cycle
+        const reaches = (from: number, target: number): boolean => {
+            const seen = new Set<number>(), stack = [ ...(g.succ[from] ?? []) ];
+            while (stack.length) {
+                const id = stack.pop()!;
+                if (id === target) return true;
+                if (!seen.has(id)) {
+                    seen.add(id);
+                    stack.push(...(g.succ[id] ?? []));
+                }
+            }
+            return false;
+        };
+        const inCycle = g.nodes.filter(n => !g.order.includes(n.id) && reaches(n.id, n.id));
         blocking = true;
-        items.push({ level: "error", text: t.cycle(inCycle.map(n => n.f.nr)), tip: t.cycleTip, nodeId: inCycle[0].id });
+        items.push({ level: "error", text: t.cycle(inCycle.map(n => n.f.nr || "?")), tip: t.cycleTip, nodeId: inCycle[0].id });
     }
 
     for (const n of g.nodes) {
-        const d = num(n.f.d);
+        const d = strictNum(n.f.d);
         if (n.f.d === "" || isNaN(d)) {
             blocking = true;
             marks.add(`${n.id}:d`);
-            items.push({ level: "error", text: t.durationMissing(n.f.nr), nodeId: n.id });
+            const missing = String(n.f.d ?? "").trim() === "";
+            items.push(missing
+                ? { level: "error", text: t.durationMissing(n.f.nr), nodeId: n.id }
+                : { level: "error", text: t.durationNotNumber(n.f.nr, String(n.f.d).trim()), tip: t.durationNotNumberTip, nodeId: n.id });
         } else if (d < 0) {
             blocking = true;
             marks.add(`${n.id}:d`);
@@ -59,6 +75,16 @@ export function checkStructure(g: ActivityGraph): StructureResult {
         const ends = g.nodes.filter(n => !iso.has(n.id) && !g.succ[n.id].length);
         if (starts.length > 1) items.push({ level: "warn", text: t.multipleStarts(starts.map(n => n.f.nr)), tip: t.multipleStartsTip, nodeId: starts[0].id });
         if (ends.length > 1) items.push({ level: "warn", text: t.multipleEnds(ends.map(n => n.f.nr)), tip: t.multipleEndsTip, nodeId: ends[0].id });
+    }
+
+    const pairs = new Set<string>();
+    for (const e of g.edges) {
+        const key = `${e.from}>${e.to}`;
+        if (pairs.has(key)) {
+            marks.add(`e:${e.id}`);
+            items.push({ level: "warn", text: t.duplicateArrow(nr(e.from), nr(e.to)), tip: t.duplicateArrowTip, edgeId: e.id });
+        }
+        pairs.add(key);
     }
 
     if (!g.cyclic) {

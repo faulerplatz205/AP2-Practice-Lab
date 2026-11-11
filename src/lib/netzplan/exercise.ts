@@ -9,9 +9,33 @@ import { exerciseText } from "../../i18n/exercise";
 /**
  * Random activity list with `count` activities and names in the current language.
  * Guaranteed: one start, one end, every activity except the last has a successor,
- * no redundant arrows.
+ * no redundant arrows and, from 4 activities on, parallel paths with at least one
+ * activity that has a float (GP > 0), so the exercise is never a plain chain.
  */
 export function generateTaskList(count: number): TaskRow[] {
+    let rows = randomTaskList(count);
+    for (let i = 0; i < 200 && count >= 4 && !hasFloat(rows); i++) rows = randomTaskList(count);
+    return rows;
+}
+
+/** Forward and backward pass on the rows: does any activity have a total float? */
+export function hasFloat(rows: TaskRow[]): boolean {
+    const fez = new Map<string, number>(), faz = new Map<string, number>();
+    for (const r of rows) {
+        const start = Math.max(0, ...r.pred.map(p => fez.get(p) ?? 0));
+        faz.set(r.nr, start);
+        fez.set(r.nr, start + r.d);
+    }
+    const end = Math.max(0, ...fez.values());
+    const saz = new Map<string, number>();
+    for (const r of rows.slice().reverse()) {
+        const succ = rows.filter(x => x.pred.includes(r.nr)).map(x => saz.get(x.nr)!);
+        saz.set(r.nr, (succ.length ? Math.min(...succ) : end) - r.d);
+    }
+    return rows.some(r => saz.get(r.nr)! - faz.get(r.nr)! > 0);
+}
+
+function randomTaskList(count: number): TaskRow[] {
     const names = shuffle(text(exerciseText).activityNames).slice(0, count);
     const P: number[][] = names.map(() => []);
     for (let i = 1; i < count; i++) {

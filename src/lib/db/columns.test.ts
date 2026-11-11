@@ -18,6 +18,8 @@ describe("parseColumn", () => {
         [ "kundenNr INT PRIMARY KEY", true, false, "kundenNr" ],
         [ "kundenNr INT REFERENCES Kunde(kundenNr)", false, true, "kundenNr" ],
         [ "↑kundenNr", false, true, "kundenNr" ],
+        [ "#kundenNr INT", false, true, "kundenNr" ],
+        [ "PK #bestellNr INT", true, true, "bestellNr" ],
         [ "preis DECIMAL(10,2)", false, false, "preis" ],
     ])("reads %s", (line, pk, fk, name) => {
         const c = parseColumn(line);

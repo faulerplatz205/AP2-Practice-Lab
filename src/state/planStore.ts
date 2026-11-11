@@ -20,7 +20,13 @@ interface PlanState {
     persist: (plans: SavedPlan[], currentId: string | null) => boolean;
 }
 
-const storedPlans = storage.read<SavedPlan[]>(KEYS.plans) ?? [];
+const rawPlans: unknown = storage.read<unknown>(KEYS.plans);
+const isPlan = (p: unknown): p is SavedPlan => !!p && typeof p === "object" && typeof (p as SavedPlan).id === "string" && typeof (p as SavedPlan).data === "string";
+// broken storage must never stop the app: only well-formed entries are kept
+const storedPlans: SavedPlan[] = Array.isArray(rawPlans)
+    ? rawPlans.filter(isPlan)
+        .map(p => ({ ...p, name: String(p.name ?? ""), created: Number(p.created) || 0, updated: Number(p.updated) || 0, count: Number(p.count) || 0 }))
+    : [];
 const storedCurrent = storage.readText(KEYS.currentPlan) || null;
 
 export const usePlans = create<PlanState>()(set => ({

@@ -103,7 +103,7 @@ async def main():
         await pg.wait_for_timeout(200)
         cards = pg.locator('.gcard')
         uml = await cards.nth(2).inner_text()
-        ok('Freischalten mit „Richtiges UML-Diagramm“' in uml and 'ohne Fehler und ohne Hinweise' in uml, 'Locked picture #3 names its achievement and what to do: ' + uml)
+        ok('Freischalten mit „Fehlerfrei modelliert“' in uml and 'ohne Fehler und ohne Hinweise' in uml, 'Locked picture #3 names its achievement and what to do: ' + uml)
         streak = await cards.nth(5).inner_text()
         ok('Ihr werdet mich niemals besiegen' in streak and '/ 5' in streak, 'Locked picture #6 shows the streak progress: ' + streak)
         night = await cards.nth(8).inner_text()

@@ -84,7 +84,7 @@ export function guessMode(d: Pick<Diagram, "nodes">): DiagramMode {
         [ "zu", [ "state" ]],
         [ "uc", [ "actor", "usecase", "boundary" ]],
         [ "kl", [ "class" ]],
-        [ "seq", [ "lifeline", "actline", "activation", "fragment" ]],
+        [ "seq", [ "lifeline", "actline", "activation", "fragment", "destroy", "operand", "invariant" ]],
         [ "obj", [ "object" ]],
         [ "komp", [ "component", "iface" ]],
         [ "vert", [ "node3d", "artifact" ]],
@@ -112,12 +112,27 @@ function cleanNode(raw: unknown): DiagramNode | null {
     const sized = isNumber(n.w) && n.w > 0 && isNumber(n.h) && n.h > 0;
     const filled = isNumber(n.fill) && n.fill >= 0 && n.fill <= 4;
     const activity = type !== "np" || isObject(n.f);
-    if (sized && filled && typeof n.text === "string" && activity) return n as DiagramNode;
+    const textsOk = TEXT_FIELDS.every(k => n[k] === undefined || typeof n[k] === "string")
+        && (type !== "np" || !activity || Object.values(n.f as object).every(v => typeof v === "string" || typeof v === "number"));
+    if (sized && filled && typeof n.text === "string" && activity && textsOk) return n as DiagramNode;
     const size = defaultSize(type);
     const out = { ...n, type, w: sized ? n.w : size.w, h: sized ? n.h : size.h, fill: filled ? n.fill : 0, text: typeof n.text === "string" ? n.text : "" } as DiagramNode;
     if (!activity) out.f = { nr: "", name: "", d: "", faz: "", fez: "", saz: "", sez: "", gp: "", fp: "" };
+    for (const k of TEXT_FIELDS) {
+        const v: unknown = out[k];
+        if (v !== undefined && typeof v !== "string") (out as unknown as Record<string, unknown>)[k] = typeof v === "number" ? String(v) : undefined;
+    }
+    if (out.f) out.f = Object.fromEntries(Object.entries(out.f).map(([ k, v ]) => [ k, typeof v === "string" ? v : typeof v === "number" ? String(v) : "" ])) as unknown as DiagramNode["f"];
     return out;
 }
+
+/** A network diagram exercise from a file is only kept when every row has the expected shape. */
+function validTask(t: unknown): t is Diagram["task"] {
+    return isObject(t) && (t.mode === "calc" || t.mode === "draw") && Array.isArray(t.list)
+        && t.list.every(r => isObject(r) && typeof r.nr === "string" && typeof r.name === "string" && isNumber(r.d) && Array.isArray(r.pred) && r.pred.every(p => typeof p === "string"));
+}
+
+const TEXT_FIELDS = [ "attrs", "ops", "stereo", "align" ] as const;
 
 /** A usable edge between two existing nodes, else `null`. */
 function cleanEdge(raw: unknown, nodeIds: Set<number>): DiagramEdge | null {
@@ -125,7 +140,17 @@ function cleanEdge(raw: unknown, nodeIds: Set<number>): DiagramEdge | null {
     const e = raw as Partial<DiagramEdge>;
     if (!isNumber(e.id) || !isNumber(e.from) || !isNumber(e.to) || !nodeIds.has(e.from) || !nodeIds.has(e.to)) return null;
     if (e.kind !== undefined && !(e.kind in RELATIONS)) return null;
-    return typeof e.label === "string" ? e as DiagramEdge : { ...e, label: "" } as DiagramEdge;
+    const plain = (v: unknown): boolean => v === undefined || typeof v === "string";
+    if (typeof e.label === "string" && plain(e.m1) && plain(e.m2) && (e.y === undefined || isNumber(e.y)) && (e.route === undefined || isObject(e.route))) return e as DiagramEdge;
+    const out = { ...e, label: typeof e.label === "string" ? e.label : "" } as DiagramEdge;
+    for (const k of [ "m1", "m2" ] as const) {
+        const v: unknown = out[k];
+        if (typeof v === "number" && Number.isFinite(v)) out[k] = String(v);
+        else if (v !== undefined && typeof v !== "string") delete out[k];
+    }
+    if (out.y !== undefined && !isNumber(out.y)) delete out.y;
+    if (out.route !== undefined && !isObject(out.route)) delete out.route;
+    return out;
 }
 
 /** Keeps the first entry per id. */
@@ -146,8 +171,8 @@ export function normalize(raw: unknown): Diagram {
     const mode = d.cfg?.mode && ALL_MODES.includes(d.cfg.mode) ? d.cfg.mode : guessMode({ nodes });
     const next = Math.max(isNumber(d.next) ? d.next : 1, 1, ...nodes.map(n => n.id + 1), ...edges.map(e => e.id + 1));
     const out: Diagram = { nodes, edges, next, cfg: { start: d.cfg?.start === 1 ? 1 : 0, mode } };
-    if (isObject(d.task)) out.task = d.task;
-    if (isObject(d.norm)) out.norm = d.norm;
+    if (validTask(d.task)) out.task = d.task;
+    if (isObject(d.norm) && typeof d.norm.id === "string") out.norm = d.norm;
     return out;
 }
 

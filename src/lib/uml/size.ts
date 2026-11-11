@@ -15,6 +15,12 @@ export interface ClassLayout {
 
 const LINE = 17;
 
+/** Operator tab of a combined fragment; the sd frame carries its name in the tab. */
+export function fragmentTab(n: DiagramNode): { tab: string; tabW: number } {
+    const frame = n.text === "sd", tab = frame && n.attrs ? `sd ${n.attrs}` : String(n.text);
+    return { tab, tabW: Math.max(46, tab.length * (frame ? 7.6 : 8) + 22) };
+}
+
 export function classLayout(n: DiagramNode): ClassLayout {
     const attrs = n.attrs ? lines(n.attrs) : [];
     const ops = n.ops ? lines(n.ops) : [];
@@ -43,6 +49,8 @@ export function fitToContent(n: DiagramNode): void {
         n.w = snap(L.width + 5);
         n.h = L.height;
     } else if (n.type === "state" && n.attrs) {
-        n.h = Math.max(n.h, 38 + lines(n.attrs).length * LINE + 6);
+        const acts = lines(n.attrs);
+        n.h = Math.max(n.h, 38 + acts.length * LINE + 6);
+        n.w = Math.max(n.w, snap(Math.max(n.text.length * 8.6, ...acts.map(l => l.length * 6.9)) + 24));
     }
 }

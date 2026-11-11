@@ -8,7 +8,10 @@ const MAX_EXPONENT = 256;
 
 /** Accepts `1024`, `1.024`, `1 024`, `2^10`, `2**10`, `2^6-2` and a trailing word such as `62 Hosts`. */
 export function parseInteger(input: string): bigint | null {
-    const text = input.replace(/[\s.,'_ ]/g, "").replace(/−/g, "-").replace(/(\d)[a-zäöüß]+$/i, "$1");
+    const trimmed = input.trim().replace(/−/g, "-").replace(/(\d)\s*[a-zäöüß]+$/i, "$1");
+    // separators only count when they group thousands: 1.024 or 1 024, never 6.2 or 62,0
+    if (/[.,'_ ]/.test(trimmed) && !/^\d{1,3}(?:[.,'_ ]\d{3})+$/.test(trimmed) && !/[\^*]/.test(trimmed)) return null;
+    const text = trimmed.replace(/[\s.,'_ ]/g, "");
     const power = /^(\d+)(?:\^|\*\*)(\d+)(?:([+-])(\d+))?$/.exec(text);
     if (power) {
         if (Number(power[2]) > MAX_EXPONENT) return null;
@@ -63,6 +66,16 @@ function checkIpv4(f: ExerciseField, answer: string): Verdict {
     if (value === null) return wrong(ipv4Problem(text));
     if (suffix && Number(suffix[2]) !== f.prefix) return wrong("prefixSuffix");
     return compare(f, value === parseIpv4(f.solution), v => parseIpv4(v) === value);
+}
+
+/** `192.168.1.0 255.255.255.0`: the address with its mask; the mask must match the prefix of the task. */
+function checkIpv4WithMask(f: ExerciseField, answer: string): Verdict {
+    const [ address, mask, ...more ] = answer.split(/\s+/);
+    const m = parseIpv4(mask ?? "");
+    if (more.length || m === null) return wrong(ipv4Problem(answer.replace(/\s+/g, "")));
+    if (!isMask(m)) return wrong(maskProblem(m));
+    if (maskToPrefix(m) !== f.prefix) return wrong("prefixSuffix");
+    return checkIpv4(f, address);
 }
 
 function checkPrefix(f: ExerciseField, answer: string): Verdict {
@@ -251,6 +264,7 @@ export function checkField(f: ExerciseField, input: string): FieldResult {
     let verdict: Verdict;
     if (!answer) verdict = wrong("empty");
     else if (f.answer === "cidr") verdict = checkCidr(f, raw);
+    else if (f.answer === "ipv4" && /\d\s+\d/.test(raw.trim())) verdict = checkIpv4WithMask(f, raw.trim());
     else verdict = CHECKS[f.answer](f, answer);
     const result: FieldResult = { id: f.id, correct: verdict.correct, tip: verdict.correct ? null : verdict.tip };
     if (verdict.note) result.note = verdict.note;

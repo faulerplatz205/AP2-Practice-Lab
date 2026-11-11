@@ -20,7 +20,8 @@ export interface ParsedTaskList {
 }
 
 /**
- * Reads an activity list. Separator `;` or tab (copied from Excel).
+ * Reads an activity list. Separator `;` or tab (copied from Excel); predecessors are separated
+ * by `,`, spaces or further `;`.
  * A header line like „Nr; Bezeichnung; Dauer“ or "No; Name; Duration" is skipped.
  * Error messages are in the current language.
  */
@@ -36,11 +37,12 @@ export function parseTaskList(input: string): ParsedTaskList {
             return;
         }
         const d = num(c[2]);
-        if (isNaN(d) || d < 0) {
+        if (!isFinite(d) || d < 0) {
             errors.push(t.badDuration(i + 1, c[2]));
             return;
         }
-        const pred = (c[3] ?? "").split(/[,\s]+/).map(x => x.trim()).filter(x => x && !/^[-–—]$/.test(x));
+        // Predecessors may also be separated by `;` (then they spread over several columns)
+        const pred = c.slice(3).join(",").split(/[,\s]+/).map(x => x.trim()).filter((x, k, all) => x && !/^[-–—]$/.test(x) && all.indexOf(x) === k);
         rows.push({ nr: c[0], name: c[1], d, pred });
     });
     const nrs = new Set<string>();

@@ -33,7 +33,13 @@ export function zoomCenter(k: number): void {
     if (r) zoomAt(r.width / 2, r.height / 2, k);
 }
 
-/** Shows `box` (or the whole drawing) as large as possible and centred. */
+/** Canvas width from which the toast fits next to the level chip (same value as the container query in custom.css). */
+const WIDE_CANVAS = 1120;
+
+/**
+ * Shows `box` (or the whole drawing) as large as possible and centred, leaving room at the top
+ * for the toast and level chip and at the bottom for the hint, zoom controls and achievement popup.
+ */
 export function fitView(box?: Rect | null): void {
     const { doc, set } = useDiagram.getState();
     const b = box ?? contentBox(doc);
@@ -42,6 +48,7 @@ export function fitView(box?: Rect | null): void {
         set({ view: { x: 40, y: 40, z: 1 } });
         return;
     }
-    const z = clamp(Math.min((r.width - 80) / b.w, (r.height - 110) / b.h), 0.25, 1.4);
-    set({ view: { z, x: (r.width - b.w * z) / 2 - b.x * z, y: (r.height - b.h * z) / 2 - b.y * z - 10 } });
+    const top = r.width >= WIDE_CANVAS ? 64 : 108, bottom = 96;
+    const z = clamp(Math.min((r.width - 80) / b.w, (r.height - top - bottom) / b.h), 0.25, 1.4);
+    set({ view: { z, x: (r.width - b.w * z) / 2 - b.x * z, y: top + (r.height - top - bottom - b.h * z) / 2 - b.y * z } });
 }

@@ -5,6 +5,7 @@ import { canvasToBlob } from "../../lib/image";
 import { buildPdf, canvasToPdfImage } from "../../lib/pdf";
 import { text, useText } from "../../i18n/locale";
 import { dialogText, imageText } from "../../i18n/dialogs";
+import { AllowSaving } from "./AllowSaving";
 
 /** Which hint is shown below the image. Stored as a key so a language switch updates it. */
 type Hint = "save" | "copy" | "none";
@@ -87,5 +88,6 @@ export function ImageDialog({ url, canvas, title, file }: { url: string; canvas:
         </div>
         {status && <p id="mImgStatus" role="status" className="status">{t[status]}</p>}
         <p id="mImgHint">{hint === "save" ? t.saveHint : hint === "copy" ? t.copyUnavailable : ""}</p>
+        {(status === "denied" || status === "saveUnavailable" || status === "pdfUnavailable") && <div className="row"><AllowSaving /></div>}
     </>;
 }

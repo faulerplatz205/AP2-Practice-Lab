@@ -25,6 +25,7 @@ const PATHS = {
     disk: <><path d="M5 4h11l3 3v12a1 1 0 01-1 1H6a1 1 0 01-1-1z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></>,
     folder: <path d="M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1z" />,
     view: <path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4" />,
+    swap: <path d="M4 8h14l-3-3M20 16H6l3 3" />,
     logo: <><rect x="3" y="4" width="7" height="6" rx="1" /><rect x="14" y="14" width="7" height="6" rx="1" /><path d="M10 7h4v10" /></>,
 };
 

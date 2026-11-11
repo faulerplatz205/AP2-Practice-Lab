@@ -4,6 +4,7 @@ import type { MarkSet } from "../../types/check";
 import { ACTIVITY_CELLS } from "../../lib/constants";
 import { useText } from "../../i18n/locale";
 import { fieldLabels } from "../../i18n/netzplan";
+import { fitCellText } from "../../lib/textWidth";
 
 interface Props {
     node: ActivityNode;
@@ -31,8 +32,12 @@ export function ActivityShape({ node: n, fill, critical, marks }: Props): ReactE
             const x = c.col * cw, y = c.row * rh, cellW = c.span * cw, v = n.f[c.key] ?? "";
             let value: ReactElement | null = null;
             if (c.key === "name") {
-                const max = Math.max(4, Math.floor((cellW - 10) / (valueSize * 0.56)));
-                value = <text x={x + cellW / 2} y={y + rh / 2 + valueSize * 0.36} textAnchor="middle" fontSize={valueSize * 0.95} fontWeight="600" fontFamily="var(--fui)" fill="var(--ink)">{v.length > max ? v.slice(0, max - 1) + "…" : v}</text>;
+                const fit = fitCellText(v, valueSize * 0.95, 8, cellW - 10, rh - 4);
+                const lh = fit.size * 1.12, y0 = y + rh / 2 - (fit.lines.length - 1) * lh / 2 + fit.size * 0.36;
+                value = <text x={x + cellW / 2} y={y0} textAnchor="middle" fontSize={fit.size} fontWeight="600" fontFamily="var(--fui)" fill="var(--ink)">
+                    {fit.lines.length > 1 && <title>{v}</title>}
+                    {fit.lines.map((line, i) => <tspan key={i} x={x + cellW / 2} dy={i ? lh : 0}>{line}</tspan>)}
+                </text>;
             } else if (v !== "") {
                 value = <text x={x + cellW / 2 + (labels[c.key] ? 5 : 0)} y={y + rh / 2 + valueSize * 0.42} textAnchor="middle" fontSize={valueSize} fontWeight={c.key === "nr" ? "600" : "400"} fontFamily="var(--fmono)" fill={c.key === "gp" && critical ? "var(--crit)" : "var(--ink)"}>{v}</text>;
             }

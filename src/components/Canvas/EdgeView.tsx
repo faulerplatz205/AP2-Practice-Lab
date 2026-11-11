@@ -18,6 +18,8 @@ interface Props {
     marked?: boolean;
     /** Export: without the invisible hit area */
     exporting?: boolean;
+    /** "line" draws the path, "labels" the texts; the canvas draws the texts in a later pass, in front of the nodes */
+    part: "line" | "labels";
 }
 
 function EdgeLabel({ spot, text }: { spot: LabelSpot; text: string }): ReactElement {
@@ -25,12 +27,22 @@ function EdgeLabel({ spot, text }: { spot: LabelSpot; text: string }): ReactElem
 }
 
 /** `data-eid` maps clicks to the edge. */
-export function EdgeView({ doc, edge: e, from, to, ctx, labels, critical, selected, marked, exporting }: Props): ReactElement {
+export function EdgeView({ doc, edge: e, from, to, ctx, labels, critical, selected, marked, exporting, part }: Props): ReactElement | null {
     const rel = RELATIONS[e.kind ?? "flow"] ?? RELATIONS.flow;
     const g = edgeGeometry(doc, e, from, to, ctx);
     const color = selected ? "var(--accent)" : marked ? "var(--warn)" : critical ? "var(--crit)" : "var(--ink)";
     const suffix = selected ? "s" : marked ? "w" : critical ? "c" : "";
     const label = edgeLabel(e), at = (part: "label" | "m1" | "m2"): LabelSpot | undefined => labels.get(labelKey(e, part));
+    if (part === "labels") {
+        if (!label && !e.m1 && !e.m2) return null;
+        return (
+            <g className="el" data-eid={e.id}>
+                {label && <EdgeLabel spot={at("label") ?? { x: g.lx, y: g.ly, a: g.anc ?? "middle" }} text={label} />}
+                {e.m1 && <EdgeLabel spot={at("m1") ?? { x: g.s[0], y: g.s[1] + 16, a: "start" }} text={e.m1} />}
+                {e.m2 && <EdgeLabel spot={at("m2") ?? { x: g.t[0], y: g.t[1] + 16, a: "start" }} text={e.m2} />}
+            </g>
+        );
+    }
     return (
         <g className="eg" data-eid={e.id}>
             {!exporting && <path d={g.d} stroke="transparent" strokeWidth="14" fill="none" />}
@@ -40,9 +52,6 @@ export function EdgeView({ doc, edge: e, from, to, ctx, labels, critical, select
                 markerEnd={rel.end ? `url(#${rel.end}${suffix})` : undefined}
                 markerStart={rel.start ? `url(#${rel.start}${suffix})` : undefined}
             />
-            {label && <EdgeLabel spot={at("label") ?? { x: g.lx, y: g.ly, a: g.anc ?? "middle" }} text={label} />}
-            {e.m1 && <EdgeLabel spot={at("m1") ?? { x: g.s[0], y: g.s[1] + 16, a: "start" }} text={e.m1} />}
-            {e.m2 && <EdgeLabel spot={at("m2") ?? { x: g.t[0], y: g.t[1] + 16, a: "start" }} text={e.m2} />}
         </g>
     );
 }

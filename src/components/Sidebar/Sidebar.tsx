@@ -5,7 +5,7 @@ import { useUi } from "../../state/uiStore";
 import { addExample, openGantt, pickRelation, pickTile, setMode } from "../../state/actions";
 import { GENERIC_ITEMS, MODES, MODE_KEYS, type PaletteItem } from "../../data/modes";
 import { useText } from "../../i18n/locale";
-import { relationLabels } from "../../i18n/diagram";
+import { modeRelationLabels, relationLabels, relationName } from "../../i18n/diagram";
 import { sidebarText } from "../../i18n/canvas";
 import { dbText } from "../../i18n/database";
 import { Icon } from "../Icon";
@@ -56,7 +56,7 @@ function ModeMenu(): ReactElement {
 }
 
 export function Sidebar(): ReactElement {
-    const t = useText(sidebarText), relations = useText(relationLabels), generic = useText(GENERIC_ITEMS), db = useText(dbText);
+    const t = useText(sidebarText), relations = useText(relationLabels), perMode = useText(modeRelationLabels), generic = useText(GENERIC_ITEMS), db = useText(dbText);
     const mode = useDiagram(s => s.doc.cfg.mode);
     const tool = useDiagram(s => s.tool);
     const toolKey = useDiagram(s => s.toolKey);
@@ -79,8 +79,8 @@ export function Sidebar(): ReactElement {
                     <h3>{t.connections}</h3>
                     <div className="rtiles">
                         {info.relations.map(k => (
-                            <button key={k} type="button" className="rtile" data-rel={k} title={relations[k]} aria-pressed={tool === "arrow" && relation === k} onClick={() => pickRelation(k)}>
-                                <RelationPreview kind={k} /><span>{relations[k]}</span>
+                            <button key={k} type="button" className="rtile" data-rel={k} title={relationName(relations, perMode, mode, k)} aria-pressed={tool === "arrow" && relation === k} onClick={() => pickRelation(k)}>
+                                <RelationPreview kind={k} /><span>{relationName(relations, perMode, mode, k)}</span>
                             </button>
                         ))}
                     </div>

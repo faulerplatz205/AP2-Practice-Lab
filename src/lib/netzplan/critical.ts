@@ -7,8 +7,8 @@ export function isCritical(n: DiagramNode | undefined): boolean {
     return isActivity(n) && n.f.gp !== "" && num(n.f.gp) === 0 && n.f.faz !== "";
 }
 
-/** Arrow on the critical path: both ends critical and without a gap (FEZ = FAZ). */
+/** Arrow on the critical path: both ends critical and without a gap (FAZ = FEZ of the predecessor, + 1 when counting starts at 1). */
 export function isCriticalEdge(d: Diagram, e: DiagramEdge): boolean {
     const a = d.nodes.find(n => n.id === e.from), b = d.nodes.find(n => n.id === e.to);
-    return isCritical(a) && isCritical(b) && isActivity(a) && isActivity(b) && num(a.f.fez) === num(b.f.faz);
+    return isCritical(a) && isCritical(b) && isActivity(a) && isActivity(b) && num(a.f.fez) + d.cfg.start === num(b.f.faz);
 }

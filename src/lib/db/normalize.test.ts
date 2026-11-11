@@ -48,6 +48,23 @@ describe("checkNormalization", () => {
         expect(kinds(SOLUTION())).toEqual([]);
     });
 
+    it("reports a column on the wrong key once, without a follow-up message", () => {
+        const tables = [
+            table("Kurs", "PK kursNr", "titel", "datum", "FK dozentNr"),
+            table("Dozent", "PK dozentNr", "dozentName"),
+            table("Teilnehmer", "PK teilnehmerNr", "vorname", "nachname", "bezahlt"),
+            table("Buchung", "PK FK kursNr", "PK FK teilnehmerNr"),
+        ];
+        expect(kinds(tables, NORM_SCENARIOS.course)).toEqual([ "keyTooSmall" ]);
+        const project = [
+            table("Mitarbeiter", "PK persNr", "nachname", "FK abteilungNr"),
+            table("Abteilung", "PK abteilungNr", "abteilung"),
+            table("Projekt", "PK projektNr", "projektname", "stunden"),
+            table("Projektzeit", "PK FK persNr", "PK FK projektNr"),
+        ];
+        expect(kinds(project, NORM_SCENARIOS.project)).toEqual([ "keyTooSmall" ]);
+    });
+
     it("accepts English names and an extra surrogate key", () => {
         const tables = [
             table("Customer", "PK customerNo", "customerName", "FK zip"),

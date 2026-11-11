@@ -5,6 +5,7 @@ export const messageText = defineText({
     relationSet: (relation: string) => `${relation} gesetzt.`,
     guardPlaceholder: "Bedingung, z. B. ja",
     labelPlaceholder: "Beschriftung",
+    transitionPlaceholder: "Ereignis [Bedingung] / Aktion",
 
     calcImpossible: "Berechnung nicht möglich.",
     calculated: (duration: string, critical: string[]) => `Projektdauer ${duration} · kritischer Pfad: ${critical.join(" → ")}`,
@@ -25,6 +26,9 @@ export const messageText = defineText({
     exampleInserted: "Beispiel eingefügt. Mit „Prüfen“ kannst du es kontrollieren.",
 
     storageFull: "Der Browser-Speicher ist voll. Lösch alte Pläne oder exportiere sie als Datei.",
+    storageBlocked: "Der Browser lässt kein Speichern zu (privates Fenster oder gesperrte Website-Daten). Lade den Plan als Datei herunter.",
+    fileTooLarge: (name: string) => `„${name}“ ist zu groß für eine Plandatei (über 5 MB).`,
+    autosaveFailed: "Automatisches Speichern geht nicht (Browser-Speicher voll oder gesperrt). Lade die Plan-Datei herunter, sonst ist die Zeichnung nach dem Neuladen weg.",
     nothingToSave: "Es gibt noch nichts zum Speichern.",
     saved: (name: string) => `„${name}“ gespeichert.`,
     copyName: (name: string) => `${name} (Kopie)`,
@@ -47,6 +51,7 @@ export const messageText = defineText({
     relationSet: (relation: string) => `${relation} added.`,
     guardPlaceholder: "Condition, e.g. yes",
     labelPlaceholder: "Label",
+    transitionPlaceholder: "event [guard] / action",
 
     calcImpossible: "Cannot calculate.",
     calculated: (duration: string, critical: string[]) => `Project duration ${duration} · critical path: ${critical.join(" → ")}`,
@@ -67,6 +72,9 @@ export const messageText = defineText({
     exampleInserted: "Example inserted. Use “Check” to verify it.",
 
     storageFull: "The browser storage is full. Delete old plans or export them as files.",
+    storageBlocked: "The browser does not allow saving (private window or blocked site data). Download the plan as a file.",
+    fileTooLarge: (name: string) => `“${name}” is too large for a plan file (over 5 MB).`,
+    autosaveFailed: "Autosave is not possible (browser storage full or blocked). Download the plan file, or the drawing is gone after a reload.",
     nothingToSave: "There is nothing to save yet.",
     saved: (name: string) => `“${name}” saved.`,
     copyName: (name: string) => `${name} (copy)`,

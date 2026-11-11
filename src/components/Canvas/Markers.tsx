@@ -5,7 +5,8 @@ const COLORS: Record<string, string> = { "": "var(--ink)", c: "var(--crit)", w: 
 
 /**
  * Arrowheads as SVG markers. ids: `<kind><color>`, e.g. `ahc` = filled head, critical.
- * ah filled, op open, tr hollow triangle (inheritance), dh hollow diamond (aggregation), df filled diamond (composition)
+ * ah filled, op open, tr hollow triangle (inheritance), dh hollow diamond (aggregation), df filled diamond (composition),
+ * so socket of a required interface: a half circle around the ball (radius 12) the line ends on
  */
 export function Markers(): ReactElement {
     return <>{Object.entries(COLORS).map(([ k, c ]) => (
@@ -15,6 +16,7 @@ export function Markers(): ReactElement {
             <marker id={`tr${k}`} viewBox="0 0 15 14" refX="14" refY="7" markerWidth="15" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 1L14 7L1 13Z" fill="var(--paper)" stroke={c} strokeWidth="1.5" strokeLinejoin="round" /></marker>
             <marker id={`dh${k}`} viewBox="0 0 19 12" refX="1" refY="6" markerWidth="19" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 6L9.5 1L18 6L9.5 11Z" fill="var(--paper)" stroke={c} strokeWidth="1.5" strokeLinejoin="round" /></marker>
             <marker id={`df${k}`} viewBox="0 0 19 12" refX="1" refY="6" markerWidth="19" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M1 6L9.5 1L18 6L9.5 11Z" fill={c} stroke={c} strokeWidth="1.5" strokeLinejoin="round" /></marker>
+            <marker id={`so${k}`} viewBox="-1 0 21 38" refX="6" refY="19" markerWidth="21" markerHeight="38" markerUnits="userSpaceOnUse" orient="auto"><path d="M18 1A18 18 0 0 0 18 37" fill="none" stroke={c} strokeWidth="1.5" /></marker>
         </g>
     ))}</>;
 }

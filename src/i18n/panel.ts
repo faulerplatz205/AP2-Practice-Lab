@@ -56,6 +56,17 @@ export const panelText = defineText({
     multiplicityEnd: "Ende",
     moveMessage: "Nachricht nach oben oder unten ziehen, um sie zu verschieben.",
     reverse: "Richtung umdrehen",
+    trigger: "Ereignis (Auslöser)",
+    triggerPlaceholder: "bezahlen()",
+    guard: "Bedingung",
+    guardInnerPlaceholder: "betrag > 0",
+    effect: "Verhalten (Aktion)",
+    effectPlaceholder: "buchen()",
+    transitionHint: "Eine Transition wird mit „Ereignis [Bedingung] / Verhalten“ beschriftet. Alle drei Teile sind optional, Klammern und Schrägstrich setzt das Feld selbst.",
+    multiplicityHint: "Multiplizitäten: direkt in der Leiste an der Linie eintragen oder nahe am Linienende doppelklicken.",
+    selectedCount: (n: number) => `${n} Elemente ausgewählt`,
+    selection: "Auswahl",
+    multiHint: "Ziehen verschiebt alle gemeinsam, Entf löscht sie samt ihren Linien. Umschalt+Klick nimmt ein Element dazu oder heraus, Strg+A wählt alles.",
 
     // UML element
     appendState: { state: "Zustand", decision: "Entscheidung", end: "Endzustand" },
@@ -75,6 +86,8 @@ export const panelText = defineText({
     attributeValues: "Attributwerte",
     objectPlaceholder: "name = \"Max\"",
     stateActivities: "Aktivitäten (optional)",
+    historyHint: "Flache Historie: Wird der zusammengesetzte Zustand wieder betreten, geht es in dem direkten Unterzustand weiter, der zuletzt aktiv war. Tiefer verschachtelte Zustände beginnen wieder bei ihrem Startzustand.",
+    deepHistoryHint: "Tiefe Historie: Wird der zusammengesetzte Zustand wieder betreten, wird der zuletzt aktive Zustand über alle Verschachtelungsebenen hinweg wiederhergestellt.",
 
     // Check result
     checkResult: "Prüfergebnis",
@@ -82,6 +95,7 @@ export const panelText = defineText({
         if (c.ok) return `${c.isNetzplan ? "Netzplan" : "Diagramm"} stimmt`;
         if (c.errors) return `${c.errors} Fehler gefunden`;
         if (c.isNetzplan && c.empty) return "Noch nicht vollständig";
+        if (!c.warnings) return "Nichts zu prüfen";
         return `${c.warnings} Hinweis${c.warnings > 1 ? "e" : ""}`;
     },
     allCorrect: "Alles richtig!",
@@ -112,6 +126,9 @@ export const panelText = defineText({
         [ "Tab", "nächstes Feld im Knoten" ],
         [ "V A 1–9 L", "Werkzeuge" ],
         [ "Entf", "Auswahl löschen" ],
+        [ "Rahmen ziehen", "mehrere Elemente auswählen" ],
+        [ "Umschalt+Klick", "Auswahl erweitern" ],
+        [ "Strg+A", "alles auswählen" ],
         [ "Strg+C / V", "Kopieren / Einfügen" ],
         [ "Strg+D", "Duplizieren" ],
         [ "Strg+Z / Y", "Rückgängig / Wiederholen" ],
@@ -160,6 +177,17 @@ export const panelText = defineText({
     multiplicityEnd: "End",
     moveMessage: "Drag the message up or down to move it.",
     reverse: "Reverse direction",
+    trigger: "Event (trigger)",
+    triggerPlaceholder: "pay()",
+    guard: "Guard",
+    guardInnerPlaceholder: "amount > 0",
+    effect: "Effect (action)",
+    effectPlaceholder: "book()",
+    transitionHint: "A transition is labelled “event [guard] / effect”. All three parts are optional; the field adds the brackets and the slash itself.",
+    multiplicityHint: "Multiplicities: type them into the bar at the line, or double-click close to a line end.",
+    selectedCount: (n: number) => `${n} elements selected`,
+    selection: "Selection",
+    multiHint: "Dragging moves all of them, Del deletes them with their lines. Shift+click adds or removes an element, Ctrl+A selects everything.",
 
     appendState: { state: "State", decision: "Decision", end: "Final state" },
     appendFlow: { action: "Action", decision: "Decision", bar: "Fork", end: "Final node", flowend: "Flow final" },
@@ -178,12 +206,15 @@ export const panelText = defineText({
     attributeValues: "Attribute values",
     objectPlaceholder: "name = \"Max\"",
     stateActivities: "Activities (optional)",
+    historyHint: "Shallow history: when the composite state is entered again, it continues in the direct substate that was active last. Deeper nested states start at their initial state again.",
+    deepHistoryHint: "Deep history: when the composite state is entered again, the state that was active last is restored across all nesting levels.",
 
     checkResult: "Check result",
     headline: (c: CheckResult): string => {
         if (c.ok) return `${c.isNetzplan ? "Network diagram" : "Diagram"} is correct`;
         if (c.errors) return `${c.errors} ${c.errors > 1 ? "errors" : "error"} found`;
         if (c.isNetzplan && c.empty) return "Not complete yet";
+        if (!c.warnings) return "Nothing to check";
         return `${c.warnings} ${c.warnings > 1 ? "hints" : "hint"}`;
     },
     allCorrect: "All correct!",
@@ -212,6 +243,9 @@ export const panelText = defineText({
         [ "Tab", "next field in the node" ],
         [ "V A 1–9 L", "Tools" ],
         [ "Del", "Delete selection" ],
+        [ "Drag a frame", "select several elements" ],
+        [ "Shift+click", "extend the selection" ],
+        [ "Ctrl+A", "select everything" ],
         [ "Ctrl+C / V", "Copy / paste" ],
         [ "Ctrl+D", "Duplicate" ],
         [ "Ctrl+Z / Y", "Undo / redo" ],

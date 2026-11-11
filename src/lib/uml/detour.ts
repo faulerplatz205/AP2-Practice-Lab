@@ -1,7 +1,7 @@
 import type { Diagram, DiagramEdge, DiagramNode } from "../../types/diagram";
 import { anchorPoint, center, insideOutline, segmentTouches, type Vec } from "../geometry";
 import { outline } from "./outline";
-import { RELATIONS } from "./types";
+import { RELATIONS, isErRelationship } from "./types";
 
 /** Path of an edge and where its labels go. */
 export interface EdgeGeometry {
@@ -19,10 +19,15 @@ export interface EdgeGeometry {
 }
 
 /** Containers and sequence lines that lines may cross. */
-const PASSABLE = new Set([ "boundary", "lane", "fragment", "package", "node3d", "lifeline", "actline", "activation" ]);
+const PASSABLE = new Set([ "boundary", "lane", "fragment", "lifeline", "actline", "activation" ]);
+
+/** Packages and deployment nodes: lines may only enter them to reach (or leave) something inside. */
+const CONTAINER = new Set([ "package", "node3d", "compstate" ]);
+
+const within = (n: DiagramNode, box: DiagramNode): boolean => n.x >= box.x && n.y >= box.y && n.x + n.w <= box.x + box.w && n.y + n.h <= box.y + box.h;
 
 export function obstacles(d: Diagram, a: DiagramNode, b: DiagramNode): DiagramNode[] {
-    return d.nodes.filter(n => n !== a && n !== b && !PASSABLE.has(n.type));
+    return d.nodes.filter(n => n !== a && n !== b && !PASSABLE.has(n.type) && !(CONTAINER.has(n.type) && (within(a, n) || within(b, n) || within(n, a) || within(n, b))));
 }
 
 function hitsNode(n: DiagramNode, p: Vec, q: Vec): boolean {
@@ -184,7 +189,7 @@ export function erGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: Diagra
     }
     const s = dock(a, ws[0] ?? center(b)), t = dock(b, ws[ws.length - 1] ?? center(a));
     const points = [ s, ...ws, t ];
-    const label = erLabelSpots(points, a.type === "relship", b.type === "relship")[0];
+    const label = erLabelSpots(points, isErRelationship(a.type), isErRelationship(b.type))[0];
     return {
         d: points.map((p, i) => `${i ? "L" : "M"}${p[0]} ${p[1]}`).join(""),
         lx: label.x, ly: label.y, anc: label.a,

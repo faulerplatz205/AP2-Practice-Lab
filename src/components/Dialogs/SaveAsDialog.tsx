@@ -5,11 +5,11 @@ import { savePlanAs, suggestedPlanName } from "../../state/actions";
 import { useText } from "../../i18n/locale";
 import { dialogText, saveAsText } from "../../i18n/dialogs";
 
-export function SaveAsDialog(): ReactElement {
+export function SaveAsDialog({ then }: { then?: () => void }): ReactElement {
     const t = useText(saveAsText), common = useText(dialogText);
     const close = useUi(s => s.close);
     const input = useRef<HTMLInputElement>(null);
-    const save = (): void => savePlanAs(input.current?.value ?? "");
+    const save = (): void => savePlanAs(input.current?.value ?? "", then);
     return <>
         <h3>{currentPlan() ? t.saveAs : t.savePlan}</h3>
         <p>{t.intro}</p>

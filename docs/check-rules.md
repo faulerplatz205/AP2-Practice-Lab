@@ -14,7 +14,7 @@ Messages and tips come from `src/i18n/check.ts` in the language active while che
 ## When Is a Drawing Correct
 
 - **UML only (no activity node):** no `error` and no `warn`
-- **Network diagram:** the structure allows calculating, every time field is filled in and right, no `error`, and no UML `warn` from other elements on the canvas. Structure warnings of the network diagram (number, isolated activity, several start/end activities, redundant arrow) are shown but do not block „correct“
+- **Network diagram:** the structure allows calculating, every time field is filled in and right, no `error`, and no UML `warn` from other elements on the canvas. Structure warnings of the network diagram (number, isolated activity, several start/end activities, redundant or doubled arrow) block „correct“ as well, since an exam answer with them would lose points
 
 ## Network Diagram
 
@@ -74,15 +74,16 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 
 | Rule | Level |
 | --- | --- |
-| An initial node exists | error |
-| Exactly one initial node | warn |
-| A final node exists (activity diagram) | error |
+| An initial node exists (state machine: on the top level, not only inside a composite state); with an accept signal without incoming arrow as start only a hint | error / info |
+| Exactly one initial node (initial states inside composite states excepted) | warn |
+| A final node exists (activity diagram); only flow finals is a warning | error / warn |
 | No arrow into the initial node, exactly one out of it | error |
 | No arrow out of a final node or flow final | error |
 | Every final node is reached | warn |
 | Action, state, signal and object node have an incoming arrow (accept signal excepted) | error |
 | Action, signals and object node have an outgoing arrow (state excepted) | error |
 | An action has at most one outgoing arrow | warn |
+| An action has at most one incoming arrow (several paths meet in a merge diamond first, knowledge base) | warn |
 | An action is labelled | warn |
 | A decision has an incoming arrow | error |
 | A decision has at least two outgoing arrows (one outgoing and several incoming is a merge) | error |
@@ -91,16 +92,24 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 | Guards of one decision are distinct | error |
 | Fork: 1 in, at least 2 out. Join: at least 2 in, 1 out | error |
 | Only control flow arrows between flow elements | warn |
-| A transition between states has an event | warn |
+| A transition between states has an event (else it is a completion transition) | info |
 | Two transitions leaving one state do not carry the same event and guard (self transitions included) | warn |
 | Every element with an incoming arrow is reachable from the start | warn |
 | A partition contains at least one flow element | warn |
+| A join directly after a decision waits forever (deadlock) | error |
+| A merge directly after a fork lets the flow run twice | warn |
+| A guard `[ ]` only stands on an arrow leaving a decision | warn |
+| The transition from an initial state has no trigger | warn |
+| A history state lies inside a composite state; a composite state is not empty | warn |
 
 ### Use Case Diagram
 
 | Rule | Level |
 | --- | --- |
-| Every use case has an actor or hangs on another use case via «include»/«extend» | warn |
+| At least one actor; actors and use cases have a name; no name twice | warn / error |
+| Every use case has an actor or hangs on another use case via «include»/«extend» or generalisation | warn |
+| No plain association between two use cases | warn |
+| No «include»/«extend» cycle | error |
 | Every actor is connected | warn |
 | «include» and «extend» only between use cases | error |
 | Actor and use case are connected by an association (line without head) | warn |
@@ -123,20 +132,106 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 | Realisation only points to an interface | warn |
 | No generalisation cycle | error |
 | An object name has the form `name : Class` | warn |
+| An interface extending an interface uses generalisation (no warning) | — |
+| No attribute twice in one class | warn |
+| A boolean attribute starts with `is`, `has` or `can` (knowledge base) | info |
+| Attributes are not public (constants in capitals excepted, knowledge base) | warn |
+| An interface has no attributes except constants | warn |
+| An operation has a return type (`: void` may be left out, as in IHK solutions) | info |
+| Enum values carry no type and no visibility | warn |
+| Members start with a lower case letter; identifiers contain no umlauts (knowledge base) | warn |
+| Only class relations between classes, no control flow | warn |
+| An association between classes has multiplicities | warn |
 
 ### Sequence Diagram
+
+Rules follow the knowledge base article „Sequenzdiagramm“: time runs downwards, a reply answers a synchronous call and carries the return value, alternatives and loops are combined fragments with guards.
 
 | Rule | Level |
 | --- | --- |
 | Every lifeline has at least one message (activations count for the lifeline below them) | warn |
-| Every message is labelled | warn |
-| Messages run between lifelines or activations | error |
+| A lifeline has a name, no name twice, and is an object (`:Shop`, `korb : Warenkorb`), not an activity with spaces | warn |
+| Every message is labelled; a synchronous or asynchronous call has parentheses (`reservieren(artikelNr)`) | warn |
+| Messages run between lifelines or activations, within the lifeline's length | error |
 | Only message arrows between lifelines | warn |
-| An activation lies on a lifeline | warn |
+| A reply follows an earlier synchronous call in the other direction | error |
+| A reply carries the return value, not the operation name again | warn |
+| A synchronous call without a reply | info |
+| An activation lies on a lifeline and starts with an incoming message (not on the lifeline that starts the interaction) | warn |
+| An activation lasts until the reply to its call | warn |
+| A destruction X lies on a lifeline, once, at its end; no message after it | warn / error |
+| A «create» message points at the head of a lifeline, once; no message to that lifeline before it | error / warn |
+| A state invariant lies on a lifeline and is written in braces (`{bestand >= 0}`) | warn |
+| A fragment has a known operator (`alt`, `opt`, `loop`, `par`, `break`, `ref`, `critical`, `neg`, `assert`, `seq`, `strict`, `sd`); `loop(1,3)` may carry its bounds in the tab | warn |
+| `alt`, `opt`, `loop` and `break` have a guard; every `alt` operand has one; no guard twice; `[else]` is the last operand | warn |
+| `alt`, `par` have at least two operands, the others exactly one; operands lie inside a fragment | warn |
+| A fragment encloses at least one message (except `ref` and the `sd` frame) | warn |
 
-### Component, Deployment and Package Diagram
+### Component Diagram
 
-These kinds are detected (`komp`, `vert`, `pak`) and named in the result but have no rules yet.
+Code: `src/lib/uml/checkStructure.ts`, messages `structureCheckText` in `src/i18n/checkStructure.ts`. Reference: <https://knowledge.moritz-grimm.dev/de/docs/fundamentals/uml/component-diagram>. An interface (ball) is **provided** by a component through a solid line to the ball, and **required** through a socket line (`require`, half circle) or a dependency from the component to the ball. The knowledge base prefers ball and socket over a plain dependency.
+
+| Rule | Level |
+| --- | --- |
+| A component has a name | error |
+| Component names are unique | warn |
+| An interface has a name | error |
+| An interface is attached to at least one component | warn |
+| A required interface is provided by a component | error |
+| A dependency points from the component to the interface, not away from the interface | warn |
+| A realisation leads from the component to the interface | warn |
+| Two interfaces are not connected directly | error |
+| Components are not connected by a plain line (use an interface or a dependency) | warn |
+| No cyclic dependency between components, also through required and provided interfaces | error |
+| A socket line (`require`) runs from a component or port to an interface | warn |
+| A delegation runs between a port and a component | warn |
+| A port sits on the border of its component | warn |
+| Inner parts do not connect across the border of their component | warn |
+
+### Deployment Diagram
+
+Reference: <https://knowledge.moritz-grimm.dev/de/docs/fundamentals/uml/deployment-diagram>. The name of a node is every line of its text that is not a `«stereotype»`.
+
+| Rule | Level |
+| --- | --- |
+| A node has a name | error |
+| A node stereotype other than `«device»` or `«executionEnvironment»` is allowed but named | info |
+| A device does not lie inside an execution environment (it is the other way round) | warn |
+| Classes and components do not lie inside a node | warn |
+| An artifact has a name | error |
+| An artifact name is a file name (contains `.`, `:` or `/`) | warn |
+| An artifact lies inside a node or has a dependency to a node (`«deploy»`); a `«manifest»` alone does not deploy it | warn |
+| `«deploy»` runs from an artifact to a node, `«manifest»` from an artifact to a component or class | warn |
+| A dependency between a node and an artifact points from the artifact to the node | warn |
+| A communication path (line between two nodes) carries a protocol, e.g. `«HTTPS»` | warn |
+| A communication path between two nodes has no arrowhead (nested nodes excepted) | warn |
+| An artifact is not on a communication path | warn |
+
+### Package Diagram
+
+Reference: <https://knowledge.moritz-grimm.dev/de/docs/fundamentals/uml/further-uml-diagrams#paketdiagramm>.
+
+| Rule | Level |
+| --- | --- |
+| A package has a name | error |
+| Package names are unique within the same parent package | warn |
+| A keyword on a dependency between packages is `«import»`, `«access»`, `«merge»` or `«use»` | warn |
+| No dependency between a package and a package nested in it | warn |
+| No cyclic dependency between packages | warn |
+| `«import»`, `«access»` and `«merge»` only between packages | warn |
+
+### Extra Class, Object and State Rules
+
+Also in `checkStructure.ts`.
+
+| Rule | Level |
+| --- | --- |
+| A multiplicity on an association, aggregation or composition between classes is valid (`1`, `0..1`, `*`, `1..*`, `2..5`, `n`, lists with `,`; lower bound not above the upper one) | warn |
+| Object attributes carry values (`name = value`), not types (`name : Type`) | warn |
+| A link between objects has no multiplicity | warn |
+| A link between objects is a plain line without arrowhead (knowledge base) | info |
+| No generalisation between objects | error |
+| A state has a name | warn |
 
 ## Databases
 
@@ -144,24 +239,30 @@ Code: `src/lib/db/check.ts` (rules), `src/lib/db/normalize.ts` (normal forms), `
 
 ### ER Model (Chen Notation)
 
-Entities are rectangles, relationships diamonds, attributes ellipses; a key attribute is underlined (`stereo: "key"`). The cardinality of a line between entity and relationship is its `label` and is drawn next to the entity. Chen notation reads across the relationship: in `Kunde 1 ◇ bestellt ◇ n Bestellung` one customer places n orders, one order belongs to 1 customer. New lines get 1 on the first and n on every further line of a diamond.
+Entities are rectangles, relationships diamonds, attributes ellipses; a key attribute is underlined (`stereo: "key"`). As in the knowledge base article „ER-Modell“, a weak entity has a double border (`stereo: "weak"`), its identifying relationship is a double diamond (`stereo: "ident"`) and its partial key has a dashed underline (`stereo: "partial"`); multivalued attributes have a double ellipse (`multi`), derived ones a dashed ellipse (`derived`). The cardinality of a line between entity and relationship is its `label` and is drawn next to the entity. Chen notation reads across the relationship: in `Kunde 1 ◇ bestellt ◇ n Bestellung` one customer places n orders, one order belongs to 1 customer. New lines get 1 on the first and n on every further line of a diamond.
 
 | Rule | Level |
 | --- | --- |
 | Every entity has a name; no name twice | error / warn |
 | Every entity has a key attribute | warn |
+| A weak entity has no key of its own but a partial key | warn |
+| A weak entity is connected to an identifying relationship | error |
+| An identifying relationship connects a weak entity | warn |
+| A partial key belongs to a weak entity | warn |
 | Every attribute is attached; to at most one entity or relationship | error / warn |
 | Key attributes belong to entities, not to relationships | warn |
 | Every relationship has a name | warn |
 | A relationship connects at least two entities (recursive: the same entity twice) | error |
 | No direct line between two entities or between two relationships | error |
 | Every line between entity and relationship has a cardinality | error |
-| The cardinality is 1, n, m, c, mc, a number, a range like `0..1` or `(min,max)` | warn |
+| The cardinality is 1, n, m, c, mc, a number or `(min,max)` | warn |
+| No UML range like `1..*` in a Chen diagram (knowledge base) | warn |
+| No foreign key as an attribute: an attribute named like the key of another entity (knowledge base) | warn |
 | Only plain lines (`erl`) between ER elements | warn |
 
 ### Table Model
 
-A table lists one column per line: optional `PK`/`FK` (both for junction tables), the name, an optional data type (`PK kundenNr INT`, `FK plz CHAR(5)`, `name : VARCHAR(50)`). Names are compared with `columnKey()`: case, umlauts and separators do not matter, a trailing `Nummer`, `Number`, `No` or `Id` counts as `Nr`. Keys may also follow the name (`kundenNr INT (PK)`, `kundenNr INT PK`), be written in SQL (`PRIMARY KEY`, `FOREIGN KEY`, `REFERENCES Kunde`) or as `↑kundenNr` for a foreign key (`#` is not read, textbooks use it for both). A foreign key points to a table when it names it after `REFERENCES`, has the name of one of its primary keys, or the table name plus that key (`kunde_id`, `kundenId` => `Kunde` with `PK id`; `fkPointsTo()`).
+A table lists one column per line: optional `PK`/`FK` (both for junction tables), the name, an optional data type (`PK kundenNr INT`, `FK plz CHAR(5)`, `name : VARCHAR(50)`). Names are compared with `columnKey()`: case, umlauts and separators do not matter, a trailing `Nummer`, `Number`, `No` or `Id` counts as `Nr`. Keys may also follow the name (`kundenNr INT (PK)`, `kundenNr INT PK`), be written in SQL (`PRIMARY KEY`, `FOREIGN KEY`, `REFERENCES Kunde`) or as `↑kundenNr` / `#kundenNr` for a foreign key (both markers as in the knowledge base article „Datenbankschema“). A foreign key points to a table when it names it after `REFERENCES`, has the name of one of its primary keys, or the table name plus that key (`kunde_id`, `kundenId` => `Kunde` with `PK id`; `fkPointsTo()`).
 
 | Rule | Level |
 | --- | --- |

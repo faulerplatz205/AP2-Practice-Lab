@@ -11,6 +11,10 @@ export interface LayeredOptions {
     top?: boolean;
     /** In the last round, align under the first predecessor instead of the middle of all */
     first?: boolean;
+    /** In the last round, nodes for which this returns true are centered between their outermost predecessors (joins, merges) */
+    between?: (id: number, pred: number[]) => boolean;
+    /** Move sources down right above their highest successor, so no edge spans several rows needlessly */
+    tight?: boolean;
     /** Adjust the ranks before the rows are built */
     pull?: (rank: Record<number, number>, pred: Record<number, number[]>, succ: Record<number, number[]>) => void;
 }
@@ -95,6 +99,11 @@ export function layered(nodes: DiagramNode[], edges: [number, number][], opt: La
             if (--indeg[v] === 0) queue.push(v);
         }
     }
+    if (opt.tight) {
+        for (let round = 0; round < 3; round++) {
+            for (const i of ids) if (!fp[i].length && fs[i].length) rank[i] = Math.max(rank[i], Math.min(...fs[i].map(v => rank[v])) - 1);
+        }
+    }
     opt.pull?.(rank, fp, fs);
     const rows: number[][] = [];
     ids.forEach(i => (rows[rank[i]] ??= []).push(i));
@@ -145,9 +154,57 @@ export function layered(nodes: DiagramNode[], edges: [number, number][], opt: La
     for (let r = 1; r < rows.length; r++) {
         placeRow(rows[r].map(node), rows[r].map(id => {
             if (!fp[id].length) return centerX(node(id));
+            if (fp[id].length > 1 && opt.between?.(id, fp[id])) {
+                const xs = fp[id].map(u => centerX(node(u)));
+                return (Math.min(...xs) + Math.max(...xs)) / 2;
+            }
             if (!opt.first) return meanX(fp[id], id);
             return centerX(node(fp[id].slice().sort((a, b) => pos[a] - pos[b])[0]));
         }), opt.gx);
     }
     return { rows, pred: fp, succ: fs };
+}
+
+/**
+ * Lays out every connected part of the graph on its own with `layout` and packs the parts in rows (largest first,
+ * a new row when the current one gets wider than `maxWidth`), so unconnected groups end up close together.
+ * The top left corner of the result is the top left corner of the nodes before. Changes the nodes in place.
+ */
+export function layeredParts(
+    nodes: DiagramNode[], edges: [number, number][], layout: (part: DiagramNode[], edges: [number, number][]) => void, gap = 100, maxWidth = 1400,
+): void {
+    if (!nodes.length) return;
+    const x0 = snap(Math.min(...nodes.map(n => n.x))), y0 = snap(Math.min(...nodes.map(n => n.y)));
+    const ids = new Set(nodes.map(n => n.id)), parent = new Map(nodes.map(n => [ n.id, n.id ]));
+    const root = (x: number): number => {
+        while (parent.get(x) !== x) x = parent.get(x)!;
+        return x;
+    };
+    for (const [ a, b ] of edges) if (ids.has(a) && ids.has(b)) parent.set(root(a), root(b));
+    const parts = new Map<number, DiagramNode[]>();
+    for (const n of nodes) parts.set(root(n.id), [ ...(parts.get(root(n.id)) ?? []), n ]);
+    const boxes = [ ...parts.values() ].map(part => {
+        const mine = new Set(part.map(n => n.id));
+        layout(part, edges.filter(([ a, b ]) => mine.has(a) && mine.has(b)));
+        const x = Math.min(...part.map(n => n.x)), y = Math.min(...part.map(n => n.y));
+        return { part, x, y, w: Math.max(...part.map(n => n.x + n.w)) - x, h: Math.max(...part.map(n => n.y + n.h)) - y };
+    });
+    // largest parts first; parts of equal size keep their order on the canvas
+    boxes.sort((p, q) => q.part.length - p.part.length || q.w * q.h - p.w * p.h);
+    const limit = Math.max(maxWidth, ...boxes.map(b => b.w));
+    let cx = x0, cy = y0, rowH = 0;
+    for (const b of boxes) {
+        if (cx > x0 && cx + b.w > x0 + limit) {
+            cx = x0;
+            cy += rowH + gap;
+            rowH = 0;
+        }
+        const dx = snap(cx - b.x), dy = snap(cy - b.y);
+        b.part.forEach(n => {
+            n.x += dx;
+            n.y += dy;
+        });
+        cx += b.w + gap;
+        rowH = Math.max(rowH, b.h);
+    }
 }

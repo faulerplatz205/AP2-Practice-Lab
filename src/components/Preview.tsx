@@ -9,6 +9,12 @@ import { modeText } from "../i18n/modes";
 import { MODES } from "../data/modes";
 import { NodeView } from "./Canvas/NodeView";
 
+/** Sizes for the tile only: tall or wide elements would shrink to a speck at their real size. */
+const PREVIEW_SIZE: Partial<Record<NodeType, Partial<DiagramNode>>> = {
+    lifeline: { w: 120, h: 110 }, actline: { w: 80, h: 120 }, lane: { w: 150, h: 110 }, boundary: { w: 170, h: 120 },
+    fragment: { w: 170, h: 110 }, operand: { w: 110, h: 24 }, compstate: { w: 190, h: 130 }, package: { w: 170, h: 120 },
+};
+
 export function NodePreview({ type, preset, width = 64, height = 44 }: { type: NodeType; preset?: Partial<DiagramNode>; width?: number; height?: number }): ReactElement {
     const texts = useText(umlText), dt = useText(diagramText), items = useText(modeText).items;
     const size = defaultSize(type);
@@ -18,7 +24,7 @@ export function NodePreview({ type, preset, width = 64, height = 44 }: { type: N
         Object.assign(n, { text: t.text, attrs: t.attrs, ops: t.ops, stereo: UML_TYPES[type].stereo ?? "" });
     }
     if (type === "np") n.f = { nr: "1", name: items.activity, d: "3", faz: "0", fez: "3", saz: "0", sez: "3", gp: "0", fp: "0" };
-    Object.assign(n, preset ?? {});
+    Object.assign(n, preset ?? {}, PREVIEW_SIZE[type] ?? {});
     fitToContent(n);
     const extra = type === "iface" ? 22 : 4;
     return (

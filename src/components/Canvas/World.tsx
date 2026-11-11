@@ -7,11 +7,14 @@ import { routeContext } from "../../lib/uml/routing";
 import { placeLabels } from "../../lib/uml/labels";
 import { UML_TYPES, isUml } from "../../lib/uml/types";
 import { EdgeView } from "./EdgeView";
+import { FragmentGuard } from "./UmlShape";
 import { NodeView } from "./NodeView";
 
 export interface WorldProps {
     doc: Diagram;
     selection?: Selection | null;
+    /** Ids of a selection of several nodes */
+    multi?: number[];
     pendingFrom?: number | null;
     marks?: MarkSet;
     /** Export as image: without selection, marks and hit areas */
@@ -24,8 +27,8 @@ function layer(n: DiagramNode): number {
     return n.type === "lifeline" || n.type === "actline" ? 1 : 2;
 }
 
-/** The whole drawing: containers, then edges, then nodes. Critical edges are on top. */
-export function World({ doc, selection, pendingFrom, marks, exporting }: WorldProps): ReactElement {
+/** The whole drawing: containers, then edges, then nodes, then the texts on the edges (never hidden by a node). Critical edges are on top. */
+export function World({ doc, selection, multi, pendingFrom, marks, exporting }: WorldProps): ReactElement {
     const byId = useMemo(() => new Map(doc.nodes.map(n => [ n.id, n ])), [ doc.nodes ]);
     const ctx = useMemo(() => routeContext(doc), [ doc ]);
     const labels = useMemo(() => placeLabels(doc, ctx), [ doc, ctx ]);
@@ -34,12 +37,15 @@ export function World({ doc, selection, pendingFrom, marks, exporting }: WorldPr
     const sel = exporting ? null : selection;
     const m = exporting ? undefined : marks;
     const renderNode = (n: DiagramNode): ReactElement =>
-        <NodeView key={n.id} node={n} selected={sel?.kind === "node" && sel.id === n.id} pending={!exporting && pendingFrom === n.id} marks={m} />;
+        <NodeView key={n.id} node={n} selected={sel?.kind === "node" && sel.id === n.id} grouped={!exporting && !!multi?.includes(n.id)} pending={!exporting && pendingFrom === n.id} marks={m} />;
+    const renderEdges = (part: "line" | "labels"): ReactElement[] => [ ...edges.filter(x => !x.critical), ...edges.filter(x => x.critical) ].map(({ e, critical }) =>
+        <EdgeView key={`${part}${e.id}`} part={part} doc={doc} edge={e} from={byId.get(e.from)!} to={byId.get(e.to)!} ctx={ctx} labels={labels} critical={critical}
+            selected={sel?.kind === "edge" && sel.id === e.id} marked={m?.has(`e:${e.id}`)} exporting={exporting} />);
     return <>
         {nodes.filter(n => layer(n) < 2).map(renderNode)}
-        {[ ...edges.filter(x => !x.critical), ...edges.filter(x => x.critical) ].map(({ e, critical }) =>
-            <EdgeView key={e.id} doc={doc} edge={e} from={byId.get(e.from)!} to={byId.get(e.to)!} ctx={ctx} labels={labels} critical={critical}
-                selected={sel?.kind === "edge" && sel.id === e.id} marked={m?.has(`e:${e.id}`)} exporting={exporting} />)}
+        {renderEdges("line")}
         {nodes.filter(n => layer(n) === 2).map(renderNode)}
+        {renderEdges("labels")}
+        {nodes.filter(n => n.type === "fragment").map(n => <FragmentGuard key={`g${n.id}`} node={n} />)}
     </>;
 }

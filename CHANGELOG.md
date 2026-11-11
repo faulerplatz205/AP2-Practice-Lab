@@ -2,6 +2,47 @@
 
 Newest entries at the top. The versions match the releases of the Claude Artifact.
 
+## 2.3.0 – 2026-11-11
+
+Editing like in a drawing tool: selection rectangle, visible brackets, text fields that grow, multiplicities right at the line, converting elements, and a new, quieter look.
+
+### Added
+
+- **Selection rectangle:** dragging on the empty canvas selects several elements; Shift+click adds or removes one, Ctrl+A selects everything. A selected group is moved, nudged, copied (with the lines between the copies), duplicated and deleted together, in one undo step. The canvas is moved with Space + drag, the middle or right mouse button, or one finger on a touch screen
+- **Convert an element:** the bar next to a selected element turns it into another form of its kind: class, abstract class, interface, enumeration; action, send signal, accept signal, object node; initial, final and flow final node; fork bar horizontal or vertical; state and composite state; shallow and deep history; lifeline and actor lifeline; the operator of a combined fragment (alt, opt, loop …); ER entity, relationship and attribute kinds; rectangle, ellipse, diamond
+- **Multiplicities at the line:** a selected association, aggregation or composition shows a field for each end right at the line (with suggestions 1, 0..1, *, 0..*, 1..*); a double click close to a line end edits that multiplicity in place
+- **Bar at every line:** edit the label, reverse the direction, delete
+- **Transitions:** the panel has one field each for event, guard and effect and builds `event [guard] / effect` from them
+- **Abstract and static members:** a class row marked `{abstract}` is set in italics, `{static}` is underlined
+- **Short explanation** of shallow and deep history in the panel
+
+### Changed
+
+- **New look:** system font, filled controls, translucent bars floating over the canvas, a dot grid, softer corners and shadows, one accent color; all four themes (light, dark, high contrast, green) follow
+- **Brackets are visible while typing:** guards of decisions, combined fragments and operands show `[ ]` around the text field, state invariants `{ }`; the panel shows the same
+- **Text fields grow** with their text, wider for a long line and taller for more lines, and open where the label is drawn
+- **The symbol lands on the element clicked second:** for an aggregation or composition the diamond now sits at the second class, like every arrowhead
+- **Containers** (system boundary, partition, composite state, combined fragment, package, deployment node) are selected at their border or title; their inside stays free for the elements in it and for the selection rectangle. A combined fragment moves alone with its separator lines, activation bars stay on their lifelines
+- **Sequence diagram:** the head of a lifeline moves up and down (its end and the messages stay); activation bars, destruction X and state invariants stay on a dashed line and snap to the nearest lifeline; an activation bar only changes its length; a separator line spans its fragment and goes with it; messages belong to the lifeline, wherever the arrow was started
+- **State machine:** several transitions between any two elements, self transition on a composite state, appending from a start state, choice, history or composite state creates states
+- **Edge labels** are drawn in front of the nodes and, when no free spot exists, take the least covered one; „Sauber anordnen“ leaves room for the labels of transitions
+- A second press that turns into a drag moves the element instead of opening its text
+
+### Fixed
+
+- A guard typed in the panel lost its spaces and brackets while typing
+- A transition leaving a choice put `/ effect` inside the guard brackets; opening and closing its text field damaged the label
+- Transitions between two states close together ran through their own states or looked like self transitions
+- A typed fragment condition could land in a message passing under the fragment header; a message close to a separator line could not be selected any more
+- Multiplicities stayed on a line after its kind was changed to one without multiplicities
+- With the arrow tool, a message ending on a lifeline hid the lifeline from the next click
+- The head of a lifeline could be dragged down past its messages and activation bars, which changed the order of the messages; it now stops above the first one and stays on the grid
+- A «create» message and the head of a created lifeline could not be moved down
+- The menus „Darstellung“ and „Download“ pushed the toolbar out of view on wide screens and were cut off in landscape on phones; they now open below their button and scroll when the window is too low
+- A flow running back up could pass through an action in between; it now runs around everything that lies between its two ends
+- A label that found no free spot could be struck through by another line or lie on its own line; lines along the text now count more than lines crossing it
+- The page had a margin of 8 px and was 8 px too high; on iPhone and iPad tapping a text field no longer zooms the page
+
 ## 2.2.0 – 2026-10-17
 
 Subnet trainer with many new task types, cleaner arrows in every diagram kind, self transitions and reflexive relations, PDF export and the „Darstellung“ menu.

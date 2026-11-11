@@ -99,7 +99,8 @@ export function parseCidr(input: string, maskInput = ""): Parsed<Cidr> {
     const [ addressPart, ...rest ] = text.split(/\s*\/\s*|\s+/);
     const address = parseIpv4(addressPart);
     if (address === null) return fail("address");
-    const prefixText = rest.length ? (text.includes("/") ? `/${rest.join("")}` : rest.join("")) : maskInput;
+    const after = rest.join("");
+    const prefixText = rest.length ? (text.includes("/") && !after.includes(".") ? `/${after}` : after) : maskInput;
     const prefix = parsePrefixOrMask(prefixText);
     return prefix.ok ? ok({ address, prefix: prefix.value }) : fail(prefix.error);
 }

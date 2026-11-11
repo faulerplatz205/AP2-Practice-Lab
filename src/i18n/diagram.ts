@@ -1,5 +1,5 @@
 import { type Dictionary, defineText } from "./locale";
-import type { RelationKind, UmlNodeType } from "../types/diagram";
+import type { DiagramMode, RelationKind, UmlNodeType } from "../types/diagram";
 
 export interface UmlText {
     label: string;
@@ -26,11 +26,18 @@ const umlTextTable = defineText({
     objnode: { label: "Objektknoten", text: "Rechnung" },
     lane: { label: "Partition (Swimlane)", text: "Partition" },
     state: { label: "Zustand", text: "Zustand", attrs: "" },
+    compstate: { label: "Zusammengesetzter Zustand", text: "Zusammengesetzter Zustand" },
+    history: { label: "Flache Historie (H)", text: "" },
+    deephist: { label: "Tiefe Historie (H*)", text: "" },
     lifeline: { label: "Lebenslinie", text: ":Objekt" },
-    actline: { label: "Akteur (Sequenz)", text: "Akteur" },
-    activation: { label: "Aktivierung", text: "" },
-    fragment: { label: "Fragment", text: "alt", attrs: "[Bedingung]" },
+    actline: { label: "Akteur (Lebenslinie)", text: "Akteur" },
+    activation: { label: "Aktivierungsbalken", text: "" },
+    fragment: { label: "Kombiniertes Fragment", text: "alt", attrs: "[Bedingung]" },
+    destroy: { label: "Zerstörung", text: "" },
+    operand: { label: "Interaktionsoperand", text: "[else]" },
+    invariant: { label: "Zustandsinvariante", text: "{Bedingung}" },
     component: { label: "Komponente", text: "Komponente" },
+    port: { label: "Port", text: "" },
     iface: { label: "Schnittstelle", text: "Schnittstelle" },
     node3d: { label: "Knoten", text: "«device»\nServer" },
     artifact: { label: "Artefakt", text: "app.jar" },
@@ -58,11 +65,18 @@ const umlTextTable = defineText({
     objnode: { label: "Object node", text: "Invoice" },
     lane: { label: "Partition (swimlane)", text: "Partition" },
     state: { label: "State", text: "State", attrs: "" },
+    compstate: { label: "Composite state", text: "Composite state" },
+    history: { label: "Shallow history (H)", text: "" },
+    deephist: { label: "Deep history (H*)", text: "" },
     lifeline: { label: "Lifeline", text: ":Object" },
-    actline: { label: "Actor (sequence)", text: "Actor" },
-    activation: { label: "Activation", text: "" },
-    fragment: { label: "Fragment", text: "alt", attrs: "[condition]" },
+    actline: { label: "Actor (lifeline)", text: "Actor" },
+    activation: { label: "Activation bar", text: "" },
+    fragment: { label: "Combined fragment", text: "alt", attrs: "[condition]" },
+    destroy: { label: "Destruction", text: "" },
+    operand: { label: "Interaction operand", text: "[else]" },
+    invariant: { label: "State invariant", text: "{condition}" },
     component: { label: "Component", text: "Component" },
+    port: { label: "Port", text: "" },
     iface: { label: "Interface", text: "Interface" },
     node3d: { label: "Node", text: "«device»\nServer" },
     artifact: { label: "Artifact", text: "app.jar" },
@@ -82,7 +96,7 @@ export const relationLabels = defineText<Record<RelationKind, string>>({
     flow: "Kontrollfluss (Pfeil)",
     assoc: "Assoziation",
     dir: "Gerichtete Assoziation",
-    inherit: "Vererbung (Generalisierung)",
+    inherit: "Generalisierung (Vererbung)",
     realize: "Realisierung (Interface)",
     aggr: "Aggregation",
     comp: "Komposition",
@@ -92,14 +106,22 @@ export const relationLabels = defineText<Record<RelationKind, string>>({
     msg: "Synchrone Nachricht",
     async: "Asynchrone Nachricht",
     reply: "Antwortnachricht",
-    anchor: "Notiz-Verbindung",
+    create: "Erzeugungsnachricht",
+    anchor: "Notizverbindung",
+    require: "Benötigte Schnittstelle (Socket)",
+    delegate: "Delegationskonnektor",
+    deploy: "«deploy»",
+    manifest: "«manifest»",
+    import: "«import»",
+    access: "«access»",
+    merge: "«merge»",
     erl: "Linie (Kardinalität)",
     fk: "Beziehung (1:n)",
 }, {
     flow: "Control flow (arrow)",
     assoc: "Association",
     dir: "Directed association",
-    inherit: "Inheritance (generalization)",
+    inherit: "Generalization (inheritance)",
     realize: "Realization (interface)",
     aggr: "Aggregation",
     comp: "Composition",
@@ -109,10 +131,44 @@ export const relationLabels = defineText<Record<RelationKind, string>>({
     msg: "Synchronous message",
     async: "Asynchronous message",
     reply: "Reply message",
+    create: "Create message",
     anchor: "Note link",
+    require: "Required interface (socket)",
+    delegate: "Delegation connector",
+    deploy: "«deploy»",
+    manifest: "«manifest»",
+    import: "«import»",
+    access: "«access»",
+    merge: "«merge»",
     erl: "Line (cardinality)",
     fk: "Relationship (1:n)",
 });
+
+/** Names of a relation in one diagram kind where the standard term differs from the general name, e.g. a line is a communication path in a deployment diagram. */
+export const modeRelationLabels = defineText<Partial<Record<DiagramMode, Partial<Record<RelationKind, string>>>>>({
+    netz: { flow: "Pfeil (Anordnungsbeziehung)" },
+    uc: { inherit: "Generalisierung" },
+    zu: { flow: "Transition (Zustandsübergang)" },
+    akt: { flow: "Kontrollfluss" },
+    obj: { assoc: "Link (Objektbeziehung)" },
+    komp: { assoc: "Bereitgestellte Schnittstelle (Ball)", dep: "Abhängigkeit" },
+    vert: { assoc: "Kommunikationspfad", dep: "Abhängigkeit" },
+    pak: { dep: "Abhängigkeit" },
+}, {
+    netz: { flow: "Arrow (precedence)" },
+    uc: { inherit: "Generalization" },
+    zu: { flow: "Transition" },
+    akt: { flow: "Control flow" },
+    obj: { assoc: "Link" },
+    komp: { assoc: "Provided interface (ball)", dep: "Dependency" },
+    vert: { assoc: "Communication path", dep: "Dependency" },
+    pak: { dep: "Dependency" },
+});
+
+/** Name of a relation as shown in the given diagram kind. */
+export function relationName(general: Record<RelationKind, string>, perMode: Partial<Record<DiagramMode, Partial<Record<RelationKind, string>>>>, mode: DiagramMode, kind: RelationKind): string {
+    return perMode[mode]?.[kind] ?? general[kind];
+}
 
 /** Names of the fill colors, index = `node.fill` (colors: `FILLS`). */
 export const fillNames = defineText(

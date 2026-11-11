@@ -5,10 +5,18 @@ export const dialogText = defineText({
     close: "Schließen",
     cancel: "Abbrechen",
     textSelected: "Text ist markiert. Mit Strg+C kopieren.",
+    allowSaving: "Speichern erlauben",
+    allowSavingTitle: "Öffnet die Berechtigungen dieser Seite, dort kannst du Downloads erlauben",
+    permissionsMenu: "Öffne oben im Artifact das Menü „Berechtigungen“ und erlaube Downloads, dann speichere nochmal.",
+    tryAgain: "Wenn du Downloads erlaubt hast, speichere jetzt nochmal.",
 }, {
     close: "Close",
     cancel: "Cancel",
     textSelected: "Text is selected. Press Ctrl+C to copy.",
+    allowSaving: "Allow saving",
+    allowSavingTitle: "Opens the permissions of this page, where you can allow downloads",
+    permissionsMenu: "Open the artifact's “Permissions” menu at the top and allow downloads, then save again.",
+    tryAgain: "Once you have allowed downloads, save again.",
 });
 
 /** Question before switching when there are unsaved changes. */

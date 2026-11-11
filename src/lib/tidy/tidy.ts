@@ -3,19 +3,99 @@ import { centerX, inside, overlaps, type Vec } from "../geometry";
 import { snap } from "../math";
 import { layoutActivities } from "../netzplan/layout";
 import { fitToContent } from "../uml/size";
-import { FLOW_TYPES, RELATIONS, isUml } from "../uml/types";
+import { FLOW_TYPES, isUml } from "../uml/types";
 import { routeAll } from "../uml/astar";
 import { tidyEr } from "./er";
-import { layered } from "./layered";
+import { layered, layeredParts } from "./layered";
+import { tidyComponents, tidyDeployment, tidyGeneric, tidyPackages } from "./structure";
 import { tidyUseCase } from "./useCase";
+import { tidySequence } from "./sequence";
+
+/**
+ * Extra gap between neighbouring columns so the labels of the flows between `ids` fit beside their lines instead of
+ * lying on the next line: the width of a typical long label, capped so one very long text does not tear the diagram apart.
+ */
+function labelRoom(d: Diagram, ids: Set<number>): number {
+    const widths = d.edges.filter(e => (e.kind ?? "flow") === "flow" && e.label && ids.has(e.from) && ids.has(e.to)).map(e => e.label.length * 7.4).sort((p, q) => q - p);
+    if (!widths.length) return 0;
+    // the second longest label when there are several: a single outlier wraps around elsewhere
+    return snap(Math.min(240, widths[Math.min(1, widths.length - 1)] * 0.8));
+}
 
 /** Activity and state machine diagram from top to bottom, with bars and partitions. */
 function tidyFlow(d: Diagram): DiagramNode[] | null {
-    const nodes = d.nodes.filter(n => FLOW_TYPES.has(n.type));
-    if (!nodes.length) return null;
+    const all = d.nodes.filter(n => FLOW_TYPES.has(n.type));
+    if (!all.length) return null;
+    const allIds = new Set(all.map(n => n.id));
+    const allEdges = d.edges.filter(e => (e.kind ?? "flow") === "flow" && allIds.has(e.from) && allIds.has(e.to)).map(e => [ e.from, e.to ] as [number, number]);
+    const content = layoutComposites(all, allEdges);
+    // the top level: composite states count as one node, their content moves along afterwards
+    const nodes = all.filter(n => !content.parent.has(n.id));
     const ids = new Set(nodes.map(n => n.id));
     const byId = new Map(nodes.map(n => [ n.id, n ]));
-    const edges = d.edges.filter(e => (e.kind ?? "flow") === "flow" && ids.has(e.from) && ids.has(e.to)).map(e => [ e.from, e.to ] as [number, number]);
+    const edges = allEdges.map(([ a, b ]) => [ content.top(a), content.top(b) ] as [number, number]).filter(([ a, b ]) => a !== b && ids.has(a) && ids.has(b));
+    const result = tidyTopFlow(d, nodes, edges, byId);
+    content.follow();
+    return [ ...result, ...all.filter(n => content.parent.has(n.id)) ];
+}
+
+/**
+ * Lays out the content of every composite state (innermost first) and fits the state around it. `top` maps a node to
+ * its outermost composite state, `follow` moves the content after its composite state was moved.
+ */
+function layoutComposites(all: DiagramNode[], edges: [number, number][]): { parent: Map<number, DiagramNode>; top: (id: number) => number; follow: () => void } {
+    const comps = all.filter(n => n.type === "compstate");
+    const parent = new Map<number, DiagramNode>();
+    for (const n of all) {
+        const p = comps.filter(k => k !== n && inside(n, k)).sort((x, y) => x.w * x.h - y.w * y.h)[0];
+        if (p) parent.set(n.id, p);
+    }
+    const depth = (n: DiagramNode): number => {
+        let k = 0;
+        for (let p = parent.get(n.id); p; p = parent.get(p.id)) k++;
+        return k;
+    };
+    const descendants = (k: DiagramNode): DiagramNode[] => all.filter(n => {
+        for (let p = parent.get(n.id); p; p = parent.get(p.id)) if (p === k) return true;
+        return false;
+    });
+    /** Ancestor of `id` directly inside `level` (undefined: the top level). */
+    const lift = (id: number, level: DiagramNode | undefined): number | null => {
+        let n = all.find(x => x.id === id);
+        while (n && parent.get(n.id) !== level) n = parent.get(n.id);
+        return n ? n.id : null;
+    };
+    const moveContent = (k: DiagramNode, dx: number, dy: number): void => descendants(k).forEach(n => {
+        n.x += dx;
+        n.y += dy;
+    });
+    for (const k of [ ...comps ].sort((x, y) => depth(y) - depth(x))) {
+        const kids = all.filter(n => parent.get(n.id) === k);
+        if (!kids.length) continue;
+        const before = new Map(kids.map(n => [ n.id, [ n.x, n.y ] as Vec ]));
+        const inner = edges.map(([ a, b ]) => [ lift(a, k), lift(b, k) ] as [number | null, number | null])
+            .filter((e): e is [number, number] => e[0] !== null && e[1] !== null && e[0] !== e[1]);
+        layered(kids, inner, { gx: 40, gy: 60, first: true });
+        for (const n of kids.filter(x => x.type === "compstate")) moveContent(n, n.x - before.get(n.id)![0], n.y - before.get(n.id)![1]);
+        const left = Math.min(...kids.map(n => n.x)), top = Math.min(...kids.map(n => n.y));
+        const dx = snap(k.x + 30 - left), dy = snap(k.y + 50 - top);
+        for (const n of [ ...kids, ...kids.flatMap(descendants) ]) {
+            n.x += dx;
+            n.y += dy;
+        }
+        k.w = Math.max(160, snap(Math.max(...kids.map(n => n.x + n.w)) + 30 - k.x));
+        k.h = Math.max(110, snap(Math.max(...kids.map(n => n.y + n.h)) + 30 - k.y));
+    }
+    const tops = comps.filter(k => !parent.has(k.id));
+    const start = new Map(tops.map(k => [ k.id, [ k.x, k.y ] as Vec ]));
+    return {
+        parent,
+        top: id => lift(id, undefined) ?? id,
+        follow: () => tops.forEach(k => moveContent(k, k.x - start.get(k.id)![0], k.y - start.get(k.id)![1])),
+    };
+}
+
+function tidyTopFlow(d: Diagram, nodes: DiagramNode[], edges: [number, number][], byId: Map<number, DiagramNode>): DiagramNode[] {
     const lanes = d.nodes.filter(n => n.type === "lane").sort((a, b) => a.x - b.x);
     const laneOf = new Map<number, number | null>();
     for (const n of nodes) {
@@ -29,13 +109,14 @@ function tidyFlow(d: Diagram): DiagramNode[] | null {
         n.w = 120;
         n.h = 8;
     });
-    const fitBars = (pred: Record<number, number[]>, succ: Record<number, number[]>, rows: number[][], clampToNeighbours: boolean): void => {
+    /** Stretches every bar over its parallel branches, symmetric around the bar's center (the main flow). */
+    const fitBars = (pred: Record<number, number[]>, succ: Record<number, number[]>, rows: number[][] | null): void => {
         for (const b of bars) {
             const branches = succ[b.id].length > 1 ? succ[b.id] : pred[b.id];
             if (branches.length < 2) continue;
             const xs = branches.map(id => centerX(byId.get(id)!));
             let left = Math.min(...xs) - 40, right = Math.max(...xs) + 40;
-            if (clampToNeighbours) {
+            if (rows) {
                 const row = rows.find(r => r.includes(b.id))!, i = row.indexOf(b.id);
                 const prev = row[i - 1] !== undefined ? byId.get(row[i - 1]) : undefined;
                 const next = row[i + 1] !== undefined ? byId.get(row[i + 1]) : undefined;
@@ -46,21 +127,27 @@ function tidyFlow(d: Diagram): DiagramNode[] | null {
             b.w = Math.max(60, snap(right) - b.x);
         }
     };
-    const first = layered(nodes, edges, { gx: 50, gy: 70, first: true });
-    fitBars(first.pred, first.succ, first.rows, false);
-    const final = layered(nodes, edges, { gx: 50, gy: 70, first: true });
-    fitBars(final.pred, final.succ, final.rows, true);
+    // joins and merges sit in the middle of their incoming branches, so the flow continues from the center
+    const between = (id: number): boolean => byId.get(id)!.type === "bar" || byId.get(id)!.type === "decision";
+    // forks and joins are centred over their branches; wider columns are only needed for the long labels of transitions
+    const room = bars.length ? 0 : labelRoom(d, new Set(nodes.map(n => n.id)));
+    const options = { gx: 50 + room, gy: room ? 90 : 70, first: true, between };
+    const first = layered(nodes, edges, options);
+    fitBars(first.pred, first.succ, null);
+    const final = layered(nodes, edges, options);
+    fitBars(final.pred, final.succ, final.rows);
 
     if (!lanes.length) return nodes;
 
-    // Partitions side by side; each gets its nodes, the rows stay
+    // Partitions side by side; each gets its nodes, the rows stay. Bars may span several partitions.
     let laneX = Math.min(...lanes.map(l => l.x));
     const top = Math.min(...lanes.map(l => l.y));
     const dy = top + 60 - Math.min(...nodes.map(n => n.y));
     nodes.forEach(n => n.y += dy);
     const bottom = Math.max(...nodes.map(n => n.y + n.h)) + 40;
+    const inLane = new Map<number, DiagramNode>();
     lanes.forEach((lane, li) => {
-        const mine = nodes.filter(n => laneOf.get(n.id) === lane.id || (!laneOf.get(n.id) && li === 0));
+        const mine = nodes.filter(n => !bars.includes(n) && (laneOf.get(n.id) === lane.id || (!laneOf.get(n.id) && li === 0)));
         const perRow = new Map<number, DiagramNode[]>();
         for (const n of mine) perRow.set(Math.round(n.y), [ ...(perRow.get(Math.round(n.y)) ?? []), n ]);
         const need = Math.max(240, ...[ ...perRow.values() ].map(r => r.reduce((a, n) => a + n.w, 0) + 50 * (r.length + 1)));
@@ -74,97 +161,74 @@ function tidyFlow(d: Diagram): DiagramNode[] | null {
                 cx += n.w + 50;
             }
         }
+        for (const n of nodes) if (laneOf.get(n.id) === lane.id || (!laneOf.get(n.id) && li === 0)) inLane.set(n.id, lane);
         laneX += lane.w;
     });
+    // a bar between one node and its branches: over the branches; a bar without branches: centered on its neighbour
+    fitBars(final.pred, final.succ, null);
+    for (const b of bars) {
+        const branches = final.succ[b.id].length > 1 ? final.succ[b.id] : final.pred[b.id];
+        if (branches.length > 1) continue;
+        const other = [ ...final.pred[b.id], ...final.succ[b.id] ].map(id => byId.get(id)!)[0];
+        const lane = inLane.get(b.id);
+        if (other) b.x = snap(centerX(other) - b.w / 2);
+        else if (lane) b.x = snap(lane.x + (lane.w - b.w) / 2);
+    }
+    // a bar stretched over several partitions may cover a node of its row: the bar and everything below move down a row
+    const middle = (n: DiagramNode): number => n.y + n.h / 2;
+    for (let round = 0; round < bars.length * 2; round++) {
+        const hit = bars.flatMap(b => nodes.filter(n => n !== b && overlaps({ x: b.x - 10, y: b.y - 10, w: b.w + 20, h: b.h + 20 }, n)).map(n => [ b, n ] as const))[0];
+        if (!hit) break;
+        const [ bar, n ] = hit, dy = snap(n.y + n.h + 35 - bar.y), top = bar.y;
+        for (const m of nodes) if (m === bar || (m.y >= top - 1 && Math.abs(middle(m) - middle(n)) > 5)) m.y += dy;
+    }
+    const end = Math.max(...nodes.map(n => n.y + n.h)) + 40;
+    lanes.forEach(l => l.h = Math.max(l.h, snap(end - l.y)));
     return [ ...nodes, ...lanes ];
 }
 
-/** Classes layered by inheritance: superclasses and interfaces at the top. */
+/**
+ * Classes and objects layered from top to bottom: superclasses and interfaces above their subclasses, the whole above
+ * its parts, the source of an association above its target. Back edges are dropped, sources move down to their partner.
+ */
 function tidyClasses(d: Diagram): DiagramNode[] | null {
-    const nodes = d.nodes.filter(n => n.type === "class" || n.type === "object");
+    const nodes = d.nodes.filter(n => (n.type === "class" || n.type === "object") && !d.nodes.some(p => p.type === "package" && inside(n, p)));
     if (!nodes.length) return null;
     nodes.forEach(fitToContent);
-    const ids = new Set(d.nodes.map(n => n.id));
-    const edges: [number, number][] = [];
+    const ids = new Set(nodes.map(n => n.id));
+    const strong: [number, number][] = [], weak: [number, number][] = [];
     for (const e of d.edges) {
-        if (!ids.has(e.from) || !ids.has(e.to)) continue;
+        if (!ids.has(e.from) || !ids.has(e.to) || e.from === e.to) continue;
         const k = e.kind ?? "flow";
-        if (k === "inherit" || k === "realize") edges.push([ e.to, e.from ]);
-        else if (k === "comp" || k === "aggr") edges.push([ e.from, e.to ]);
+        if (k === "inherit" || k === "realize") strong.push([ e.to, e.from ]);
+        else if (k === "comp" || k === "aggr") strong.push([ e.from, e.to ]);
+        else if (k === "assoc" || k === "dir" || k === "dep") weak.push([ e.from, e.to ]);
     }
-    const associations = d.edges.filter(e => [ "assoc", "dir", "dep" ].includes(e.kind ?? "flow"));
-    layered(nodes, edges, {
-        gx: 120, gy: 80, top: true,
-        // classes connected only by association go into the row of their partner
-        pull: (rank, pred, succ) => {
-            for (const n of nodes) {
-                if (pred[n.id].length || succ[n.id].length) continue;
-                const a = associations.find(e => e.from === n.id || e.to === n.id);
-                if (!a) continue;
-                const other = a.from === n.id ? a.to : a.from;
-                if (rank[other] !== undefined) rank[n.id] = rank[other];
-            }
-        },
-    });
-    return nodes;
-}
-
-/** Sequence: lifelines evenly spaced, messages at equal distances, activations and fragments move along. */
-function tidySequence(d: Diagram): DiagramNode[] | null {
-    const lifelines = d.nodes.filter(n => n.type === "lifeline" || n.type === "actline").sort((a, b) => a.x - b.x);
-    if (!lifelines.length) return null;
-    const byId = new Map(d.nodes.map(n => [ n.id, n ]));
-    const activations = d.nodes.filter(n => n.type === "activation"), fragments = d.nodes.filter(n => n.type === "fragment");
-    const messages = d.edges.filter(e => RELATIONS[e.kind ?? "flow"]?.seq && byId.has(e.from) && byId.has(e.to));
-    const absY = (e: typeof messages[number]): number => byId.get(e.from)!.y + (e.y ?? 60);
-    const owner = (a: DiagramNode): DiagramNode =>
-        lifelines.find(l => Math.abs(centerX(l) - centerX(a)) < 20)
-        ?? lifelines.slice().sort((p, q) => Math.abs(centerX(p) - centerX(a)) - Math.abs(centerX(q) - centerX(a)))[0];
-    const oldY = new Map(messages.map(e => [ e.id, absY(e) ]));
-    const oldActivations = activations.map(a => ({ a, o: owner(a), t: a.y, b: a.y + a.h }));
-    const oldFragments = fragments.map(f => ({ f, t: f.y, b: f.y + f.h, l: f.x, r: f.x + f.w }));
-
-    const x0 = Math.min(...lifelines.map(l => l.x)), y0 = Math.min(...lifelines.map(l => l.y)), W = Math.max(...lifelines.map(l => l.w));
-    lifelines.forEach((l, i) => {
-        l.x = snap(x0 + i * (W + 80) + W / 2) - l.w / 2;
-        l.y = y0;
-    });
-    const sorted = messages.slice().sort((a, b) => oldY.get(a.id)! - oldY.get(b.id)!);
-    const head = Math.max(...lifelines.map(l => l.type === "actline" ? 72 : 40));
-    const newY = new Map<number, number>();
-    let extra = 0;
-    sorted.forEach((e, i) => {
-        newY.set(e.id, y0 + head + 40 + i * 48 + extra);
-        if (e.from === e.to) extra += 30; // self messages need more space
-    });
-    const lastY = Math.max(y0 + head + 80, ...newY.values());
-    lifelines.forEach(l => l.h = snap(lastY - y0 + 60));
-    const range = (t: number, b: number): [number, number] | null => {
-        const ys = sorted.filter(e => oldY.get(e.id)! >= t - 2 && oldY.get(e.id)! <= b + 2).map(e => newY.get(e.id)!);
-        return ys.length ? [ Math.min(...ys), Math.max(...ys) ] : null;
+    // an association only adds a row when it does not contradict the hierarchy (no cycle)
+    const succ = new Map<number, number[]>();
+    const add = ([ a, b ]: [number, number]): void => {
+        succ.set(a, [ ...(succ.get(a) ?? []), b ]);
     };
-    for (const { a, o, t, b } of oldActivations) {
-        const r = range(t, b);
-        a.x = centerX(o) - a.w / 2;
-        if (r) {
-            a.y = r[0] - 14;
-            a.h = Math.max(30, r[1] - r[0] + 28);
+    const reaches = (from: number, to: number): boolean => {
+        const seen = new Set<number>(), stack = [ from ];
+        while (stack.length) {
+            const u = stack.pop()!;
+            if (u === to) return true;
+            if (seen.has(u)) continue;
+            seen.add(u);
+            stack.push(...(succ.get(u) ?? []));
         }
+        return false;
+    };
+    strong.forEach(add);
+    const edges = strong.slice();
+    for (const [ a, b ] of weak) {
+        if (reaches(b, a) || reaches(a, b)) continue;
+        add([ a, b ]);
+        edges.push([ a, b ]);
     }
-    for (const { f, t, b, l, r } of oldFragments) {
-        const y = range(t, b);
-        if (y) {
-            f.y = y[0] - 40;
-            f.h = y[1] - y[0] + 64;
-        }
-        const covered = lifelines.filter(x => centerX(x) >= l && centerX(x) <= r);
-        if (covered.length) {
-            f.x = Math.min(...covered.map(x => x.x)) - 20;
-            f.w = Math.max(...covered.map(x => x.x + x.w)) + 20 - f.x;
-        }
-    }
-    messages.forEach(e => e.y = newY.get(e.id)! - byId.get(e.from)!.y);
-    return [ ...lifelines, ...activations, ...fragments ];
+    layeredParts(nodes, edges, (part, own) => layered(part, own, { gx: 80, gy: 90, top: true, tight: true }));
+    return nodes;
 }
 
 /** Network diagram in columns; loose texts stay with it and move up when they are in the way. */
@@ -255,7 +319,7 @@ function keepCorner(group: DiagramNode[], before: Map<number, Vec>): void {
 function arrangeGroups(d: Diagram): void {
     const groups: DiagramNode[][] = [];
     const before = new Map(d.nodes.map(n => [ n.id, [ n.x, n.y ] as Vec ]));
-    for (const step of [ tidyActivities, tidyFlow, tidyUseCase, tidyClasses, tidySequence, tidyEr, tidyTables ]) {
+    for (const step of [ tidyActivities, tidyFlow, tidyUseCase, tidyClasses, tidySequence, tidyEr, tidyTables, tidyComponents, tidyDeployment, tidyPackages, tidyGeneric ]) {
         const group = step(d);
         if (!group?.length) continue;
         keepCorner(group, before);

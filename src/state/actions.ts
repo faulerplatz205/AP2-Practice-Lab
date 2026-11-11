@@ -7,7 +7,7 @@ import type { ActivityKey, Diagram, DiagramEdge, DiagramMode, DiagramNode, NodeT
 import { ACTIVITY_CELLS, GRID } from "../lib/constants";
 import { createNode, diagramBox, emptyDiagram, findEdge, findNode, isActivity, nextActivityNr, normalize, parsePlanFile } from "../lib/diagram";
 import { relationEnds } from "../lib/db/columns";
-import { fitToContent } from "../lib/uml/size";
+import { fitToContent, fragmentTab } from "../lib/uml/size";
 import { NORM_SCENARIOS, type NormScenarioId, isNormId } from "../data/normalization";
 import { dbText, normText } from "../i18n/database";
 import { contentFingerprint, runCheck } from "../lib/check";
@@ -18,9 +18,13 @@ import { layoutActivities } from "../lib/netzplan/layout";
 import { buildFromRows, parseTaskList } from "../lib/netzplan/taskList";
 import { fmt, num, snap } from "../lib/math";
 import { arrangeTables, tidyDiagram } from "../lib/tidy/tidy";
+import { onBorder } from "../lib/tidy/structure";
+import { storage } from "../lib/storage";
 import { fieldAt } from "../lib/uml/fields";
 import { edgeGeometry } from "../lib/uml/routing";
+import { labelKey, placeLabels } from "../lib/uml/labels";
 import { FRAME_TYPES, RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
+import { fragmentOf, headHeight, isLifeline, messageOffset, messageY, moveMessage, nearestLifeline, ownerOf, pinnedTarget } from "../lib/uml/sequence";
 import { inside } from "../lib/geometry";
 import { fileBaseName } from "../lib/downloads";
 import { MODES, type ExampleKey, EXAMPLE_MODE, GENERIC_ITEMS, type PaletteItem } from "../data/modes";
@@ -28,9 +32,11 @@ import { insertExample } from "../data/examples";
 import { RAINER_GALLERY } from "../data/rainer";
 import { GUIDE } from "../data/guide";
 import { localeTag, text } from "../i18n/locale";
-import { diagramText, relationLabels } from "../i18n/diagram";
+import { diagramText, modeRelationLabels, relationLabels, relationName } from "../i18n/diagram";
 import { messageText } from "../i18n/messages";
-import { type Tool, useDiagram } from "./diagramStore";
+import { BRACKETS, nodeAdornment, unwrap, wrap } from "../lib/uml/guards";
+import { variantsOf } from "../lib/uml/variants";
+import { type Tool, selectedNodeIds, useDiagram } from "./diagramStore";
 import { notify, useUi } from "./uiStore";
 import { bump, unlock, useAchievements } from "./achievementStore";
 import { type SavedPlan, currentPlan, usePlans } from "./planStore";
@@ -84,7 +90,34 @@ export function setMode(m: DiagramMode): void {
 /* ---------- Selection and editing ---------- */
 
 export function select(kind: "node" | "edge" | null, id?: number): void {
-    useDiagram.getState().set({ selection: kind && id !== undefined ? { kind, id } : null });
+    useDiagram.getState().set({ selection: kind && id !== undefined ? { kind, id } : null, multi: [] });
+}
+
+/** Selects several nodes; one id is a normal selection, none clears it. */
+export function selectNodes(ids: number[]): void {
+    const unique = [ ...new Set(ids) ].filter(id => findNode(doc(), id));
+    if (unique.length < 2) return select(unique.length ? "node" : null, unique[0]);
+    useDiagram.getState().set({ selection: null, multi: unique });
+}
+
+/** Shift+click: adds the node to the selection or takes it out. */
+export function toggleSelected(id: number): void {
+    const ids = selectedNodeIds(useDiagram.getState());
+    selectNodes(ids.includes(id) ? ids.filter(x => x !== id) : [ ...ids, id ]);
+}
+
+export function selectAll(): void {
+    selectNodes(doc().nodes.map(n => n.id));
+}
+
+/** Nodes that move or go along with `ids`: the content of containers, the parts of lifelines, ports of components. */
+export function withCarried(ids: number[]): number[] {
+    const all = new Set(ids);
+    for (const id of ids) {
+        const n = findNode(doc(), id);
+        if (n) for (const c of carriedBy(n)) all.add(c);
+    }
+    return [ ...all ];
 }
 
 export function placeNode(type: NodeType, p: Point, keepTool: boolean): void {
@@ -98,6 +131,23 @@ export function placeNode(type: NodeType, p: Point, keepTool: boolean): void {
             n.x = cx - n.w / 2;
             n.y = cy - n.h / 2;
         }
+        if (isLifeline(n)) {
+            // the click sets the head; further lifelines join the row of the first one and end at the same height
+            const row = d.nodes.filter(isLifeline);
+            n.y = row.length ? Math.min(...row.map(l => l.y)) : snap(p.y - headHeight(n) / 2);
+            if (row.length) n.h = Math.max(n.h, Math.max(...row.map(l => l.y + l.h)) - n.y);
+        }
+        // parts of a lifeline land exactly on the nearest dashed line
+        if (n.type === "activation" || n.type === "destroy" || n.type === "invariant") {
+            const l = nearestLifeline(d.nodes, n.x + n.w / 2, 60);
+            if (l) n.x = l.x + l.w / 2 - n.w / 2;
+        }
+        // a separator line spans the fragment it is placed in
+        const frame = n.type === "operand" ? fragmentOf(n, d.nodes) : undefined;
+        if (frame) {
+            n.x = frame.x;
+            n.w = frame.w;
+        }
         d.nodes.push(n);
         id = n.id;
     });
@@ -107,39 +157,59 @@ export function placeNode(type: NodeType, p: Point, keepTool: boolean): void {
     if (!keepTool) setTool("select");
 }
 
+/** Deletes the selected edge, or all selected nodes with their lines, in one undo step. */
 export function deleteSelection(): void {
-    const { selection, change } = useDiagram.getState();
-    if (!selection) return;
+    const state = useDiagram.getState(), { selection, change } = state;
+    const nodeIds = selectedNodeIds(state);
+    if (!selection && !nodeIds.length) return;
     change(d => {
-        if (selection.kind === "node") {
-            d.nodes = d.nodes.filter(n => n.id !== selection.id);
-            d.edges = d.edges.filter(e => e.from !== selection.id && e.to !== selection.id);
-        } else {
+        if (selection?.kind === "edge") {
             d.edges = d.edges.filter(e => e.id !== selection.id);
+            return;
         }
+        const ids = new Set(nodeIds);
+        // a lifeline takes its activation bars, destruction X and state invariants with it
+        for (const id of nodeIds) {
+            const gone = findNode(d, id);
+            if (gone && isLifeline(gone)) for (const n of d.nodes) if (n !== gone && ownerOf(n, d.nodes) === gone) ids.add(n.id);
+            // the separator lines of a fragment go with it
+            if (gone?.type === "fragment") for (const n of d.nodes) if (n.type === "operand" && fragmentOf(n, d.nodes) === gone) ids.add(n.id);
+        }
+        d.nodes = d.nodes.filter(n => !ids.has(n.id));
+        d.edges = d.edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
     });
     select(null);
 }
 
-let clipboard: DiagramNode | null = null;
+/** Copied nodes and the lines between them. */
+let clipboard: { nodes: DiagramNode[]; edges: DiagramEdge[] } | null = null;
 
 export function copySelection(): void {
-    const { selection } = useDiagram.getState();
-    if (selection?.kind === "node") clipboard = structuredClone(findNode(doc(), selection.id) ?? null);
+    const d = doc(), ids = new Set(selectedNodeIds(useDiagram.getState()));
+    if (!ids.size) return;
+    clipboard = structuredClone({ nodes: d.nodes.filter(n => ids.has(n.id)), edges: d.edges.filter(e => ids.has(e.from) && ids.has(e.to)) });
 }
 
 export function paste(): void {
-    if (!clipboard) return;
-    const source = clipboard;
-    let id = 0;
+    if (!clipboard?.nodes.length) return;
+    const source = clipboard, ids: number[] = [];
     useDiagram.getState().change(d => {
-        const n: DiagramNode = { ...structuredClone(source), id: d.next++, x: source.x + 30, y: source.y + 30 };
-        if (isActivity(n) && !isNaN(parseInt(n.f.nr))) n.f.nr = nextActivityNr(d);
-        d.nodes.push(n);
-        id = n.id;
-        clipboard = structuredClone(n);
+        const map = new Map<number, number>();
+        const nodes = source.nodes.map(src => {
+            const n: DiagramNode = { ...structuredClone(src), id: d.next++, x: src.x + 30, y: src.y + 30 };
+            if (isActivity(n) && !isNaN(parseInt(n.f.nr))) n.f.nr = nextActivityNr(d);
+            map.set(src.id, n.id);
+            d.nodes.push(n);
+            ids.push(n.id);
+            return n;
+        });
+        const edges = source.edges.map(e => ({ ...structuredClone(e), id: d.next++, from: map.get(e.from)!, to: map.get(e.to)! }));
+        for (const e of edges) delete e.route;
+        d.edges.push(...edges);
+        // the next paste lands another step further
+        clipboard = structuredClone({ nodes, edges });
     });
-    select("node", id);
+    selectNodes(ids);
 }
 
 export function duplicateSelection(): void {
@@ -148,14 +218,22 @@ export function duplicateSelection(): void {
 }
 
 export function nudgeSelection(dx: number, dy: number): void {
-    const { selection, change } = useDiagram.getState();
-    if (selection?.kind !== "node") return;
-    change(d => {
-        const n = findNode(d, selection.id);
-        if (!n) return;
-        n.x += dx * GRID;
-        n.y += dy * GRID;
+    const state = useDiagram.getState(), ids = new Set(withCarried(selectedNodeIds(state)));
+    if (!ids.size) return;
+    state.change(d => {
+        for (const n of d.nodes) {
+            if (!ids.has(n.id)) continue;
+            n.x += dx * GRID;
+            n.y += dy * GRID;
+        }
     });
+}
+
+/** Turns the node into another form of its kind (see `variantsOf`), e.g. class => interface. */
+export function convertNode(nodeId: number, variantId: string): void {
+    const n = findNode(doc(), nodeId), variant = n && variantsOf(n, mode()).find(v => v.id === variantId);
+    if (!variant || variant.current) return;
+    useDiagram.getState().change(d => variant.apply(findNode(d, nodeId)!));
 }
 
 /* ---------- Arrows ---------- */
@@ -185,19 +263,34 @@ export function connectTo(toId: number): void {
         setTool("select");
         select("node", toId);
     }
-    const a = findNode(doc(), pendingFrom), b = findNode(doc(), toId);
-    if (!a || !b) return;
-    const kind = relation === "auto" ? autoRelation(a, b) : relation;
+    let first = findNode(doc(), pendingFrom), second = findNode(doc(), toId);
+    if (!first || !second) return;
+    // a message belongs to the lifelines, wherever the click landed: started on an activation bar it still keeps
+    // its height when that bar is moved (the line docks on the bar by itself)
+    if (relation === "auto" || RELATIONS[relation].seq) {
+        if (first.type === "activation" || first.type === "invariant") first = ownerOf(first, doc().nodes) ?? first;
+        if (second.type === "activation" || second.type === "invariant") second = ownerOf(second, doc().nodes) ?? second;
+    }
+    const kind = relation === "auto" ? autoRelation(first, second) : relation;
+    // the symbol always lands on the element clicked second: the diamond of an aggregation or composition sits at
+    // the start of the stored line, so that line runs from the second element (the whole) to the first (the part)
+    const [ a, b ] = symbolAtStart(kind) ? [ second, first ] : [ first, second ];
     const isMessage = !!RELATIONS[kind].seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type);
     if (a.id === b.id && !isMessage && !SELF_TYPES.has(a.type)) return;
-    const transition = kind === "flow" && a.type === "state" && b.type === "state";
+    // between two elements of a state machine several transitions are fine, they differ in trigger and guard
+    const transition = kind === "flow" && (mode() === "zu" || (a.type === "state" && b.type === "state"));
     // recursive relationship: two lines between the same entity and diamond, in whatever direction they were drawn
     const recursive = kind === "erl" && [ a.type, b.type ].sort().join() === "entity,relship"
         && doc().edges.filter(x => (x.from === a.id && x.to === b.id) || (x.from === b.id && x.to === a.id)).length < 2;
     if (!isMessage && !transition && !recursive && doc().edges.some(x => x.from === a.id && x.to === b.id)) return;
     change(d => pushEdge(d, a, b, kind, pendingY));
-    notify(msg().relationSet(text(relationLabels)[kind]));
+    notify(msg().relationSet(relationName(text(relationLabels), text(modeRelationLabels), doc().cfg.mode, kind)));
     unlock("first_arrow");
+}
+
+/** Relations whose only symbol is drawn at the start of the line (aggregation, composition). */
+function symbolAtStart(kind: RelationKind): boolean {
+    return !!RELATIONS[kind].start && !RELATIONS[kind].end;
 }
 
 function entityLines(d: Diagram, relId: number): DiagramEdge[] {
@@ -207,7 +300,7 @@ function entityLines(d: Diagram, relId: number): DiagramEdge[] {
 function pushEdge(d: Diagram, a: DiagramNode, b: DiagramNode, kind: RelationKind, pendingY: number): void {
     const isMessage = !!RELATIONS[kind].seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type);
     const e: Diagram["edges"][number] = { id: d.next++, from: a.id, to: b.id, label: "", kind };
-    if (isMessage) e.y = Math.max(20, Math.min(a.h - 10, snap(pendingY - a.y)));
+    if (isMessage) e.y = messageOffset(d.nodes, a, pendingY);
     if (a.type === "decision" && kind === "flow") {
         const outgoing = d.edges.filter(x => x.from === a.id);
         const isMerge = d.edges.filter(x => x.to === a.id).length > 1 && !outgoing.length;
@@ -218,17 +311,19 @@ function pushEdge(d: Diagram, a: DiagramNode, b: DiagramNode, kind: RelationKind
     if (kind === "erl" && rel && entity) e.label = entityLines(d, rel.id).length ? "n" : "1";
     if (kind === "fk" && a.type === "table" && b.type === "table") [ e.m1, e.m2 ] = relationEnds(a, b);
     d.edges.push(e);
+    if (isMessage && pinnedTarget(e, b)) moveMessage(d, e, pendingY);
 }
 
 /** Element created by "+" or by dropping a handle on empty space. */
 export function successorType(type: NodeType, m: DiagramMode): NodeType | null {
     switch (type) {
         case "start": case "action": case "decision": case "bar": case "signal": case "accept": case "objnode": case "state": return m === "zu" ? "state" : "action";
+        case "history": case "deephist": case "compstate": return "state";
         case "entity": return "relship";
         case "relship": return "entity";
         case "actor": return "usecase";
         case "lifeline": case "actline": return "lifeline";
-        case "end": case "flowend": case "erattr": case "note": case "usecase": case "activation": case "iface": case "text": case "sheet": return null;
+        case "end": case "flowend": case "erattr": case "note": case "usecase": case "activation": case "destroy": case "iface": case "text": case "sheet": return null;
         default: return FRAME_TYPES.has(type) ? null : type;
     }
 }
@@ -257,7 +352,9 @@ export function spawnFrom(fromId: number, p?: Point): void {
         }
         d.nodes.push(n);
         const ys = d.edges.filter(e => e.y !== undefined && (e.from === a.id || e.to === a.id)).map(e => e.y!);
-        pushEdge(d, a, n, relation === "auto" ? autoRelation(a, n) : relation, sequence ? a.y + (ys.length ? Math.max(...ys) + 40 : 60) : n.y);
+        const kind = relation === "auto" ? autoRelation(a, n) : relation;
+        const [ from, to ] = symbolAtStart(kind) ? [ n, a ] : [ a, n ];
+        pushEdge(d, from, to, kind, sequence ? a.y + (ys.length ? Math.max(...ys) + 40 : 60) : n.y);
         id = n.id;
     });
     select("node", id);
@@ -331,6 +428,19 @@ export function setErPair(edgeId: number, own: string, other: string): void {
     });
 }
 
+/** Swaps start and end of a line together with its multiplicities; a message keeps its height. */
+export function reverseEdge(edgeId: number): void {
+    useDiagram.getState().change(d => {
+        const e = findEdge(d, edgeId), a = e && findNode(d, e.from), b = e && findNode(d, e.to);
+        if (!e || !a || !b) return;
+        const y = RELATIONS[e.kind ?? "flow"].seq ? messageY(e, a, b) : undefined;
+        [ e.from, e.to ] = [ e.to, e.from ];
+        if (e.m1 !== undefined || e.m2 !== undefined) [ e.m1, e.m2 ] = [ e.m2, e.m1 ];
+        delete e.route;
+        if (y !== undefined) moveMessage(d, e, y);
+    });
+}
+
 export function startConnection(fromId: number, y: number): void {
     useDiagram.getState().set({ pendingFrom: fromId, pendingY: y });
 }
@@ -377,36 +487,86 @@ export function openEditor(nodeId: number, p: Point | null): void {
     } else if (isUml(n.type)) {
         const f = fieldAt(n, p);
         if (!f) return;
-        if (n.type === "fragment" && f.key === "text") return; // The operator is picked from the list on the right
+        if (n.type === "fragment" && f.key === "text") return; // the operator is picked in the bar next to the fragment
         const isList = !!f.multi && f.key !== "text";
-        set({ editor: { kind: "field", id: n.id, key: f.key, multi: !!f.multi, x: n.x + (f.x ?? 0), y: n.y + f.y, w: f.w ?? n.w, h: f.h, fontSize: 13.5, mono: isList, align: isList ? "left" : "center", value: n[f.key] ?? "" } });
+        const adorn = nodeAdornment(n, f.key), value = n[f.key] ?? "";
+        set({ editor: {
+            kind: "field", id: n.id, key: f.key, multi: !!f.multi, x: n.x + (f.x ?? 0), y: n.y + f.y, w: f.w ?? n.w, h: f.h, fontSize: 13.5, mono: isList,
+            align: isList || f.left ? "left" : "center", value: adorn ? unwrap(value, adorn) : value, ...(adorn ?? {}),
+        } });
     } else {
         set({ editor: { kind: "shape", id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, fontSize: 14, mono: false, align: "center", value: n.text } });
     }
 }
 
-/** Edge leaving a decision: its label is a guard in [ ]. */
-export function isGuard(edgeId: number): boolean {
-    const e = findEdge(doc(), edgeId), a = e && findNode(doc(), e.from);
-    return !!a && a.type === "decision" && (e.kind ?? "flow") === "flow";
+/** Transition of a state machine diagram: its label reads `trigger [guard] / effect`. */
+export function isTransition(edgeId: number): boolean {
+    const e = findEdge(doc(), edgeId);
+    return !!e && (e.kind ?? "flow") === "flow" && mode() === "zu";
 }
 
-export const guardText = (v: string): string => String(v || "").trim().replace(/^\[/, "").replace(/\]$/, "").trim();
-export const wrapGuard = (v: string): string => guardText(v) ? `[${guardText(v)}]` : "";
+/**
+ * Edge leaving a decision of an activity diagram: its whole label is a guard in [ ]. A transition leaving a choice
+ * of a state machine may also carry an effect, so there the brackets belong to the guard part only.
+ */
+export function isGuard(edgeId: number): boolean {
+    const e = findEdge(doc(), edgeId), a = e && findNode(doc(), e.from);
+    return !!a && a.type === "decision" && (e.kind ?? "flow") === "flow" && !isTransition(edgeId);
+}
 
-export function openEdgeEditor(edgeId: number): void {
+export const guardText = (v: string): string => unwrap(v, BRACKETS);
+export const wrapGuard = (v: string): string => wrap(v, BRACKETS);
+
+/** Relations that carry a multiplicity at both ends. */
+export const MULTIPLICITY_KINDS: RelationKind[] = [ "assoc", "dir", "aggr", "comp", "fk" ];
+
+/**
+ * Text field on a line. Without `part` the label; "m1" / "m2" edit the multiplicity at the start / end, which is
+ * also what a double click close to a line end of an association opens.
+ */
+export function openEdgeEditor(edgeId: number, part: "label" | "m1" | "m2" = "label"): void {
     const d = doc(), e = findEdge(d, edgeId);
     const a = e && findNode(d, e.from), b = e && findNode(d, e.to);
     if (!e || !a || !b) return;
     const g = edgeGeometry(d, e, a, b);
-    const guard = isGuard(edgeId);
+    if (part !== "label") {
+        const spot = placeLabels(d).get(labelKey(e, part)), [ px, py ] = part === "m1" ? g.s : g.t;
+        const x = spot ? (spot.a === "end" ? spot.x - 60 : spot.a === "middle" ? spot.x - 30 : spot.x) : px + 6, y = spot ? spot.y - 18 : py + 2;
+        useDiagram.getState().set({
+            selection: { kind: "edge", id: e.id }, multi: [],
+            editor: { kind: "edge", id: e.id, key: part, x, y, w: 60, h: 26, fontSize: 12.5, mono: false, align: "center", value: e[part] ?? "", placeholder: part === "m1" ? "1" : "0..*" },
+        });
+        return;
+    }
+    const guard = isGuard(edgeId), transition = isTransition(edgeId);
     useDiagram.getState().set({
-        selection: { kind: "edge", id: e.id },
+        selection: { kind: "edge", id: e.id }, multi: [],
         editor: {
-            kind: "edge", id: e.id, x: g.anc === "start" ? g.lx - 4 : g.anc === "end" ? g.lx - 136 : g.lx - 70, y: g.ly - 16, w: 140, h: 28,
-            fontSize: 13, mono: false, align: "center", value: guard ? guardText(e.label) : e.label || "", placeholder: guard ? msg().guardPlaceholder : msg().labelPlaceholder,
+            kind: "edge", id: e.id, key: "label", ...labelBox(d, e, g), h: 28,
+            fontSize: 13, mono: false, value: guard ? guardText(e.label) : e.label || "",
+            placeholder: guard ? msg().guardPlaceholder : transition ? msg().transitionPlaceholder : msg().labelPlaceholder, ...(guard ? BRACKETS : {}),
         },
     });
+}
+
+/** Where the label of a line is drawn (see `placeLabels`), as the box of its text field. */
+function labelBox(d: Diagram, e: DiagramEdge, g: { lx: number; ly: number; anc?: "start" | "middle" | "end" }): { x: number; y: number; w: number; align: "left" | "center" } {
+    const spot = (e.label ? placeLabels(d).get(labelKey(e, "label")) : undefined) ?? { x: g.lx, y: g.ly, a: g.anc ?? "middle" };
+    const w = 140;
+    if (spot.a === "start") return { x: spot.x - 7, y: spot.y - 17, w, align: "left" };
+    return { x: spot.a === "end" ? spot.x - w + 7 : spot.x - w / 2, y: spot.y - 17, w, align: "center" };
+}
+
+/** Double click on a line: close to an end of a relation with multiplicities that multiplicity, else the label. */
+function edgePartAt(edgeId: number, p: Point): "label" | "m1" | "m2" {
+    const d = doc(), e = findEdge(d, edgeId);
+    const a = e && findNode(d, e.from), b = e && findNode(d, e.to);
+    if (!e || !a || !b || !MULTIPLICITY_KINDS.includes(e.kind ?? "flow")) return "label";
+    const g = edgeGeometry(d, e, a, b), near = (q: [number, number]): number => Math.hypot(q[0] - p.x, q[1] - p.y);
+    const total = Math.hypot(g.s[0] - g.t[0], g.s[1] - g.t[1]), reach = Math.min(46, total / 3);
+    if (near(g.s) < reach && near(g.s) <= near(g.t)) return "m1";
+    if (near(g.t) < reach) return "m2";
+    return "label";
 }
 
 /** Closes the text field. With `value` the text is applied. */
@@ -416,12 +576,14 @@ export function closeEditor(value?: string): void {
     set({ editor: null });
     if (value === undefined) return;
     const d = doc();
+    const adorn = editor.prefix !== undefined && editor.suffix !== undefined ? { prefix: editor.prefix, suffix: editor.suffix } : null;
+    if (adorn) value = wrap(value, adorn);
     if (editor.kind === "edge") {
-        const e = findEdge(d, editor.id);
-        const next = isGuard(editor.id) ? wrapGuard(value) : value;
-        if (e && e.label !== next) {
+        const e = findEdge(d, editor.id), key = (editor.key ?? "label") as "label" | "m1" | "m2";
+        const next = key === "label" ? value : value.trim();
+        if (e && (e[key] ?? "") !== next) {
             change(x => {
-                findEdge(x, editor.id)!.label = next;
+                findEdge(x, editor.id)![key] = next;
             });
         }
         return;
@@ -457,10 +619,13 @@ export function editNextCell(value: string, backwards: boolean): void {
 export function handleDoubleClick(clientX: number, clientY: number): void {
     const el = document.elementFromPoint(clientX, clientY);
     const p = toWorld(clientX, clientY);
+    // the head strip of a fragment (operator tab and guard) wins over a message or bar passing under it
+    const header = doc().nodes.filter(n => n.type === "fragment" && p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + 24).sort((a, b) => a.w * a.h - b.w * b.h)[0];
+    if (header && !(header.text !== "sd" && p.x - header.x < fragmentTab(header).tabW)) return openEditor(header.id, p);
     const nodeEl = el?.closest<SVGElement>("[data-id]");
     if (nodeEl) return openEditor(Number(nodeEl.dataset.id), p);
     const edgeEl = el?.closest<SVGElement>("[data-eid]");
-    if (edgeEl) return openEdgeEditor(Number(edgeEl.dataset.eid));
+    if (edgeEl) return openEdgeEditor(Number(edgeEl.dataset.eid), edgePartAt(Number(edgeEl.dataset.eid), p));
     if (useDiagram.getState().tool !== "select") return;
     let id = 0;
     useDiagram.getState().change(d => {
@@ -677,6 +842,11 @@ export function tidy(): void {
         notify(msg().nothingToTidy);
         return;
     }
+    // a network diagram with a cycle cannot be layered: say so instead of claiming it was tidied
+    if (doc().nodes.some(n => n.type === "np") && buildGraph(doc()).cyclic) {
+        notify(text(diagramText).layoutCycle);
+        return;
+    }
     useDiagram.getState().change(tidyDiagram);
     requestAnimationFrame(() => fitView());
     unlock("layout");
@@ -723,7 +893,7 @@ function writePlan(id: string | null, name?: string): SavedPlan | null {
     }
     list.sort((a, b) => b.updated - a.updated);
     if (!persist(list, plan.id)) {
-        notify(msg().storageFull);
+        notify(storage.available() ? msg().storageFull : msg().storageBlocked);
         return null;
     }
     useDiagram.getState().set({ dirty: false });
@@ -740,11 +910,13 @@ export function savePlan(): void {
     useUi.getState().open({ type: "saveAs" });
 }
 
-export function savePlanAs(name: string): void {
+/** Saves the drawing as a new plan; `then` runs afterwards (e.g. opening another plan). */
+export function savePlanAs(name: string, then?: () => void): void {
     const plan = writePlan(null, name.trim() || defaultPlanName());
     if (!plan) return;
     useUi.getState().close();
     notify(msg().saved(plan.name));
+    then?.();
 }
 
 export function suggestedPlanName(): string {
@@ -760,10 +932,11 @@ function loadPlanNow(plan: SavedPlan): void {
         return notify(msg().planBroken);
     }
     setTool("select");
-    useDiagram.getState().replace(normalize(data));
+    // undo must not cross into the previous plan: Ctrl+Z, Ctrl+S would overwrite this plan with the other drawing
+    useDiagram.getState().replace(normalize(data), { history: false });
     const { plans, persist } = usePlans.getState();
     persist(plans, plan.id);
-    useDiagram.getState().set({ checkActive: false, dirty: false });
+    useDiagram.getState().set({ checkActive: false, dirty: false, undo: [], redo: [] });
     useUi.getState().close();
     requestAnimationFrame(() => fitView());
     notify(msg().opened(plan.name));
@@ -783,10 +956,10 @@ export function openPlan(plan: SavedPlan): void {
 export function saveThen(then: () => void): void {
     const plan = currentPlan();
     if (plan) {
-        writePlan(plan.id);
-        then();
+        // when saving failed (storage full), stay in the dialog instead of discarding the changes
+        if (writePlan(plan.id)) then();
     } else {
-        useUi.getState().open({ type: "saveAs" });
+        useUi.getState().open({ type: "saveAs", then });
     }
 }
 
@@ -809,20 +982,32 @@ export function deletePlan(id: string): void {
 export function importText(content: string, fileName?: string): void {
     const result = parsePlanFile(content);
     if (!result.ok) return notify(result.reason === "json" ? msg().brokenJson : msg().invalidFile);
+    // a file dropped onto unsaved work asks first, like opening a plan
+    const { dirty } = useDiagram.getState();
+    if (dirty && doc().nodes.length && useUi.getState().dialog?.type !== "discard") {
+        useUi.getState().open({ type: "discard", then: () => loadParsed(result.diagram, result.dropped, fileName) });
+        return;
+    }
+    loadParsed(result.diagram, result.dropped, fileName);
+}
+
+function loadParsed(diagram: Diagram, dropped: number, fileName?: string): void {
     setTool("select");
-    useDiagram.getState().replace(result.diagram);
-    useDiagram.getState().set({ checkActive: false });
+    useDiagram.getState().replace(diagram);
+    useDiagram.getState().set({ checkActive: false, dirty: false });
     const { plans, persist } = usePlans.getState();
     persist(plans, null);
     useUi.getState().close();
     requestAnimationFrame(() => fitView());
     const done = fileName ? msg().imported(fileName) : msg().planLoaded;
-    notify(result.dropped ? `${done} ${msg().skipped(result.dropped)}` : done);
+    notify(dropped ? `${done} ${msg().skipped(dropped)}` : done);
 }
 
 export function importFile(file: File): void {
     if (/\.(png|pdf|jpe?g)$/i.test(file.name) || /^(image\/|application\/pdf)/.test(file.type)) return notify(msg().notReopenable(file.name));
     if (!/\.json$/i.test(file.name) && file.type !== "application/json") return notify(msg().needJson);
+    // a plan file from this app is a few KB; a huge file would freeze the page while parsing and laying out
+    if (file.size > 5_000_000) return notify(msg().fileTooLarge(file.name));
     const reader = new FileReader();
     reader.onload = (): void => importText(typeof reader.result === "string" ? reader.result : "", file.name);
     reader.onerror = (): void => notify(msg().readFailed);
@@ -888,7 +1073,14 @@ export function closeRainer(): void {
 
 /** Nodes that move along when a container is moved. */
 export function carriedBy(n: DiagramNode): number[] {
+    // a component takes the ports on its border along
+    if (n.type === "component") return doc().nodes.filter(m => m.type === "port" && onBorder(m, n)).map(m => m.id);
+    const nodes = doc().nodes;
+    // a lifeline takes everything that sits on it, however far it sticks out
+    if (isLifeline(n)) return nodes.filter(m => m.id !== n.id && ownerOf(m, nodes)?.id === n.id).map(m => m.id);
+    // a fragment is only a frame: its separator lines and nested fragments follow, lifeline parts and messages stay
+    if (n.type === "fragment") return nodes.filter(m => m.id !== n.id && (m.type === "fragment" ? inside(m, n) : m.type === "operand" && fragmentOf(m, nodes)?.id === n.id)).map(m => m.id);
     const info = isUml(n.type) ? UML_TYPES[n.type] : undefined;
     if (!info?.box && !info?.carry) return [];
-    return doc().nodes.filter(m => m.id !== n.id && inside(m, n)).map(m => m.id);
+    return nodes.filter(m => m.id !== n.id && inside(m, n)).map(m => m.id);
 }

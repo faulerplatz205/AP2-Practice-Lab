@@ -1,4 +1,5 @@
 import { type ReactElement, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { useDiagram } from "../../state/diagramStore";
 import { usePlans } from "../../state/planStore";
@@ -55,26 +56,26 @@ interface Popup {
     open: boolean;
     close: () => void;
     toggle: () => void;
-    at: { left: number; top: number } | null;
+    at: { left: number; top: number; maxHeight: number } | null;
     button: RefObject<HTMLButtonElement | null>;
     list: RefObject<HTMLDivElement | null>;
 }
 
 /**
- * Open state of a toolbar popup. The list is `position: fixed` below the button, because the toolbar
- * scrolls sideways on small screens. Closes on a click outside `wrap` and on Escape; arrow keys move between menu items.
+ * Open state of a toolbar popup. The list is `position: fixed` below the button and rendered into `<body>`: inside
+ * the toolbar it would be clipped, because the toolbar scrolls sideways and its backdrop filter contains fixed children. Closes on a click outside `wrap` and on Escape; arrow keys move between menu items.
  */
 function usePopup(wrap: string, width: number): Popup {
     const [ open, setOpen ] = useState(false);
-    const [ at, setAt ] = useState<{ left: number; top: number } | null>(null);
+    const [ at, setAt ] = useState<Popup["at"]>(null);
     const button = useRef<HTMLButtonElement>(null);
     const list = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return;
-        list.current?.querySelector<HTMLButtonElement>("button")?.focus();
+        list.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
         const outside = (e: PointerEvent): void => {
-            if (!(e.target as Element).closest(wrap)) setOpen(false);
+            if (!(e.target as Element).closest(wrap) && !list.current?.contains(e.target as Node)) setOpen(false);
         };
         const keys = (e: KeyboardEvent): void => {
             const items = [ ...list.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ?? [] ];
@@ -98,7 +99,7 @@ function usePopup(wrap: string, width: number): Popup {
 
     const toggle = (): void => {
         const r = button.current?.getBoundingClientRect();
-        if (r) setAt({ left: Math.max(12, Math.min(r.right - width, innerWidth - width - 12)), top: r.bottom + 6 });
+        if (r) setAt({ left: Math.max(12, Math.min(r.right - width, innerWidth - width - 12)), top: r.bottom + 6, maxHeight: Math.max(120, innerHeight - r.bottom - 18) });
         setOpen(!open);
     };
     return { open, close: () => setOpen(false), toggle, at, button, list };
@@ -127,7 +128,7 @@ function Choice<T extends string>({ id, label, values, names, current, pick }: C
 /** „Darstellung“: language, theme, contrast and accent color in one place. */
 function ViewMenu(): ReactElement {
     const t = useText(toolbarText).view;
-    const popup = usePopup(".viewwrap", 300);
+    const popup = usePopup(".viewwrap", 304);
     const locale = useLocale(s => s.locale), setLocale = useLocale(s => s.setLocale);
     const theme = useTheme(s => s.theme), setTheme = useTheme(s => s.setTheme);
     const contrast = useTheme(s => s.contrast), setContrast = useTheme(s => s.setContrast);
@@ -137,13 +138,13 @@ function ViewMenu(): ReactElement {
             <button type="button" className="btn" id="bView" ref={popup.button} title={t.title} aria-haspopup="dialog" aria-expanded={popup.open} onClick={popup.toggle}>
                 <Icon name="view" /><span className="lb">{t.label}</span><span className="lang">{locale.toUpperCase()}</span>
             </button>
-            {popup.open && <div className="popmenu viewmenu" id="viewMenu" role="dialog" aria-label={t.label} ref={popup.list} style={popup.at ?? undefined}>
+            {popup.open && createPortal(<div className="popmenu viewmenu" id="viewMenu" role="dialog" aria-label={t.label} ref={popup.list} style={popup.at ?? undefined}>
                 <Choice id="prefLang" label={t.language} values={LOCALES} names={t.languages} current={locale} pick={setLocale} />
                 <Choice id="prefTheme" label={t.theme} values={THEMES} names={t.themes} current={theme} pick={setTheme} />
                 <Choice id="prefContrast" label={t.contrast} values={CONTRASTS} names={t.contrasts} current={contrast} pick={setContrast} />
                 <Choice id="prefAccent" label={t.accent} values={ACCENTS} names={t.accents} current={accent} pick={setAccent} />
                 <p>{t.note}</p>
-            </div>}
+            </div>, document.body)}
         </div>
     );
 }
@@ -163,7 +164,7 @@ function DownloadMenu(): ReactElement {
             <button type="button" className="btn" id="bDownload" ref={popup.button} title={t.menuTitle} aria-haspopup="menu" aria-expanded={popup.open} onClick={popup.toggle}>
                 <Icon name="download" /><span className="lb">{t.menu}</span>
             </button>
-            {popup.open && <div className="popmenu dlmenu" id="dlMenu" role="menu" aria-label={tb.downloadFormats} ref={popup.list} style={popup.at ?? undefined}>
+            {popup.open && createPortal(<div className="popmenu dlmenu" id="dlMenu" role="menu" aria-label={tb.downloadFormats} ref={popup.list} style={popup.at ?? undefined}>
                 {DOWNLOAD_FORMATS.map(f => (
                     <button key={f} type="button" role="menuitem" id={MENU_IDS[f]} onClick={() => pick(() => download(f))}>
                         <b>{t.formats[f].label}</b><small>{t.formats[f].hint}</small>
@@ -173,7 +174,7 @@ function DownloadMenu(): ReactElement {
                     <b>{t.copy.label}</b><small>{t.copy.hint}</small>
                 </button>
                 <p id="dlNote">{t.reopenNote}</p>
-            </div>}
+            </div>, document.body)}
         </div>
     );
 }

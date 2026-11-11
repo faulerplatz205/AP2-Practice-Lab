@@ -164,7 +164,7 @@ async def main():
         expected = {
             'netz': ('np', 'flow'), 'akt': ('action', 'flow'), 'uc': ('usecase', 'assoc'), 'kl': ('class', 'assoc'),
             'seq': ('lifeline', 'msg'), 'zu': ('state', 'flow'), 'obj': ('object', 'assoc'), 'komp': ('component', 'dep'),
-            'vert': ('node3d', 'dep'), 'pak': ('package', 'dep'), 'er': ('relship', 'erl'), 'rel': ('table', 'fk'), 'frei': ('rect', 'flow'),
+            'vert': ('node3d', 'assoc'), 'pak': ('package', 'dep'), 'er': ('relship', 'erl'), 'rel': ('table', 'fk'), 'frei': ('rect', 'flow'),
         }
         box = await pg.locator('#canvas').bounding_box()
         for mode, (typ, kind) in expected.items():

@@ -91,7 +91,8 @@ export function checkNormalization(tables: NormTable[], scenario: NormScenario):
     const seen = new Map<string, { table: NormTable; key: boolean }[]>();
 
     for (const table of tables) {
-        const attrs: string[] = [], keyAttrs: string[] = [], unknown: string[] = [];
+        let attrs: string[] = [];
+        const keyAttrs: string[] = [], unknown: string[] = [];
         let surrogateKey = false;
         const byBase = new Map<string, string[]>();
         for (const c of table.columns) {
@@ -120,14 +121,17 @@ export function checkNormalization(tables: NormTable[], scenario: NormScenario):
         if (unknown.length) found.push({ kind: "unknown", table, columns: unknown });
         if (!attrs.length) continue;
 
-        if (keyAttrs.length && !surrogateKey && !covers(closure(keyAttrs, deps), attrs)) {
-            const notDetermined = attrs.filter(a => !closure(keyAttrs, deps).has(a));
-            found.push({ kind: "keyTooSmall", table, columns: notDetermined });
+        const keyTooSmall = keyAttrs.length > 0 && !surrogateKey && !covers(closure(keyAttrs, deps), attrs);
+        if (keyTooSmall) {
+            const determined = closure(keyAttrs, deps);
+            found.push({ kind: "keyTooSmall", table, columns: attrs.filter(a => !determined.has(a)) });
+            // The misplaced columns are reported; the rest of the table is analysed without them
+            attrs = attrs.filter(a => determined.has(a));
         }
         const keys = candidateKeys(attrs, deps);
         // A key made of attributes that determine nothing (e.g. two names) means the columns do not belong together
         if (!keys.some(k => k.every(a => determinants.has(a)))) {
-            found.push({ kind: "noKey", table });
+            if (!keyTooSmall) found.push({ kind: "noKey", table });
             continue;
         }
         const inner = keys.find(k => k.every(a => keyAttrs.includes(a)));

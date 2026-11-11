@@ -10,7 +10,7 @@ import { dbCheckText } from "../../i18n/database";
 /** Chen: 1, n, m, c, mc, *, numbers, ranges like 0..1 and (min,max) */
 const CARDINALITY = /^(?:[1nmpc*]|mc|\d+|[0-9]+\.\.[0-9nmp*]+|\(\s*[0-9nmp*]+\s*,\s*[0-9nmp*]+\s*\))$/i;
 /** "many" ends of a table relationship */
-const MANY = /^(?:[nm*]|[0-9]+\.\.[nm*]|0\.\.\*|1\.\.\*|\(\s*[0-9]+\s*,\s*[nm*]\s*\))$/i;
+const MANY = /^(?:[nm*]|mc|nc|[0-9]+\.\.[nm*]|0\.\.\*|1\.\.\*|\(\s*[0-9]+\s*,\s*[nm*]\s*\))$/i;
 
 /** ER model in Chen notation: entities, relationships (diamonds), attributes and cardinalities. */
 export function checkEr(c: Context): void {
@@ -27,8 +27,31 @@ export function checkEr(c: Context): void {
         if (!name) c.add("error", t.entityNoName, en);
         else if (names.has(name.toLowerCase())) c.add("warn", t.entityDuplicate(name), en);
         names.add(name.toLowerCase());
-        const hasKey = touching(en).some(e => other(e, en).type === "erattr" && other(e, en).stereo === "key");
-        if (name && !hasKey) c.add("warn", t.entityNoKey(name), en, t.entityNoKeyTip);
+        const keys = touching(en).map(e => other(e, en)).filter(o => o.type === "erattr");
+        const hasKey = keys.some(o => o.stereo === "key"), partial = keys.filter(o => o.stereo === "partial");
+        if (en.stereo === "weak") {
+            // a weak entity: partial key, no key of its own, identified through a double diamond
+            if (name && hasKey) c.add("warn", t.weakOwnKey(name), en, t.weakOwnKeyTip);
+            else if (name && !partial.length) c.add("warn", t.weakNoPartialKey(name), en, t.weakNoPartialKeyTip);
+            if (name && !touching(en).some(e => other(e, en).type === "relship" && other(e, en).stereo === "ident")) c.add("error", t.weakNoIdent(name), en, t.weakNoIdentTip);
+        } else {
+            if (name && !hasKey) c.add("warn", t.entityNoKey(name), en, t.entityNoKeyTip);
+            for (const p of partial) c.add("warn", t.partialOnStrong(c.name(p)), p, t.partialOnStrongTip);
+        }
+    }
+    // knowledge base: a key of another entity written as an attribute is a foreign key, which the ER model does not have
+    const keyOf = new Map<string, DiagramNode>();
+    for (const en of entities) {
+        for (const e of touching(en)) {
+            const o = other(e, en);
+            if (o.type === "erattr" && o.stereo === "key" && columnKey(String(o.text))) keyOf.set(columnKey(String(o.text)), en);
+        }
+    }
+    for (const en of entities) {
+        for (const e of touching(en)) {
+            const o = other(e, en), owner = keyOf.get(columnKey(String(o.text)));
+            if (o.type === "erattr" && o.stereo !== "key" && o.stereo !== "partial" && owner && owner !== en) c.add("warn", t.foreignKeyAttribute(c.name(o), c.name(en)), o, t.foreignKeyAttributeTip);
+        }
     }
     for (const a of attrs) {
         const owners = touching(a).map(e => other(e, a)).filter(o => o.type === "entity" || o.type === "relship");
@@ -40,10 +63,13 @@ export function checkEr(c: Context): void {
         const name = String(r.text).trim();
         if (!name) c.add("warn", t.relshipNoName, r, t.relshipNoNameTip);
         const toEntities = touching(r).filter(e => other(e, r).type === "entity");
+        if (r.stereo === "ident" && !toEntities.some(e => other(e, r).stereo === "weak")) c.add("warn", t.identNoWeak(name || c.name(r)), r, t.identNoWeakTip);
         if (toEntities.length < 2) c.add("error", t.relshipFewEntities(name || c.name(r), toEntities.length), r, t.relshipFewEntitiesTip);
         for (const e of toEntities) {
             const label = String(e.label || "").trim();
             if (!label) c.add("error", t.cardinalityMissing(c.name(other(e, r)), name || c.name(r)), null, t.cardinalityMissingTip, [ e.id ]);
+            // knowledge base: UML ranges like 1..* are a typical mistake in a Chen diagram
+            else if (/^\d+\.\.(\d+|\*|[nm])$/i.test(label)) c.add("warn", t.cardinalityUml(label), null, t.cardinalityUmlTip, [ e.id ]);
             else if (!CARDINALITY.test(label)) c.add("warn", t.cardinalityInvalid(label), null, t.cardinalityInvalidTip, [ e.id ]);
         }
     }

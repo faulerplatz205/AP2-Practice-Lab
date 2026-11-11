@@ -70,3 +70,13 @@ describe("normalize", () => {
         for (const raw of [ null, 42, "x", [], { nodes: "no" }]) expect(normalize(raw).nodes).toEqual([]);
     });
 });
+
+describe("normalize broken files", () => {
+    it("drops a malformed exercise and fixes numeric multiplicities", () => {
+        const out = normalize({ nodes: [{ id: 1, type: "class", x: 0, y: 0 }, { id: 2, type: "class", x: 0, y: 200 }], edges: [{ id: 3, from: 1, to: 2, kind: "assoc", m1: 1, m2: 5, route: 7, y: "x" }], task: {} });
+        expect(out.task).toBeUndefined();
+        expect(out.edges[0]).toMatchObject({ m1: "1", m2: "5" });
+        expect(out.edges[0].route).toBeUndefined();
+        expect(out.edges[0].y).toBeUndefined();
+    });
+});

@@ -80,6 +80,11 @@ async def main():
             await pg.click('#bUpload')
         await (await chooser.value).set_files(out('plan.json'))
         await pg.wait_for_timeout(300)
+        # the class diagram has unsaved changes: the upload asks first
+        ok(await pg.locator('#mN').count() == 1, 'Upload over unsaved work asks first')
+        if await pg.locator('#mN').count():
+            await pg.click('#mN')
+            await pg.wait_for_timeout(200)
         st = await pg.evaluate("JSON.parse(localStorage.getItem('netzplan-zeichner-v1'))")
         ok(len([n for n in st['nodes'] if n['type'] == 'np']) == 5 and st['cfg']['mode'] == 'netz', 'Opening loads the network diagram back')
         ok('Netzplan' in await pg.inner_text('#modeBtn'), 'Diagram kind switches on open')
@@ -110,6 +115,9 @@ async def main():
         open(out('broken.json'), 'w').write(json.dumps(broken))
         await pg.locator('#file').set_input_files(out('broken.json'))
         await pg.wait_for_timeout(300)
+        if await pg.locator('#mN').count():
+            await pg.click('#mN')
+            await pg.wait_for_timeout(200)
         tt = await pg.inner_text('#toast')
         ok('übersprungen' in tt, 'Broken line is skipped and reported: ' + tt)
         st = await pg.evaluate("JSON.parse(localStorage.getItem('netzplan-zeichner-v1'))")
@@ -178,6 +186,10 @@ async def main():
         await p3.click('#dlJson')
         await p3.wait_for_timeout(300)
         ok(await p3.locator('#mJson').count() == 1, 'Artifact without capability: text to copy')
+        ok(await p3.locator('#mAllow').count() == 1, 'Artifact without capability: button to allow saving')
+        await p3.click('#mAllow')
+        await p3.wait_for_timeout(200)
+        ok('Berechtigungen' in await p3.inner_text('#toast'), 'Without a permission panel the toast names the menu')
         await p3.keyboard.press('Escape')
         await p3.click('#bDownload')
         await p3.click('#dlPng')

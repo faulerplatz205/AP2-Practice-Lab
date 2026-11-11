@@ -11,6 +11,7 @@ import { EdgePanel } from "./EdgePanel";
 import { HelpPanel } from "./HelpPanel";
 import { ShapePanel } from "./ShapePanel";
 import { UmlPanel } from "./UmlPanel";
+import { BackToCheck, Heading, NodeActions } from "./common";
 import { useLocale, useText } from "../../i18n/locale";
 import { panelText } from "../../i18n/panel";
 
@@ -18,6 +19,7 @@ import { panelText } from "../../i18n/panel";
 export function Panel(): ReactElement {
     const doc = useDiagram(s => s.doc);
     const selection = useDiagram(s => s.selection);
+    const multi = useDiagram(s => s.multi);
     const checkActive = useDiagram(s => s.checkActive);
     const panelOpen = useUi(s => s.panelOpen);
     const t = useText(panelText);
@@ -30,7 +32,9 @@ export function Panel(): ReactElement {
     const node = selection?.kind === "node" ? findNode(doc, selection.id) : undefined;
     const edge = selection?.kind === "edge" ? findEdge(doc, selection.id) : undefined;
     const from = edge && findNode(doc, edge.from), to = edge && findNode(doc, edge.to);
-    if (node) {
+    if (multi.length) {
+        content = <MultiPanel count={multi.length} />;
+    } else if (node) {
         content = isActivity(node) ? <ActivityPanel node={node} /> : isUml(node.type) ? <UmlPanel node={node} /> : <ShapePanel node={node} />;
     } else if (edge && from && to) {
         content = <EdgePanel edge={edge} from={from} to={to} />;
@@ -48,11 +52,21 @@ export function Panel(): ReactElement {
     }
     // key: rebuild the inputs when another element is selected
     return (
-        <aside className="panel" id="panel" aria-label={t.ariaLabel} key={selection ? `${selection.kind}${selection.id}` : "none"}>
+        <aside className="panel" id="panel" aria-label={t.ariaLabel} key={selection ? `${selection.kind}${selection.id}` : multi.length ? "multi" : "none"}>
             <PanelToggle open title={t.fold} />
             {content}
         </aside>
     );
+}
+
+function MultiPanel({ count }: { count: number }): ReactElement {
+    const t = useText(panelText);
+    return <>
+        <BackToCheck />
+        <Heading eyebrow={t.selection} title={t.selectedCount(count)} />
+        <p>{t.multiHint}</p>
+        <NodeActions />
+    </>;
 }
 
 function PanelToggle({ open, title }: { open: boolean; title: string }): ReactElement {

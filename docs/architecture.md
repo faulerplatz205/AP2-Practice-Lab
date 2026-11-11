@@ -34,7 +34,7 @@ Logic that does not need React lives in `src/lib` and takes a `Diagram` as argum
 
 | Store | File | Notes |
 | --- | --- | --- |
-| `useDiagram` | `state/diagramStore.ts` | drawing, undo/redo as JSON strings (max. 150), view, selection, tool, palette preset, inline editor, `checkActive`, `dirty` |
+| `useDiagram` | `state/diagramStore.ts` | drawing, undo/redo as JSON strings (max. 150), view, selection (`selection` = one node or edge, `multi` = several nodes from the selection rectangle, Shift+click or Ctrl+A), tool, palette preset, inline editor, `checkActive`, `dirty` |
 | `useUi` | `state/uiStore.ts` | workspace, right panel folded or not (`panelOpen`), the one open dialog (`Dialog` union), toast, Rainer picture |
 | `useAchievements` | `state/achievementStore.ts` | progress, popups; `unlock(id)`, `bump(counter)` |
 | `usePlans` | `state/planStore.ts` | „Meine Pläne“; `persist()` writes list and current id together and returns `false` when storage is full |

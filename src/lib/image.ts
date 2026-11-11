@@ -3,10 +3,10 @@ import { fileText } from "../i18n/files";
 
 /** Exported images have no CSS variables, so `var(--…)` is replaced by these light theme values. Add new drawing tokens here. */
 const LIGHT: Record<string, string> = {
-    bg: "#ffffff", paper: "#ffffff", panel: "#ffffff", ink: "#1b2a38", muted: "#5f6e7b", line: "#cdd6de", grid: "#e2e8ed", grid2: "#d3dce4",
-    accent: "#1d5fc4", "accent-ink": "#ffffff", "accent-soft": "#dde8f8", crit: "#cf3a2e",
-    node: "#ffffff", blank: "#f1f4f6", ok: "#2c8a4b", warn: "#b97a0c", bad: "#f8cfca",
-    f1: "#dbe9fb", f2: "#dcf1df", f3: "#fbf0c9", f4: "#f9dcd8",
+    bg: "#ffffff", paper: "#ffffff", panel: "#ffffff", ink: "#1d1d1f", muted: "#6e6e73", line: "#dcdce1", grid: "#d4d4da", grid2: "#e6e6eb",
+    accent: "#0071e3", "accent-ink": "#ffffff", "accent-soft": "#e3f0fd", crit: "#d70015",
+    node: "#ffffff", blank: "#f2f2f5", ok: "#248a3d", warn: "#b25000", bad: "#ffd9d6",
+    f1: "#dcebfd", f2: "#dcf3e2", f3: "#fdf0c8", f4: "#fddcd9",
     fui: "Arial, Helvetica, sans-serif", fmono: "Consolas, Menlo, monospace",
 };
 

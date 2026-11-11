@@ -66,8 +66,10 @@ function buildModes(t: ModeTexts): Record<DiagramMode, ModeInfo> {
         },
         seq: {
             ...m.seq,
-            items: [ item("actline", i.actor), item("lifeline", i.lifeline), item("activation", i.activation), item("fragment", i.fragment) ],
-            relations: [ "msg", "async", "reply", "anchor" ],
+            items: [ item("actline", i.actor), item("lifeline", i.lifeline), item("activation", i.activation), item("destroy", i.destroy), item("fragment", i.fragment), item("operand", i.operand),
+                item("invariant", i.invariant), item("fragment", i.sdFrame, { text: "sd", attrs: p.sdName, w: 560, h: 420 }),
+            ],
+            relations: [ "msg", "async", "reply", "create", "anchor" ],
             example: "sequence",
         },
         zu: {
@@ -75,7 +77,8 @@ function buildModes(t: ModeTexts): Record<DiagramMode, ModeInfo> {
             items: [
                 item("start", i.startState), item("state", i.state),
                 item("state", i.stateActivities, { attrs: p.stateActivities }),
-                item("decision", i.decision), item("end", i.endState),
+                item("compstate", i.compositeState), item("history", i.history), item("deephist", i.deepHistory),
+                item("decision", i.choice), item("end", i.endState),
             ],
             relations: [ "flow" ],
             example: "state",
@@ -83,28 +86,31 @@ function buildModes(t: ModeTexts): Record<DiagramMode, ModeInfo> {
         obj: {
             ...m.obj,
             items: [ item("object", i.object) ],
-            relations: [ "assoc", "dir" ],
+            relations: [ "assoc", "anchor" ],
         },
         komp: {
             ...m.komp,
-            items: [ item("component", i.component), item("iface", i.iface) ],
-            relations: [ "dep", "assoc", "realize" ],
+            items: [ item("component", i.component), item("iface", i.iface), item("port", i.port) ],
+            relations: [ "assoc", "require", "dep", "delegate", "anchor" ],
         },
         vert: {
             ...m.vert,
-            items: [ item("node3d", i.node), item("artifact", i.artifact) ],
-            relations: [ "assoc", "dep" ],
+            items: [ item("node3d", i.node), item("node3d", i.executionEnvironment, { text: p.executionEnvironment, w: 260, h: 160 }), item("artifact", i.artifact) ],
+            relations: [ "assoc", "deploy", "manifest", "dep", "anchor" ],
         },
         pak: {
             ...m.pak,
             items: [ item("package", i.package) ],
-            relations: [ "dep" ],
+            relations: [ "import", "access", "merge", "dep", "anchor" ],
         },
         er: {
             ...m.er,
             items: [
                 item("entity", i.entity), item("relship", i.relationship), item("erattr", i.attribute),
                 item("erattr", i.keyAttribute, { stereo: "key", text: p.keyAttribute }),
+                item("entity", i.weakEntity, { stereo: "weak", text: p.weakEntity }), item("relship", i.identRelationship, { stereo: "ident", text: p.identRelationship }),
+                item("erattr", i.partialKey, { stereo: "partial", text: p.partialKey }), item("erattr", i.multiAttribute, { stereo: "multi", text: p.multiAttribute }),
+                item("erattr", i.derivedAttribute, { stereo: "derived", text: p.derivedAttribute }),
             ],
             relations: [ "erl", "anchor" ],
             example: "er",

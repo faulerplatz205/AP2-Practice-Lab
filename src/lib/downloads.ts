@@ -27,7 +27,9 @@ function requestCapability<T>(name: string): Promise<T | null> {
     try {
         if (!window.claude?.use) return Promise.resolve(null);
         const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 10000));
-        return Promise.race([ window.claude.use(name) as Promise<T | null>, timeout ]);
+        // a rejected request (e.g. not granted) is treated like no permission, so the fallback still appears
+        const request = Promise.resolve().then(() => window.claude!.use(name) as Promise<T | null>).catch(() => null);
+        return Promise.race([ request, timeout ]);
     } catch {
         return Promise.resolve(null);
     }
@@ -40,8 +42,9 @@ export function getDownloads(): Promise<DownloadsCapability | null> {
     if (cached) return Promise.resolve(cached);
     pending ??= requestCapability<DownloadsCapability>("downloads").then(d => {
         cached = d;
-        pending = null;
         return d;
+    }).finally(() => {
+        pending = null;
     });
     return pending;
 }

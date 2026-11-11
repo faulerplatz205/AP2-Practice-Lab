@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import type { DiagramNode } from "../../types/diagram";
-import { classLayout } from "../../lib/uml/size";
+import { classLayout, fragmentTab } from "../../lib/uml/size";
 import { lines } from "../../lib/uml/types";
 import { MultilineText, TextLines, Underline } from "./SvgText";
 import { ErShape, SheetShape, TableShape } from "./DbShape";
@@ -22,6 +22,36 @@ function Label({ x, y, children, size = 13, weight = "600", anchor = "middle", m
     </>;
 }
 
+/**
+ * Outline of a container. Only its border and its title strip (`title` px high) take clicks, so the elements and the
+ * empty space inside stay reachable; while an arrow is drawn the whole area is a target (see `.fr` in custom.css).
+ */
+function Frame({ w, h, y = 0, rx, title }: { w: number; h: number; y?: number; rx?: number; title?: number }): ReactElement {
+    return <>
+        <rect className="fr" y={y} width={w} height={h} rx={rx} fill="transparent" {...line} />
+        <rect className="frh" y={y} width={w} height={h} rx={rx} fill="none" stroke="transparent" strokeWidth="12" />
+        {title && <rect y={y} width={w} height={title} rx={rx} fill="transparent" />}
+    </>;
+}
+
+/** Guard of an interaction operand on a paper backing, so lifelines running behind it do not cross the text. */
+function GuardLabel({ x, y, children }: { x: number; y: number; children: string }): ReactElement {
+    const width = String(children).length * 7 + 8;
+    return <>
+        <rect x={x - 4} y={y - 13} width={width} height={18} rx="3" fill="var(--paper)" opacity="0.92" />
+        <Label x={x} y={y} size={12.5} weight="400" anchor="start">{children}</Label>
+    </>;
+}
+
+/**
+ * Guard of the first operand of a combined fragment. The fragment lies behind the lifelines, so the canvas draws
+ * its guard in front of them in a separate pass (`World`).
+ */
+export function FragmentGuard({ node: n }: { node: DiagramNode }): ReactElement | null {
+    if (n.text === "sd" || !n.attrs) return null;
+    return <g transform={`translate(${n.x} ${n.y})`} pointerEvents="none"><GuardLabel x={fragmentTab(n).tabW + 8} y={17}>{n.attrs}</GuardLabel></g>;
+}
+
 /** Coordinates are relative to the element: (0, 0) is its top left corner. */
 export function UmlShape({ node: n, fill }: Props): ReactElement | null {
     const { w, h } = n;
@@ -36,8 +66,8 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
                 <path d={`M0 ${L.headerH}H${w}${L.opsH ? `M0 ${L.headerH + L.attrsH}H${w}` : ""}`} {...line} fill="none" />
                 {stereo && <Label x={w / 2} y={15} size={11} weight="400" muted>{stereo}</Label>}
                 <Label x={w / 2} y={stereo ? 33 : 20} size={14.5} weight="700" italic={n.stereo === "abstract"}>{n.text}</Label>
-                <TextLines rows={L.attrs} x={8} y={L.headerH + 18} />
-                {L.opsH > 0 && <TextLines rows={L.ops} x={8} y={L.headerH + L.attrsH + 18} />}
+                <TextLines rows={L.attrs} x={8} y={L.headerH + 18} members />
+                {L.opsH > 0 && <TextLines rows={L.ops} x={8} y={L.headerH + L.attrsH + 18} members />}
             </>;
         }
         case "object": {
@@ -63,7 +93,7 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
         case "usecase":
             return <><ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />{centered(13.5, w * 0.74)}</>;
         case "boundary":
-            return <><rect width={w} height={h} fill="transparent" {...line} /><Label x={w / 2} y={22} size={15} weight="700">{n.text}</Label></>;
+            return <><Frame w={w} h={h} title={32} /><Label x={w / 2} y={22} size={15} weight="700">{n.text}</Label></>;
         case "start":
             return <circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2} fill={STROKE} />;
         case "end": {
@@ -90,7 +120,21 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
         case "objnode":
             return <><rect width={w} height={h} fill={fill} {...line} />{centered(13.5)}</>;
         case "lane":
-            return <><rect width={w} height={h} fill="transparent" {...line} /><path d={`M0 34H${w}`} {...line} /><Label x={w / 2} y={23} size={14.5} weight="700">{n.text}</Label></>;
+            return <><Frame w={w} h={h} title={34} /><path d={`M0 34H${w}`} {...line} /><Label x={w / 2} y={23} size={14.5} weight="700">{n.text}</Label></>;
+        case "compstate":
+            return <>
+                <Frame w={w} h={h} rx={14} title={30} />
+                <path d={`M0 30H${w}`} {...line} />
+                <Label x={14} y={20} size={14} anchor="start">{n.text}</Label>
+            </>;
+        case "history":
+        case "deephist": {
+            const r = Math.min(w, h) / 2 - 1;
+            return <>
+                <circle cx={w / 2} cy={h / 2} r={r} fill="var(--node)" {...line} />
+                <Label x={w / 2} y={h / 2 + 5} size={13}>{n.type === "history" ? "H" : "H*"}</Label>
+            </>;
+        }
         case "state": {
             const acts = n.attrs ? lines(n.attrs) : [];
             return <>
@@ -124,15 +168,27 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
         }
         case "activation":
             return <rect width={w} height={h} fill="var(--node)" {...line} />;
-        case "fragment": {
-            const tabW = Math.max(46, String(n.text).length * 8 + 22);
+        case "destroy":
             return <>
-                <rect width={w} height={h} fill="transparent" {...line} />
+                <rect width={w} height={h} fill="transparent" />
+                <path d={`M2 2L${w - 2} ${h - 2}M${w - 2} 2L2 ${h - 2}`} stroke={STROKE} strokeWidth="2.4" strokeLinecap="round" />
+            </>;
+        case "operand":
+            return <>
+                <path d={`M0 0.5H${w}`} stroke="transparent" strokeWidth="12" />
+                <path d={`M0 0.5H${w}`} stroke={STROKE} strokeWidth="1.3" strokeDasharray="7 5" />
+                <GuardLabel x={8} y={17}>{n.text}</GuardLabel>
+            </>;
+        case "fragment": {
+            const { tab, tabW } = fragmentTab(n);
+            return <>
+                <Frame w={w} h={h} />
                 <path d={`M0 0H${tabW}V14L${tabW - 8} 22H0Z`} fill="var(--node)" {...line} />
-                <Label x={7} y={16} size={12.5} weight="700" anchor="start" mono>{n.text}</Label>
-                {n.attrs && <Label x={tabW + 10} y={17} size={12.5} weight="400" anchor="start">{n.attrs}</Label>}
+                <Label x={7} y={16} size={12.5} weight="700" anchor="start" mono={n.text !== "sd"}>{tab}</Label>
             </>;
         }
+        case "invariant":
+            return <><rect width={w} height={h} rx={Math.min(12, h / 2)} fill={fill} {...line} />{centered(12.5)}</>;
         case "component":
             return <>
                 <rect width={w} height={h} fill={fill} {...line} />
@@ -142,6 +198,8 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
                 <Label x={w / 2} y={h / 2 - 6} size={11} weight="400" muted>«component»</Label>
                 <Label x={w / 2} y={h / 2 + 12} size={14}>{n.text}</Label>
             </>;
+        case "port":
+            return <rect width={w} height={h} fill="var(--paper)" {...line} />;
         case "iface":
             return <><circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2} fill={fill} {...line} /><Label x={w / 2} y={h + 16} size={12.5} weight="400">{n.text}</Label></>;
         case "node3d": {
@@ -149,7 +207,7 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
             return <>
                 <path d={`M0 ${d}L${d} 0H${w}V${h - d}L${w - d} ${h}`} fill="var(--blank)" {...line} strokeLinejoin="round" />
                 <path d={`M${w - d} ${d}L${w} 0`} {...line} />
-                <rect y={d} width={w - d} height={h - d} fill="transparent" {...line} />
+                <Frame y={d} w={w - d} h={h - d} title={lines(n.text).length * 17 + 12} />
                 <TextLines rows={lines(n.text)} x={(w - d) / 2} y={d + 20} size={13.5} anchor="middle" weight="600" />
             </>;
         }
@@ -164,7 +222,7 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
             const tabW = Math.min(w * 0.5, Math.max(70, String(n.text).length * 8 + 20));
             return <>
                 <path d={`M0 0H${tabW}V20H0Z`} fill="var(--blank)" {...line} />
-                <rect y="20" width={w} height={h - 20} fill="transparent" {...line} />
+                <Frame y={20} w={w} h={h - 20} />
                 <Label x={8} y={15} weight="700" anchor="start">{n.text}</Label>
             </>;
         }

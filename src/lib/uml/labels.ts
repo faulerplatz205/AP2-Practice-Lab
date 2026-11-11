@@ -3,6 +3,7 @@ import { boundingBox, type Vec } from "../geometry";
 import { diagramBox } from "../diagram";
 import { erLabelSpots, type LabelSpot } from "./detour";
 import { edgeGeometry, pathPoints, routeContext, type EdgeGeometry, type RouteContext } from "./routing";
+import { headHeight, isLifeline } from "./sequence";
 import { RELATIONS } from "./types";
 
 /** [left, top, right, bottom] */
@@ -20,6 +21,9 @@ export function edgeLabel(e: DiagramEdge): string {
     return [ RELATIONS[e.kind ?? "flow"]?.tag, e.label ].filter(Boolean).join(" ");
 }
 
+/** Fractions of the line length tried for a label when the usual spots are taken: from the middle outwards. */
+const FINE = [ 0.5, 0.45, 0.55, 0.35, 0.65, 0.25, 0.75, 0.2, 0.8, 0.12, 0.88, 0.06, 0.94 ];
+
 /** Containers do not block labels. */
 const BACKGROUND = new Set([ "boundary", "lane", "fragment", "package", "node3d" ]);
 
@@ -35,6 +39,22 @@ function boxOf(c: LabelSpot, width: number): Box {
 }
 
 const overlap = (p: Box, q: Box): boolean => p[0] < q[2] && q[0] < p[2] && p[1] < q[3] && q[1] < p[3];
+
+/** Length of the part of the segment that runs through the inside of the box, 0 when it stays outside (Liang-Barsky clipping). */
+function crosses(s: Segment, box: Box): number {
+    const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1];
+    let t0 = 0, t1 = 1;
+    for (const [ p, q ] of [[ -dx, s.a[0] - box[0] ], [ dx, box[2] - s.a[0] ], [ -dy, s.a[1] - box[1] ], [ dy, box[3] - s.a[1] ]]) {
+        if (p === 0) {
+            if (q <= 0) return 0;
+            continue;
+        }
+        const r = q / p;
+        if (p < 0) t0 = Math.max(t0, r);
+        else t1 = Math.min(t1, r);
+    }
+    return t0 < t1 ? (t1 - t0) * Math.hypot(dx, dy) : 0;
+}
 
 /** Point at fraction `f` of the polyline length and whether that part runs vertically. */
 function along(points: Vec[], f: number): { p: Vec; vertical: boolean } | null {
@@ -61,27 +81,60 @@ export function placeLabels(d: Diagram, ctx: RouteContext = routeContext(d)): Ma
         geometry.set(e.id, g);
         for (let k = 1; k < points.length; k++) segments.push({ edge: e.id, a: points[k - 1], b: points[k] });
     }
-    const shapes: Box[] = d.nodes.filter(n => !BACKGROUND.has(n.type)).map(n => [ n.x, n.y, n.x + n.w, n.y + n.h ]);
+    // of a lifeline only the head is in the way; message labels sit between the dashed lines
+    const shapes: Box[] = d.nodes.filter(n => !BACKGROUND.has(n.type))
+        .map(n => [ n.x, n.y, n.x + n.w, n.y + (isLifeline(n) ? headHeight(n) : n.h) ]);
+    // a label may sit inside a package or node, but not on its border
+    for (const n of d.nodes.filter(x => x.type === "package" || x.type === "node3d" || x.type === "compstate")) {
+        shapes.push([ n.x - 3, n.y, n.x + 3, n.y + n.h ], [ n.x + n.w - 3, n.y, n.x + n.w + 3, n.y + n.h ], [ n.x, n.y - 3, n.x + n.w, n.y + 3 ], [ n.x, n.y + n.h - 3, n.x + n.w, n.y + n.h + 3 ]);
+    }
     const placed = new Map<string, LabelPlacement>();
 
-    const blocked = (box: Box, edge: number, key: string, ignoreLines: boolean): boolean => {
+    /** Whether the box lies on a shape or on a label placed before. */
+    const covered = (box: Box, key: string): boolean => {
         for (const [ k, l ] of placed) if (k !== key && overlap(box, l.box)) return true;
-        if (!ignoreLines) {
-            for (const s of segments) {
-                if (s.edge === edge || Math.max(s.a[0], s.b[0]) < box[0] || Math.min(s.a[0], s.b[0]) > box[2] || Math.max(s.a[1], s.b[1]) < box[1] || Math.min(s.a[1], s.b[1]) > box[3]) continue;
-                for (let k = 0; k <= 24; k++) {
-                    const x = s.a[0] + (s.b[0] - s.a[0]) * k / 24, y = s.a[1] + (s.b[1] - s.a[1]) * k / 24;
-                    if (x > box[0] && x < box[2] && y > box[1] && y < box[3]) return true;
-                }
-            }
-        }
         return shapes.some(n => box[0] < n[2] - 2 && n[0] + 2 < box[2] && box[1] < n[3] - 2 && n[1] + 2 < box[3]);
     };
-    /** First spot that is free, else the first one free of shapes and labels, else `fallback`. */
+    const blocked = (box: Box, edge: number, key: string): boolean => {
+        // labels keep a little distance, so each one clearly belongs to its own line
+        const roomy: Box = [ box[0] - 6, box[1] - 6, box[2] + 6, box[3] + 6 ];
+        for (const [ k, l ] of placed) if (k !== key && overlap(roomy, l.box)) return true;
+        // the own line may touch the edge of the text, but not run through it
+        const inner: Box = [ box[0] + 3, box[1] + 3, box[2] - 3, box[3] - 3 ];
+        for (const s of segments) if (crosses(s, s.edge === edge ? inner : box)) return true;
+        // descenders and wide letters reach a little beyond the estimated box
+        return shapes.some(n => box[0] < n[2] + 2 && n[0] - 2 < box[2] && box[1] < n[3] + 2 && n[1] - 2 < box[3]);
+    };
+    /**
+     * How badly a spot is covered: another label weighs most, then a shape, then every line running through it. A line
+     * along the text (struck through) weighs much more than one that only crosses it.
+     */
+    const penalty = (box: Box, edge: number, key: string): number => {
+        let sum = 0;
+        for (const [ k, l ] of placed) if (k !== key && overlap(box, l.box)) sum += 300;
+        for (const n of shapes) if (box[0] < n[2] - 2 && n[0] + 2 < box[2] && box[1] < n[3] - 2 && n[1] + 2 < box[3]) sum += 150;
+        const hit = new Map<number, number>();
+        const inner: Box = [ box[0] + 3, box[1] + 3, box[2] - 3, box[3] - 3 ];
+        for (const s of segments) {
+            const length = crosses(s, s.edge === edge ? inner : box);
+            if (length) hit.set(s.edge, Math.max(hit.get(s.edge) ?? 0, length));
+        }
+        // the own line through the text is as bad as a shape below it
+        for (const [ id, length ] of hit) sum += id === edge ? 150 : 10 + Math.min(60, length / 3);
+        return sum;
+    };
+    /** First spot that is free, else the least covered one: of those free of shapes and labels, else of all of them. */
     const place = (key: string, edge: number, width: number, spots: LabelSpot[], relaxed: LabelSpot[], fallback: LabelSpot): void => {
-        const pick = spots.find(c => !blocked(boxOf(c, width), edge, key, false))
-            ?? relaxed.find(c => !blocked(boxOf(c, width), edge, key, true))
-            ?? fallback;
+        let pick = spots.find(c => !blocked(boxOf(c, width), edge, key));
+        if (!pick) {
+            const all = [ fallback, ...spots, ...relaxed ], open = all.filter(c => !covered(boxOf(c, width), key));
+            let best = Infinity;
+            for (const c of open.length ? open : all) {
+                const cost = penalty(boxOf(c, width), edge, key);
+                if (cost < best) [ pick, best ] = [ c, cost ];
+            }
+        }
+        pick ??= fallback;
         placed.set(key, { ...pick, box: boxOf(pick, width) });
     };
 
@@ -101,11 +154,11 @@ export function placeLabels(d: Diagram, ctx: RouteContext = routeContext(d)): Ma
                     if (!at) return [];
                     const [ x, y ] = at.p;
                     const beside: LabelSpot[] = [{ x: x + 8, y: y + 4, a: "start" }, { x: x - 8, y: y + 4, a: "end" }];
-                    const over: LabelSpot[] = [{ x, y: y - 7, a: "middle" }, { x, y: y + 16, a: "middle" }];
+                    const over: LabelSpot[] = [{ x, y: y - 7, a: "middle" }, { x, y: y + 16, a: "middle" }, { x: x + 6, y: y - 7, a: "start" }, { x: x - 6, y: y - 7, a: "end" }];
                     return sideFirst ? (at.vertical ? beside : over) : [ ...over, ...beside ];
                 });
                 place(labelKey(e, "label"), e.id, text.length * 7.4 + 6,
-                    [ spot, ...nearby([ 0.5, 0.4, 0.6, 0.3, 0.7, 0.22, 0.78, 0.15, 0.85, 0.1, 0.9 ], true) ],
+                    [ spot, ...nearby([ 0.5, 0.4, 0.6, 0.3, 0.7, 0.22, 0.78, 0.15, 0.85, 0.1, 0.9 ], true), ...nearby(FINE, false) ],
                     [ spot, ...nearby([ 0.5, 0.3, 0.7, 0.15, 0.85 ], false) ], spot);
             }
         }

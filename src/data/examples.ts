@@ -55,10 +55,10 @@ function buildExamples(t: ExampleTexts): Record<ExampleKey, Example> {
                 [ "actline", 100, 170, { text: s.customer, h: 300 }], [ "lifeline", 320, 170, { text: s.shop, h: 300 }], [ "lifeline", 540, 170, { text: s.warehouse, h: 300 }],
                 [ "activation", 320, 0, { h: 170 }], [ "activation", 540, 0, { h: 100 }],
             ],
-            edges: [[ 0, 3, s.order, "msg", { y: 80 }], [ 3, 4, s.checkStock, "msg", { y: 110 }], [ 4, 3, s.available, "reply", { y: 180 }], [ 3, 0, s.confirmation, "reply", { y: 240 }]],
+            edges: [[ 0, 1, s.order, "msg", { y: 90 }], [ 1, 2, s.checkStock, "msg", { y: 140 }], [ 2, 1, s.available, "reply", { y: 190 }], [ 1, 0, s.confirmation, "reply", { y: 240 }]],
             adjust: ([ , shop, warehouse, a1, a2 ]): void => {
-                Object.assign(a1, { x: shop.x + shop.w / 2 - 7, y: shop.y + 60 });
-                Object.assign(a2, { x: warehouse.x + warehouse.w / 2 - 7, y: warehouse.y + 100 });
+                Object.assign(a1, { x: shop.x + shop.w / 2 - 7, y: shop.y + 76, h: 178 });
+                Object.assign(a2, { x: warehouse.x + warehouse.w / 2 - 7, y: warehouse.y + 126, h: 78 });
             },
         },
         state: {

@@ -159,3 +159,19 @@ describe("IPv6 answers", () => {
         accepts(f("ipv6Any", "fe80::21a:2bff:fe3c:4d5e"), "FE80:0:0:0:21A:2BFF:FE3C:4D5E", "fe80:0000::021a:2bff:fe3c:4d5e");
     });
 });
+
+describe("review fixes", () => {
+    it("reads separators in integers only as thousands groups", () => {
+        expect(parseInteger("1.024")).toBe(1024n);
+        expect(parseInteger("1 024")).toBe(1024n);
+        expect(parseInteger("62 Hosts")).toBe(62n);
+        expect(parseInteger("6.2")).toBeNull();
+        expect(parseInteger("62,0")).toBeNull();
+        expect(parseInteger("2^6-2")).toBe(62n);
+    });
+    it("accepts a network address with its dotted mask", () => {
+        const field = f("ipv4", "192.168.1.0", { prefix: 24 });
+        accepts(field, "192.168.1.0 255.255.255.0");
+        expect(tip(field, "192.168.1.0 255.255.0.0")).toBe("prefixSuffix");
+    });
+});

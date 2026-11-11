@@ -104,7 +104,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li><b>Verbindungen:</b> links unter „Verbindungen“ oder oben links auf der Fläche wählst du die Art, z. B. Vererbung, Komposition oder «include». „Automatisch“ nimmt die passende.</li>
                 <li><b>Klassen:</b> Doppelklick in Name, Attribute oder Methoden. Mit <kbd>Enter</kbd> neue Zeile, mit <kbd>Strg+Enter</kbd> fertig.</li>
                 <li><b>Sequenz:</b> Nachrichten zwischen Lebenslinien setzen, dann nach oben oder unten ziehen.</li>
-                <li><b>Prüfen</b> kontrolliert auch UML: fehlender Start- oder Endknoten, Entscheidung ohne Bedingungen, falsche Balken, Use-Case ohne Akteur, Sichtbarkeit und Datentypen in Klassen und mehr.</li>
+                <li><b>Prüfen</b> kontrolliert auch UML: fehlender Start- oder Endknoten, Entscheidung ohne Bedingungen, falsche Gabelungen und Vereinigungen, Use-Case ohne Akteur, Sichtbarkeit und Datentypen in Klassen, benötigte Schnittstellen ohne Anbieter, Kommunikationspfade ohne Protokoll, zyklische Paketabhängigkeiten und mehr.</li>
             </ul>
             <h4>Datenbanken: ER-Modell und Tabellenmodell</h4>
             <ul>
@@ -166,7 +166,9 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <kbd>Strg+Z / Y</kbd><span>Rückgängig / Wiederholen</span>
                 <kbd>Strg+S / O</kbd><span>Speichern / Meine Pläne</span>
                 <kbd>Mausrad</kbd><span>Zoomen</span>
-                <kbd>Leertaste + Ziehen</kbd><span>Fläche verschieben (oder leere Fläche ziehen)</span>
+                <kbd>Rahmen aufziehen</kbd><span>mehrere Elemente auswählen (auf leerer Fläche ziehen), Umschalt+Klick nimmt eines dazu</span>
+                <kbd>Strg+A</kbd><span>alles auswählen</span>
+                <kbd>Leertaste + Ziehen</kbd><span>Fläche verschieben (auch mittlere oder rechte Maustaste, am Touchscreen ein Finger)</span>
             </div>
         </>,
     },
@@ -266,7 +268,7 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <li><b>Connections:</b> choose the kind on the left under “Connections” or at the top left of the canvas, e.g. inheritance, composition or «include». “Automatic” picks the right one.</li>
                 <li><b>Classes:</b> double-click the name, attributes or operations. <kbd>Enter</kbd> starts a new line, <kbd>Ctrl+Enter</kbd> finishes.</li>
                 <li><b>Sequence:</b> draw messages between lifelines, then drag them up or down.</li>
-                <li><b>Check</b> also checks UML: missing initial or final node, decisions without conditions, wrong bars, use cases without an actor, visibility and data types in classes, and more.</li>
+                <li><b>Check</b> also checks UML: missing initial or final node, decisions without conditions, wrong forks and joins, use cases without an actor, visibility and data types in classes, required interfaces without provider, communication paths without protocol, cyclic package dependencies, and more.</li>
             </ul>
             <h4>Databases: ER model and table model</h4>
             <ul>
@@ -328,7 +330,9 @@ export const GUIDE: Dictionary<GuideChapter[]> = defineText<GuideChapter[]>([
                 <kbd>Ctrl+Z / Y</kbd><span>Undo / redo</span>
                 <kbd>Ctrl+S / O</kbd><span>Save / my plans</span>
                 <kbd>Mouse wheel</kbd><span>Zoom</span>
-                <kbd>Space + drag</kbd><span>pan the canvas (or drag an empty area)</span>
+                <kbd>Drag a frame</kbd><span>select several elements (drag on an empty area), Shift+click adds one</span>
+                <kbd>Ctrl+A</kbd><span>select everything</span>
+                <kbd>Space + drag</kbd><span>pan the canvas (also middle or right mouse button, one finger on a touch screen)</span>
             </div>
         </>,
     },

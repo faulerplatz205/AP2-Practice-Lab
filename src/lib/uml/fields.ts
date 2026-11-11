@@ -1,5 +1,5 @@
 import type { DiagramNode, Point } from "../../types/diagram";
-import { classLayout } from "./size";
+import { classLayout, fragmentTab } from "./size";
 import { TABLE_HEADER, sheetLayout } from "../db/columns";
 import { UML_TYPES, isUml } from "./types";
 
@@ -13,6 +13,8 @@ export interface EditableField {
     h: number;
     /** Multi-line: Enter adds a line, Ctrl+Enter finishes */
     multi?: boolean;
+    /** The text starts at the left edge of the field instead of being centred */
+    left?: boolean;
 }
 
 /** Which field is under the click point `p` (world coordinates)? Without `p`: the main field. */
@@ -31,8 +33,14 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
             if (n.type === "state" && !n.attrs) return { key: "text", y: 0, h: n.h };
             if (ly < 32) return { key: "text", y: 0, h: 32 };
             return { key: "attrs", y: 30, h: Math.max(n.h - 30, 40), multi: true };
-        case "fragment":
-            return ly < 24 && p && p.x - n.x < 90 ? { key: "text", y: 0, h: 24 } : { key: "attrs", y: 0, h: 24 };
+        case "fragment": {
+            const { tabW } = fragmentTab(n), sd = n.text === "sd";
+            if (!sd && ly < 24 && p && p.x - n.x < tabW) return { key: "text", y: 0, h: 24 };
+            // the guard of the first operand stands right of the operator tab; the name of an sd frame inside the tab
+            return sd ? { key: "attrs", x: 24, y: 0, w: Math.max(120, tabW - 24), h: 24, left: true } : { key: "attrs", x: tabW + 4, y: 2, w: Math.max(110, n.w - tabW - 8), h: 24, left: true };
+        }
+        case "operand":
+            return { key: "text", x: 2, y: 2, w: Math.max(110, n.w - 4), h: 24, left: true };
         case "lifeline":
             return { key: "text", y: 0, h: 40 };
         case "table":
@@ -50,6 +58,7 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
         case "boundary":
         case "lane":
         case "package":
+        case "compstate":
             return { key: "text", y: 0, h: 32 };
         default:
             return { key: "text", y: 0, h: n.h, multi: n.type === "note" || n.type === "node3d" };

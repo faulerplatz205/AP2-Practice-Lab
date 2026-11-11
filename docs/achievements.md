@@ -20,7 +20,7 @@ Code: `src/lib/achievements.ts` (list, levels), `src/state/achievementStore.ts` 
 | `tasks5` | Dauerlerner | 5 network diagram exercises checked correctly (each counts once, „Berechnen“ allowed) | 150 | `tasks` = 5 | |
 | `uml_first` | UML-Einsteiger | place the first UML, ER or table element (also by example, „+“ or „Danach anhängen“) | 10 | | |
 | `act_ok` | Ablauf-Profi | correct check of a drawing that contains an activity diagram | 60 | | |
-| `uml_ok` | Richtiges UML-Diagramm | UML diagram, ER or table model without errors and hints | 50 | | |
+| `uml_ok` | Fehlerfrei modelliert | UML diagram, ER or table model without errors and hints | 50 | | |
 | `uml_kinds` | Diagramm-Sammler | 4 different kinds checked correctly (UML kinds, `er`, `rel`; not `netz`) | 120 | `kinds` = 4 | |
 | `quick` | Schnellzeichner | append 10 elements: „+“ on the node bar, dragging an arrow into empty space, „Danach anhängen“/„Zweig hinzufügen“, „Attribut anhängen“ | 20 | `quick` = 10 | |
 | `unbeatable` | Ihr werdet mich niemals besiegen | 5 different diagrams in a row without a mistake | 100 | `streak` = 5 | |

@@ -4,7 +4,7 @@ import { lines } from "../uml/types";
 /**
  * One line of a table: `PK kundenNr INT`, `FK ortId`, `PK FK bestellNr INT`, `name VARCHAR(50)`. The keys may also
  * be written after the name (`kundenNr INT (PK)`, `kundenNr INT PK`), in SQL (`PRIMARY KEY`, `REFERENCES Kunde`) or
- * with the arrow of German textbooks for a foreign key (`↑kundenNr`).
+ * with the arrow or hash of German textbooks for a foreign key (`↑kundenNr`, `#kundenNr`).
  */
 export interface Column {
     pk: boolean;
@@ -22,7 +22,7 @@ export function parseColumn(line: string): Column {
     const m = MARKERS.exec(line);
     let markers = (m?.[1] ?? "").toUpperCase(), ref: string | undefined;
     let rest = line.slice(m ? m[0].length : 0).trim();
-    if (rest.startsWith("↑")) {
+    if (rest.startsWith("↑") || rest.startsWith("#")) {
         markers += "FK";
         rest = rest.slice(1).trim();
     }

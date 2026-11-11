@@ -9,6 +9,11 @@ export function num(v: unknown): number {
     return parseFloat(String(v).replace(",", "."));
 }
 
+/** Like `num`, but only for a plain number (`3`, `2,5`, `-1.5`): `5abc`, `3 Tage`, `1e400` or `1,5,3` give NaN. */
+export function strictNum(v: unknown): number {
+    return /^\s*-?\d+(?:[.,]\d+)?\s*$/.test(String(v)) ? num(v) : NaN;
+}
+
 /** Writes a number with at most two decimals and a decimal comma. */
 export function fmt(v: number): string {
     return String(Math.round(v * 100) / 100).replace(".", ",");

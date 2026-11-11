@@ -9,6 +9,18 @@ const GAP_X = 110, GAP_Y = 40, PAD = 50, TOP = 60, ACTOR_DISTANCE = 120;
  * generalisation from child to parent), ordered to keep lines short. Actors stand left and right outside the boundary.
  */
 export function tidyUseCase(d: Diagram): DiagramNode[] | null {
+    // ties in the ordering depend on the positions before, so repeat until the layout no longer changes (tidying twice changes nothing)
+    let before = "", group: DiagramNode[] | null = null;
+    for (let round = 0; round < 4; round++) {
+        group = tidyUseCaseOnce(d);
+        const now = JSON.stringify(group?.map(n => [ n.x, n.y, n.w, n.h ]));
+        if (now === before) break;
+        before = now;
+    }
+    return group;
+}
+
+function tidyUseCaseOnce(d: Diagram): DiagramNode[] | null {
     const actors = d.nodes.filter(n => n.type === "actor"), cases = d.nodes.filter(n => n.type === "usecase");
     if (!cases.length && !actors.length) return null;
     const boundary = d.nodes.find(n => n.type === "boundary");
@@ -65,9 +77,43 @@ export function tidyUseCase(d: Diagram): DiagramNode[] | null {
             last = a.y + a.h;
         }
     };
-    stackActors(left, x0 - ACTOR_DISTANCE);
-    stackActors(right, x0 + (boundary ? boundary.w : bw) + ACTOR_DISTANCE);
+    const place = (): void => {
+        stackActors(left, x0 - ACTOR_DISTANCE);
+        stackActors(right, x0 + (boundary ? boundary.w : bw) + ACTOR_DISTANCE);
+    };
+    place();
+    // an association is a straight line (knowledge base): a use case standing in its way moves down with the rest of its column
+    for (let round = 0; round < 8; round++) {
+        const hit = blocking(actors, cases, edges, byId);
+        if (!hit) break;
+        const col = columns.find(c => c.includes(hit))!;
+        const dy = snap(hit.h + GAP_Y);
+        for (const u of col.filter(u => u.y >= hit.y)) u.y += dy;
+        if (boundary) boundary.h = Math.max(boundary.h, snap(Math.max(...cases.map(u => u.y + u.h)) + PAD - boundary.y));
+        place();
+    }
     return [ ...cases, ...actors, ...(boundary ? [ boundary ] : []) ];
+}
+
+const center = (n: DiagramNode): [number, number] => [ n.x + n.w / 2, n.y + n.h / 2 ];
+
+/** The first use case that the straight line of an actor's association runs through, if any. */
+function blocking(actors: DiagramNode[], cases: DiagramNode[], edges: Diagram["edges"], byId: Map<number, DiagramNode>): DiagramNode | undefined {
+    for (const e of edges) {
+        const a = byId.get(e.from)!, b = byId.get(e.to)!;
+        const actor = actors.includes(a) ? a : actors.includes(b) ? b : null, uc = actor === a ? b : a;
+        if (!actor || uc.type !== "usecase") continue;
+        const [ px, py ] = center(actor), [ qx, qy ] = center(uc);
+        for (const n of cases) {
+            if (n === uc) continue;
+            const [ cx, cy ] = center(n), rx = n.w / 2 + 6, ry = n.h / 2 + 6;
+            for (let t = 0; t <= 1; t += 0.02) {
+                const x = px + (qx - px) * t, y = py + (qy - py) * t;
+                if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1) return n;
+            }
+        }
+    }
+    return undefined;
 }
 
 /** Column per dependency level; independent use cases of right actors get an extra column on the right. */

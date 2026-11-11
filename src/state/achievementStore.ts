@@ -41,9 +41,12 @@ const LEGACY_KIND_NAMES: Record<string, string> = {
 };
 
 function load(): Progress {
-    const d = storage.read<Partial<StoredProgress>>(KEYS.achievements);
-    const checkedKinds = [ ...new Set((d?.k ?? []).map(k => LEGACY_KIND_NAMES[k] ?? k)) ];
-    return { unlocked: d?.u ?? {}, counters: d?.c ?? {}, guideRead: d?.g ?? [], checkedKinds, lastCorrect: d?.lastOk ?? null };
+    const raw = storage.read<unknown>(KEYS.achievements);
+    const d: Partial<StoredProgress> = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const plain = (v: unknown): v is Record<string, number> => !!v && typeof v === "object" && !Array.isArray(v);
+    const strings = (v: unknown): string[] => Array.isArray(v) ? v.filter(x => typeof x === "string") : [];
+    const checkedKinds = [ ...new Set(strings(d.k).map(k => LEGACY_KIND_NAMES[k] ?? k)) ];
+    return { unlocked: plain(d.u) ? d.u : {}, counters: plain(d.c) ? d.c : {}, guideRead: Array.isArray(d.g) ? d.g.filter(x => typeof x === "number") : [], checkedKinds, lastCorrect: typeof d.lastOk === "string" ? d.lastOk : null };
 }
 
 function save(p: Progress): void {

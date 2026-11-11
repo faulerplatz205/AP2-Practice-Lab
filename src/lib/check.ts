@@ -1,13 +1,15 @@
 import type { CheckResult, Issue } from "../types/check";
 import type { Diagram } from "../types/diagram";
 import { TIME_KEYS } from "./constants";
-import { fmt, num } from "./math";
+import { fmt, strictNum } from "./math";
 import { checkAgainstExercise, checkStructure } from "./netzplan/check";
 import { buildGraph } from "./netzplan/graph";
 import { ruleFor, solve } from "./netzplan/solve";
 import { checkUml } from "./uml/check";
 import { text } from "../i18n/locale";
 import { checkText } from "../i18n/check";
+import { checkGeneralText } from "../i18n/checkGeneral";
+import { MODES } from "../data/modes";
 import { fieldLabels } from "../i18n/netzplan";
 
 /**
@@ -19,10 +21,19 @@ export function runCheck(d: Diagram): CheckResult {
     const uml = checkUml(d);
     const hasActivities = d.nodes.some(n => n.type === "np");
 
-    if (!hasActivities && uml.count) {
+    // frames, bars or activation bars alone are no diagram yet: they fall through to the "nothing to check" hint
+    if (!hasActivities && uml.count && (uml.kinds.size || uml.items.length)) {
         const errors = uml.items.filter(i => i.level === "error").length;
         const warnings = uml.items.filter(i => i.level === "warn").length;
         return { items: uml.items, marks: uml.marks, total: 0, right: 0, empty: 0, duration: null, criticalPath: [], errors, warnings, hasUml: true, isNetzplan: false, kinds: [ ...uml.kinds ], ok: !errors && !warnings };
+    }
+    // Only a network diagram falls back to the activity node rules; other kinds get a fitting hint and never count as correct
+    if (!hasActivities && d.cfg.mode !== "netz") {
+        const g = text(checkGeneralText);
+        const item: Issue = d.nodes.length
+            ? { level: "info", text: g.freeShapes, tip: g.freeShapesTip }
+            : { level: "info", text: g.empty(text(MODES)[d.cfg.mode].label), tip: g.emptyTip };
+        return { items: [ item ], marks: uml.marks, total: 0, right: 0, empty: 0, duration: null, criticalPath: [], errors: 0, warnings: 0, hasUml: false, isNetzplan: false, kinds: [], ok: false };
     }
 
     const g = buildGraph(d), start = d.cfg.start;
@@ -48,7 +59,7 @@ export function runCheck(d: Diagram): CheckResult {
                     empty++;
                     continue;
                 }
-                const v = num(raw);
+                const v = strictNum(raw);
                 if (Math.abs(other.values[id][k] - v) < 1e-9) otherRight++;
                 if (Math.abs(values[id][k] - v) < 1e-9) right++;
                 else {
@@ -77,11 +88,11 @@ export function runCheck(d: Diagram): CheckResult {
 
     items.push(...uml.items);
     const errors = items.filter(i => i.level === "error").length;
-    const umlWarns = uml.items.filter(i => i.level === "warn").length;
+    const warnings = items.filter(i => i.level === "warn").length;
     return {
-        items, marks, total, right, empty, duration, criticalPath, errors, warnings: umlWarns,
+        items, marks, total, right, empty, duration, criticalPath, errors, warnings,
         hasUml: uml.count > 0, isNetzplan: true, kinds: [ ...uml.kinds ],
-        ok: !structure.blocking && !errors && !empty && total > 0 && !umlWarns,
+        ok: !structure.blocking && !errors && !empty && total > 0 && !warnings,
     };
 }
 

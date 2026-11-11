@@ -9,7 +9,8 @@ export type Dialog =
     | { type: "exercise" }
     | { type: "norm" }
     | { type: "plans" }
-    | { type: "saveAs" }
+    /** `then` runs after saving („Speichern und weiter“ in the discard dialog) */
+    | { type: "saveAs"; then?: () => void }
     | { type: "discard"; then: () => void }
     | { type: "exportText"; filename: string; data: string }
     | { type: "image"; url: string; canvas: HTMLCanvasElement; title: string; file: string }

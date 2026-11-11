@@ -1,9 +1,10 @@
 import type { Diagram, DiagramEdge, DiagramNode, NodeType } from "../../types/diagram";
-import { anchorPoint, center, segmentsCross, type Vec } from "../geometry";
+import { anchorPoint, center, insideOutline, segmentsCross, type Vec } from "../geometry";
 import { snap } from "../math";
-import { detourGeometry, erGeometry, isClear, parallelGeometry, type EdgeGeometry } from "./detour";
+import { detourGeometry, erGeometry, isClear, obstacles, parallelGeometry, type EdgeGeometry } from "./detour";
 import { outline } from "./outline";
 import { FLOW_TYPES, RELATIONS, SEQUENCE_TYPES, isUml } from "./types";
+import { activationAt, messageY, ownerOf, pinnedTarget } from "./sequence";
 
 export type { EdgeGeometry } from "./detour";
 
@@ -21,11 +22,13 @@ export interface RouteContext {
     loopSide: Map<number, number>;
     /** Activity and state machine diagram: the chosen path of every flow (see `routeFlows`) */
     flows: Map<number, EdgeGeometry>;
+    /** Class, object, component, package and deployment diagram: right-angled path of every relation (see `routeStructure`) */
+    struct: Map<number, EdgeGeometry>;
 }
 
 export function routeContext(d: Diagram): RouteContext {
     const offsets = flowOffsets(d);
-    return { rails: sharedRails(d), ...offsets, flows: routeFlows(d, offsets) };
+    return { rails: sharedRails(d), ...offsets, flows: routeFlows(d, offsets), struct: routeStructure(d) };
 }
 
 /** Rectangular shapes without UML meaning (activity, rectangle, text) get elbow arrows. */
@@ -80,20 +83,22 @@ export function sharedRails(d: Diagram): Map<number, number> {
 /** x position where a message leaves or reaches a lifeline or its activation. */
 function messageX(d: Diagram, n: DiagramNode, y: number, dir: number, isSource: boolean): number {
     const pick = (m: DiagramNode): number => (dir > 0) === isSource ? m.x + m.w : m.x;
-    if (n.type === "activation") return pick(n);
-    const cx = n.x + n.w / 2;
-    const act = d.nodes.find(m => m.type === "activation" && Math.abs(m.x + m.w / 2 - cx) < 14 && y >= m.y - 1 && y <= m.y + m.h + 1);
-    return act ? pick(act) : cx;
+    if (n.type === "destroy") return pick(n);
+    const l = ownerOf(n, d.nodes);
+    if (!l) return pick(n);
+    const act = activationAt(d.nodes, l, y);
+    return act ? pick(act) : l.x + l.w / 2;
 }
 
 function messageGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode): EdgeGeometry {
-    const y = a.y + (e.y ?? 60);
+    const y = messageY(e, a, b);
     if (a.id === b.id) {
         const x = messageX(d, a, y, 1, true), x2 = messageX(d, a, y + 30, -1, false);
         return { d: `M${x} ${y}H${x + 46}V${y + 30}H${x2}`, lx: x + 52, ly: y + 18, anc: "start", s: [ x, y ], sd: [ 1, 0 ], t: [ x2, y + 30 ], td: [ 1, 0 ] };
     }
     const dir = Math.sign((b.x + b.w / 2) - (a.x + a.w / 2)) || 1;
-    const x1 = messageX(d, a, y, dir, true), x2 = messageX(d, b, y, dir, false);
+    const x1 = messageX(d, a, y, dir, true);
+    const x2 = pinnedTarget(e, b) === "head" ? (dir > 0 ? b.x : b.x + b.w) : messageX(d, b, y, dir, false);
     return { d: `M${x1} ${y}H${x2}`, lx: (x1 + x2) / 2, ly: y - 7, s: [ x1, y ], sd: [ dir, 0 ], t: [ x2, y ], td: [ -dir, 0 ] };
 }
 
@@ -239,7 +244,9 @@ function flowGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode
     if (bt >= ab + 16) {
         const x = straightX(a, b);
         if (x !== null) {
-            const sx = x - lane;
+            // the lane shift must not push the line off a narrow overlap of the two boxes
+            const boxes = [ a, b ].filter(isBoxFlow), lo = Math.max(...boxes.map(n => n.x + 6)), hi = Math.min(...boxes.map(n => n.x + n.w - 6));
+            const sx = boxes.length && lo <= hi ? Math.min(Math.max(x - lane, lo), hi) : x - lane;
             // there and back: the label goes outside the pair of lines
             return { ...down(`M${sx} ${ab}V${bt}`, [ sx, ab ], [ sx, bt ]), ...(lane > 0 ? { lx: sx - 8, anc: "end" as const } : {}) };
         }
@@ -249,6 +256,8 @@ function flowGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode
             return { d: `M${sx} ${ay}H${bx}V${bt}`, lx: sx + (bx > ax ? 8 : -8), ly: ay - 7, anc: bx > ax ? "start" : "end", s: [ sx, ay ], sd: [ Math.sign(bx - ax), 0 ], t: [ bx, bt ], td: [ 0, -1 ] };
         }
         if (a.type === "bar") {
+            // every flow leaves the bar at the point nearest to its target: straight down when the target lies below the
+            // bar (after a centered join that is its middle), else at the end of the bar, so it never runs along a partition border
             const sx = Math.min(Math.max(bx, a.x + 6), a.x + a.w - 6);
             return down(sx === bx ? `M${bx} ${ab}V${bt}` : `M${sx} ${ab}V${my}H${bx}V${bt}`, [ sx, ab ], [ bx, bt ]);
         }
@@ -277,7 +286,9 @@ function flowGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode
     const ux = straightUpX(d, a, b, lane);
     if (ux !== null) {
         const top = b.y + b.h;
-        return { d: `M${ux} ${a.y}V${top}`, lx: ux + 8, ly: (a.y + top) / 2 + 4, anc: "start", s: [ ux, a.y ], sd: [ 0, -1 ], t: [ ux, top ], td: [ 0, 1 ] };
+        // the label goes on the outer side of the line, away from both shapes (and the labels of the flow between them)
+        const outside = ux < (ax + bx) / 2 ? -1 : 1;
+        return { d: `M${ux} ${a.y}V${top}`, lx: ux + outside * 8, ly: (a.y + top) / 2 + 4, anc: outside < 0 ? "end" : "start", s: [ ux, a.y ], sd: [ 0, -1 ], t: [ ux, top ], td: [ 0, 1 ] };
     }
     // jump back up (loop): around the side with fewer other lines
     const side = o.loopSide.get(e.id) ?? -1, p = loopPath(a, b, side, loopX);
@@ -302,8 +313,8 @@ function ports(n: DiagramNode, toward: Vec): Port[] {
     }
     const sides: Port[] = [{ p: [ cx, n.y ], dir: [ 0, -1 ] }, { p: [ n.x + n.w, cy ], dir: [ 1, 0 ] }, { p: [ cx, n.y + n.h ], dir: [ 0, 1 ] }, { p: [ n.x, cy ], dir: [ -1, 0 ] }];
     if (!isBoxFlow(n)) return sides;
-    // boxes also offer points 20 px beside the middle of each side, for several lines on one side
-    return sides.flatMap(s => [ s, ...[ -20, 20 ].filter(off => Math.abs(off) < (s.dir[0] ? n.h : n.w) / 2 - 8)
+    // boxes also offer points 20 px beside the middle of each side, for several lines on one side (clear of the rounded corners of a state)
+    return sides.flatMap(s => [ s, ...[ -20, 20 ].filter(off => Math.abs(off) < (s.dir[0] ? n.h : n.w) / 2 - 15)
         .map((off): Port => ({ p: s.dir[0] ? [ s.p[0], s.p[1] + off ] : [ s.p[0] + off, s.p[1] ], dir: s.dir })) ]);
 }
 
@@ -326,7 +337,7 @@ function connect(s: Port, t: Port): Vec[][] {
         const my = snap((sy + ty) / 2);
         return [[ s.p, [ sx, my ], [ tx, my ], t.p ]];
     }
-    return [ 40, 70, 100 ].map((off): Vec[] => {
+    return [ 40, 70, 100, 140 ].map((off): Vec[] => {
         if (sH) {
             const x = s.dir[0] > 0 ? Math.max(sx, tx) + off : Math.min(sx, tx) - off;
             return [ s.p, [ x, sy ], [ x, ty ], t.p ];
@@ -366,6 +377,19 @@ function flowAlternatives(a: DiagramNode, b: DiagramNode): EdgeGeometry[] {
     return options.sort((p, q) => p.cost - q.cost).map(o => polyGeometry(o.points));
 }
 
+/** Loops around everything that lies between `a` and `b`, on the left and on the right: the last resort when every other path hits a shape. */
+function wideLoops(d: Diagram, a: DiagramNode, b: DiagramNode): EdgeGeometry[] {
+    const ay = center(a)[1], by = center(b)[1], lo = Math.min(ay, by), hi = Math.max(ay, by);
+    const between = [ a, b, ...obstacles(d, a, b).filter(n => n.y < hi && n.y + n.h > lo) ];
+    const left = snap(Math.min(...between.map(n => n.x)) - 40), right = snap(Math.max(...between.map(n => n.x + n.w)) + 40);
+    return [
+        polyGeometry([[ a.x, ay ], [ left, ay ], [ left, by ], [ b.x, by ]]),
+        polyGeometry([[ a.x + a.w, ay ], [ right, ay ], [ right, by ], [ b.x + b.w, by ]]),
+    ];
+}
+
+const containsBox = (box: DiagramNode, n: DiagramNode): boolean => n.x >= box.x && n.y >= box.y && n.x + n.w <= box.x + box.w && n.y + n.h <= box.y + box.h;
+
 /** Lines closer than this run "on top of each other" (parallel flows keep 12 px or more). */
 export const LINE_GAP = 11;
 
@@ -385,6 +409,32 @@ export function overlapLength(p: Vec[], q: Vec[], gap = 3): number {
     return total;
 }
 
+/** Whether the polyline runs through the inside of `n` (beyond the points where it docks). */
+function crossesOwn(n: DiagramNode, points: Vec[]): boolean {
+    const [ cx, cy ] = center(n);
+    for (let k = 1; k < points.length; k++) {
+        const p = points[k - 1], q = points[k];
+        for (let f = 0.1; f < 0.95; f += 0.1) {
+            if (insideOutline(outline(n), cx, cy, n.w / 2 - 3, n.h / 2 - 3, p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)) return true;
+        }
+    }
+    return false;
+}
+
+/** Number of proper crossings between two polylines. */
+function crossCount(p: Vec[], q: Vec[]): number {
+    let n = 0;
+    for (let i = 1; i < p.length; i++) for (let j = 1; j < q.length; j++) if (segmentsCross(p[i - 1], p[i], q[j - 1], q[j])) n++;
+    return n;
+}
+
+/** Length of an orthogonal polyline plus 30 per bend. */
+function pathCost(points: Vec[]): number {
+    let length = 0;
+    for (let k = 1; k < points.length; k++) length += Math.abs(points[k][0] - points[k - 1][0]) + Math.abs(points[k][1] - points[k - 1][1]);
+    return length + 30 * Math.max(0, points.length - 2);
+}
+
 /**
  * Chooses the path of every flow in id order: the usual path when it stays clear of other shapes and does not lie
  * on a flow chosen before, else the first alternative over the side ports that does.
@@ -399,15 +449,88 @@ function routeFlows(d: Diagram, o: FlowOffsets): Map<number, EdgeGeometry> {
         let pick = usual;
         if (careful) {
             const clear = (g: EdgeGeometry): boolean => isClear(d, a, b, pathPoints(g.d));
+            // a path through its own start or end node reads as a different transition; a composite state may be crossed by the lines of its content
+            const own = (g: EdgeGeometry): boolean => [ a, b ].some(n => !containsBox(n, n === a ? b : a) && crossesOwn(n, pathPoints(g.d)));
             const crowding = (g: EdgeGeometry): number => taken.reduce((sum, t) => sum + overlapLength(pathPoints(g.d), t, LINE_GAP), 0);
-            if (!clear(usual) || crowding(usual) > 6) {
-                const options = [ usual, ...flowAlternatives(a, b) ].filter(clear);
-                // the first one without crowding, else the least crowded one
-                pick = options.find(g => crowding(g) <= 6) ?? options.sort((p, q) => crowding(p) - crowding(q))[0] ?? usual;
+            const crossings = (g: EdgeGeometry): number => taken.reduce((sum, t) => sum + crossCount(pathPoints(g.d), t), 0);
+            if (!clear(usual) || own(usual) || crowding(usual) > 6 || crossings(usual) > 0) {
+                const known = [ usual, ...flowAlternatives(a, b) ];
+                const options = (known.some(clear) ? known : [ ...known, ...wideLoops(d, a, b) ]).filter(g => !own(g));
+                // clear of other shapes first, then without crowding, then with the fewest crossings, then the shortest; a detour must be worth it
+                const score = (g: EdgeGeometry): number => (clear(g) ? 0 : 5000) + (crowding(g) > 6 ? 1000 + crowding(g) : 0) + 160 * crossings(g) + pathCost(pathPoints(g.d)) - (g === usual ? 40 : 0);
+                pick = options.sort((p, q) => score(p) - score(q))[0] ?? usual;
             }
         }
         out.set(e.id, pick);
         taken.push(pathPoints(pick.d));
+    }
+    return out;
+}
+
+/** Shapes of structure diagrams whose relations are drawn at right angles. */
+const STRUCT_TYPES = new Set<NodeType>([ "class", "object", "component", "iface", "port", "package", "node3d", "artifact" ]);
+const STRUCT_KINDS = new Set([ "assoc", "dir", "inherit", "realize", "aggr", "comp", "dep", "require", "delegate", "deploy", "manifest", "import", "access", "merge" ]);
+
+
+/** The natural right-angled path between two boxes: straight when they face each other, else one Z-shaped bend in the middle. */
+function structPath(a: DiagramNode, b: DiagramNode): Vec[] | null {
+    const x = straightAt(a, b, 0), y = straightAt(a, b, 1);
+    if (x !== null && (b.y >= a.y + a.h + 16 || a.y >= b.y + b.h + 16)) return b.y > a.y ? [[ x, a.y + a.h ], [ x, b.y ]] : [[ x, a.y ], [ x, b.y + b.h ]];
+    if (y !== null && (b.x >= a.x + a.w + 16 || a.x >= b.x + b.w + 16)) return b.x > a.x ? [[ a.x + a.w, y ], [ b.x, y ]] : [[ a.x, y ], [ b.x + b.w, y ]];
+    const [ ax, ay ] = center(a), [ bx, by ] = center(b);
+    if (b.y >= a.y + a.h + 30 || a.y >= b.y + b.h + 30) {
+        const down = b.y > a.y, sy = down ? a.y + a.h : a.y, ty = down ? b.y : b.y + b.h, my = snap((sy + ty) / 2);
+        return [[ ax, sy ], [ ax, my ], [ bx, my ], [ bx, ty ]];
+    }
+    if (b.x >= a.x + a.w + 30 || a.x >= b.x + b.w + 30) {
+        const right = b.x > a.x, sx = right ? a.x + a.w : a.x, tx = right ? b.x : b.x + b.w, mx = snap((sx + tx) / 2);
+        return [[ sx, ay ], [ mx, ay ], [ mx, by ], [ tx, by ]];
+    }
+    return null;
+}
+
+/**
+ * Chooses a right-angled path for every relation between structure shapes in id order, like `routeFlows`: the natural
+ * path when it is clear of other shapes, does not lie on another line and crosses none, else the best side-port
+ * alternative. Generalisations to the same parent may share their last part (the usual tree look).
+ */
+function routeStructure(d: Diagram): Map<number, EdgeGeometry> {
+    const out = new Map<number, EdgeGeometry>();
+    if (d.nodes.length > 400) return out;
+    const byId = new Map(d.nodes.map(n => [ n.id, n ]));
+    const taken: { e: DiagramEdge; points: Vec[] }[] = [];
+    const pairs = new Map<string, number>();
+    for (const e of d.edges) pairs.set(`${Math.min(e.from, e.to)}|${Math.max(e.from, e.to)}`, (pairs.get(`${Math.min(e.from, e.to)}|${Math.max(e.from, e.to)}`) ?? 0) + 1);
+    const tree = (e: DiagramEdge): boolean => e.kind === "inherit" || e.kind === "realize";
+    for (const e of [ ...d.edges ].sort((p, q) => p.id - q.id)) {
+        const a = byId.get(e.from), b = byId.get(e.to);
+        if (!a || !b || a === b || !STRUCT_KINDS.has(e.kind ?? "flow") || !STRUCT_TYPES.has(a.type) || !STRUCT_TYPES.has(b.type)) continue;
+        if (containsBox(a, b) || containsBox(b, a)) continue;
+        const natural = structPath(a, b);
+        // the name of an interface stands below the ball, so no line docks there
+        const labelFree = (p: Vec[]): boolean => !(a.type === "iface" && p[0][1] >= a.y + a.h - 1) && !(b.type === "iface" && p[p.length - 1][1] >= b.y + b.h - 1);
+        const options = [ ...(natural ? [ natural ] : []), ...flowAlternatives(a, b).map(g => pathPoints(g.d)) ]
+            .filter(p => labelFree(p) && !crossesOwn(a, p) && !crossesOwn(b, p) && isClear(d, a, b, p));
+        if (!options.length) continue;
+        const others = (points: Vec[]): { crowd: number; cross: number } => {
+            let crowd = 0, cross = 0;
+            for (const t of taken) {
+                // the shared trunk of a generalisation tree is wanted
+                if (tree(e) && tree(t.e) && t.e.to === e.to) continue;
+                crowd += overlapLength(points, t.points, LINE_GAP);
+                cross += crossCount(points, t.points);
+            }
+            return { crowd, cross };
+        };
+        const score = (p: Vec[]): number => {
+            const o = others(p);
+            return (o.crowd > 6 ? 1000 + o.crowd : 0) + 160 * o.cross + pathCost(p) - (p === natural ? 40 : 0);
+        };
+        const best = options.sort((p, q) => score(p) - score(q))[0];
+        // several relations between the same two shapes are spread by `parallelGeometry` unless one path is clear of the others
+        if ((pairs.get(`${Math.min(e.from, e.to)}|${Math.max(e.from, e.to)}`) ?? 0) > 1 && others(best).crowd > 6) continue;
+        out.set(e.id, polyGeometry(best));
+        taken.push({ e, points: best });
     }
     return out;
 }
@@ -448,6 +571,41 @@ function selfGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, ctx: RouteCont
 }
 
 /**
+ * Network diagram arrow from the right side of `a` to the left side of `b` with right angles: over the shared rail
+ * when that stays clear of other activities, else over the first free gap between the columns, else along a free
+ * corridor between the rows (an arrow skipping a column must not run through an activity of that column).
+ */
+function elbowGeometry(d: Diagram, a: DiagramNode, b: DiagramNode, rail: number | undefined): EdgeGeometry {
+    const sx = a.x + a.w, sy = a.y + a.h / 2, tx = b.x, ty = b.y + b.h / 2;
+    const geometry = (points: Vec[]): EdgeGeometry => {
+        const last = points[points.length - 2];
+        return {
+            d: points.map((p, i) => `${i ? "L" : "M"}${p[0]} ${p[1]}`).join(""), lx: (last[0] + tx) / 2, ly: ty - 8,
+            s: [ sx, sy ], sd: [ 1, 0 ], t: [ tx, ty ], td: [ -1, 0 ],
+        };
+    };
+    const flat = Math.abs(sy - ty) < 1;
+    const usual: Vec[] = flat ? [[ sx, sy ], [ tx, ty ]] : [[ sx, sy ], [ rail ?? snap((sx + tx) / 2), sy ], [ rail ?? snap((sx + tx) / 2), ty ], [ tx, ty ]];
+    if (d.nodes.length > 400 || isClear(d, a, b, usual)) return geometry(usual);
+    const others = d.nodes.filter(n => n !== a && n !== b && n.type === "np");
+    // x of free vertical gaps between sx and tx, nearest to the target first
+    const gaps: number[] = [];
+    for (let x = snap(tx - 10); x > sx + 5; x -= 10) if (!others.some(n => x > n.x - 8 && x < n.x + n.w + 8)) gaps.push(x);
+    for (const mx of gaps) {
+        const points: Vec[] = [[ sx, sy ], [ mx, sy ], [ mx, ty ], [ tx, ty ]];
+        if (isClear(d, a, b, points)) return geometry(points);
+    }
+    // two gaps joined by a horizontal corridor between rows
+    const first = gaps.length ? gaps[gaps.length - 1] : snap(sx + 20), last = gaps.length ? gaps[0] : snap(tx - 20);
+    const ys = [ ...new Set(others.flatMap(n => [ n.y - 20, n.y + n.h + 20 ]).map(snap)) ].sort((p, q) => Math.abs(p - (sy + ty) / 2) - Math.abs(q - (sy + ty) / 2));
+    for (const my of ys) {
+        const points: Vec[] = [[ sx, sy ], [ first, sy ], [ first, my ], [ last, my ], [ last, ty ], [ tx, ty ]];
+        if (isClear(d, a, b, points)) return geometry(points);
+    }
+    return geometry(usual);
+}
+
+/**
  * Path of an edge. Order of the cases: message (sequence) > self loop > control flow > network diagram elbow >
  * ER line > parallel relations > detour around shapes > straight line.
  * Compute `ctx` with `routeContext()` once per drawing and pass it in.
@@ -457,13 +615,10 @@ export function edgeGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: Diag
     if (RELATIONS[kind]?.seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type)) return messageGeometry(d, e, a, b);
     if (a.id === b.id) return selfGeometry(d, e, a, ctx ?? routeContext(d));
     if (kind === "flow" && FLOW_TYPES.has(a.type) && FLOW_TYPES.has(b.type)) return (ctx ?? routeContext(d)).flows.get(e.id) ?? flowGeometry(d, e, a, b, flowOffsets(d));
-    if (kind === "flow" && canElbow(a, b)) {
-        const sx = a.x + a.w, sy = a.y + a.h / 2, tx = b.x, ty = b.y + b.h / 2;
-        const mx = (ctx?.rails ?? sharedRails(d)).get(e.id) ?? snap((sx + tx) / 2);
-        const flat = Math.abs(sy - ty) < 1;
-        return { d: flat ? `M${sx} ${sy}H${tx}` : `M${sx} ${sy}H${mx}V${ty}H${tx}`, lx: flat ? (sx + tx) / 2 : (mx + tx) / 2, ly: ty - 8, s: [ sx, sy ], sd: [ 1, 0 ], t: [ tx, ty ], td: [ -1, 0 ] };
-    }
+    if (kind === "flow" && canElbow(a, b)) return elbowGeometry(d, a, b, (ctx?.rails ?? sharedRails(d)).get(e.id));
     if (kind === "erl") return erGeometry(d, e, a, b);
+    const ortho = (ctx ?? routeContext(d)).struct.get(e.id);
+    if (ortho) return ortho;
     const bent = parallelGeometry(d, e, a, b) ?? detourGeometry(d, e, a, b);
     if (bent) return bent;
     const [ sx, sy ] = anchorPoint(a, outline(a), b.x + b.w / 2, b.y + b.h / 2);

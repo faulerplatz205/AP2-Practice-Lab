@@ -3,6 +3,7 @@ import { useUi } from "../../state/uiStore";
 import { useText } from "../../i18n/locale";
 import { dialogText, exportTextText } from "../../i18n/dialogs";
 import { copyText } from "./Modal";
+import { AllowSaving } from "./AllowSaving";
 
 /** Fallback when this view does not allow downloads: text to copy. */
 export function ExportTextDialog({ filename, data }: { filename: string; data: string }): ReactElement {
@@ -15,6 +16,7 @@ export function ExportTextDialog({ filename, data }: { filename: string; data: s
         <textarea id="mJson" ref={field} spellCheck={false} readOnly value={data} />
         <div className="row">
             <button className="btn primary" id="mCopy" onClick={() => copyText(data, field.current, t.copied)}>{t.copy}</button>
+            <AllowSaving />
             <button className="btn" id="mClose" onClick={close}>{common.close}</button>
         </div>
     </>;

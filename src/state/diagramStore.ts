@@ -4,6 +4,9 @@ import type { Diagram, DiagramNode, NodeType, RelationKind } from "../types/diag
 import { emptyDiagram, normalize } from "../lib/diagram";
 import { fitToContent } from "../lib/uml/size";
 import { KEYS, storage } from "../lib/storage";
+import { useUi } from "./uiStore";
+import { text } from "../i18n/locale";
+import { messageText } from "../i18n/messages";
 
 export type Selection = { kind: "node" | "edge"; id: number };
 
@@ -20,8 +23,11 @@ export interface View {
 export interface EditorState {
     kind: "np" | "field" | "shape" | "edge";
     id: number;
-    /** Edited field: activity field or text/attrs/ops */
+    /** Edited field: activity field, text/attrs/ops of a node, or m1/m2 of an edge */
     key?: string;
+    /** Fixed characters shown before and after the text, e.g. the brackets of a guard; they are added on apply */
+    prefix?: string;
+    suffix?: string;
     multi?: boolean;
     /** Position in world coordinates */
     x: number;
@@ -43,6 +49,8 @@ interface DiagramState {
     dirty: boolean;
     view: View;
     selection: Selection | null;
+    /** Several selected nodes (marquee, Shift+click, Ctrl+A); then `selection` is null. Never holds exactly one id. */
+    multi: number[];
     tool: Tool;
     /** Initial values for the next placed element (e.g. interface) */
     toolPreset: Partial<DiagramNode> | null;
@@ -85,6 +93,12 @@ function fitAll(d: Diagram): void {
     for (const n of d.nodes) if (FITTED.has(n.type)) fitToContent(n);
 }
 
+/** Ids of all selected nodes: the marquee selection or the single selected node. */
+export function selectedNodeIds(s: Pick<DiagramState, "selection" | "multi">): number[] {
+    if (s.multi.length) return s.multi;
+    return s.selection?.kind === "node" ? [ s.selection.id ] : [];
+}
+
 export const useDiagram = create<DiagramState>()((set, get) => ({
     doc: initial.doc,
     undo: [],
@@ -92,6 +106,7 @@ export const useDiagram = create<DiagramState>()((set, get) => ({
     dirty: false,
     view: { x: 40, y: 40, z: 1 },
     selection: null,
+    multi: [],
     tool: "select",
     toolPreset: null,
     toolKey: null,
@@ -115,25 +130,32 @@ export const useDiagram = create<DiagramState>()((set, get) => ({
 
     replace: (doc, options): void => {
         if (options?.history !== false) get().pushHistory();
-        set({ doc: produce(normalize(doc), fitAll), selection: null, editor: null, pendingFrom: null, arrowOnce: false });
+        set({ doc: produce(normalize(doc), fitAll), selection: null, multi: [], editor: null, pendingFrom: null, arrowOnce: false });
     },
 
     undoStep: (): void => {
         const { undo, redo, doc } = get();
         if (!undo.length) return;
-        set({ undo: undo.slice(0, -1), redo: [ ...redo, JSON.stringify(doc) ], doc: normalize(JSON.parse(undo[undo.length - 1])), selection: null, editor: null, dirty: true });
+        set({ undo: undo.slice(0, -1), redo: [ ...redo, JSON.stringify(doc) ], doc: normalize(JSON.parse(undo[undo.length - 1])), selection: null, multi: [], editor: null, dirty: true });
     },
 
     redoStep: (): void => {
         const { undo, redo, doc } = get();
         if (!redo.length) return;
-        set({ redo: redo.slice(0, -1), undo: [ ...undo, JSON.stringify(doc) ], doc: normalize(JSON.parse(redo[redo.length - 1])), selection: null, editor: null, dirty: true });
+        set({ redo: redo.slice(0, -1), undo: [ ...undo, JSON.stringify(doc) ], doc: normalize(JSON.parse(redo[redo.length - 1])), selection: null, multi: [], editor: null, dirty: true });
     },
 
     set: (patch): void => set(patch),
 }));
 
 // Autosave: every change goes straight into the browser storage
+let autosaveWarned = false;
 useDiagram.subscribe((state, prev) => {
-    if (state.doc !== prev.doc) storage.write(KEYS.diagram, state.doc);
+    if (state.doc === prev.doc) return;
+    const saved = storage.write(KEYS.diagram, state.doc);
+    // tell the user once, instead of losing a large drawing silently on the next reload
+    if (!saved && !autosaveWarned) {
+        autosaveWarned = true;
+        useUi.getState().notify(text(messageText).autosaveFailed);
+    } else if (saved) autosaveWarned = false;
 });

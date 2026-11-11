@@ -4,6 +4,7 @@ import { useDiagram } from "../../state/diagramStore";
 import { appendAfter } from "../../state/actions";
 import { findNode } from "../../lib/diagram";
 import { FLOW_TYPES, FRAGMENT_OPERATORS, UML_TYPES, isUml } from "../../lib/uml/types";
+import { BRACKETS, nodeAdornment, unwrap, wrap } from "../../lib/uml/guards";
 import { useText } from "../../i18n/locale";
 import { umlText } from "../../i18n/diagram";
 import { panelText } from "../../i18n/panel";
@@ -18,9 +19,10 @@ const BAR = { w: 200, h: 8 };
 /** "Append next" in activity and state machine diagrams; on a decision "Add branch". */
 function QuickAppend({ node: n }: { node: DiagramNode }): ReactElement | null {
     const t = useText(panelText);
-    if (!FLOW_TYPES.has(n.type) || n.type === "end" || n.type === "flowend") return null;
-    const labels: Partial<Record<NodeType, string>> = n.type === "state" ? t.appendState : t.appendFlow;
+    const mode = useDiagram(s => s.doc.cfg.mode);
+    const labels: Partial<Record<NodeType, string>> = n.type === "state" || mode === "zu" ? t.appendState : t.appendFlow;
     const options = Object.entries(labels) as [NodeType, string][];
+    if (!FLOW_TYPES.has(n.type) || n.type === "end" || n.type === "flowend") return null;
     return (
         <div className="field">{n.type === "decision" ? t.addBranch : t.appendNext}
             <div className="quick">
@@ -56,8 +58,17 @@ export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | nul
                         {FRAGMENT_OPERATORS.map(o => <option key={o}>{o}</option>)}
                     </select>
                 </label>
-                <label className="field">{t.condition}<LiveInput id="f-attrs" placeholder={t.conditionPlaceholder} value={n.attrs ?? ""} write={write("attrs")} /></label>
+                {n.text !== "sd" && (nodeAdornment(n, "attrs")
+                    ? <label className="field guard">{t.condition}<LiveInput id="f-attrs" placeholder={t.guardInnerPlaceholder} value={unwrap(n.attrs ?? "", BRACKETS)} write={(d, v) => {
+                        findNode(d, n.id)!.attrs = wrap(v, BRACKETS);
+                    }} /></label>
+                    : <label className="field">{t.condition}<LiveInput id="f-attrs" placeholder={t.conditionPlaceholder} value={n.attrs ?? ""} write={write("attrs")} /></label>)}
+                {n.text === "sd" && <label className="field">{t.name}<LiveInput id="f-attrs" value={n.attrs ?? ""} write={write("attrs")} /></label>}
             </>;
+        } else if (n.type === "operand") {
+            textField = <label className="field guard">{t.condition}<LiveInput id="f-text" placeholder="else" value={unwrap(n.text, BRACKETS)} write={(d, v) => {
+                findNode(d, n.id)!.text = wrap(v, BRACKETS);
+            }} /></label>;
         } else if (n.type === "note" || n.type === "node3d") {
             textField = <label className="field">{t.text}<LiveTextarea id="f-text" value={n.text} write={write("text")} /></label>;
         } else {
@@ -87,6 +98,11 @@ export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | nul
         {n.type === "object" && <label className="field">{t.attributeValues}
             <LiveTextarea id="f-attrs" className="mono" placeholder={t.objectPlaceholder} value={n.attrs ?? ""} write={write("attrs")} />
         </label>}
+        {(n.type === "entity" || n.type === "relship") && <label className="field">{db.entityKind}
+            <select id="f-stereo" value={n.stereo ?? ""} onChange={e => setValue("stereo", e.target.value)}>
+                {Object.entries(n.type === "entity" ? db.entityKinds : db.relshipKinds).map(([ value, name ]) => <option key={value} value={value}>{name}</option>)}
+            </select>
+        </label>}
         {n.type === "erattr" && <label className="field">{db.attributeKind}
             <select id="f-stereo" value={n.stereo ?? ""} onChange={e => setValue("stereo", e.target.value)}>
                 {Object.entries(db.attributeKinds).map(([ value, name ]) => <option key={value} value={value}>{name}</option>)}
@@ -107,8 +123,10 @@ export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | nul
         {n.type === "state" && <label className="field">{t.stateActivities}
             <LiveTextarea id="f-attrs" className="mono" placeholder={"entry / …\ndo / …\nexit / …"} value={n.attrs ?? ""} write={write("attrs")} />
         </label>}
+        {n.type === "history" && <p>{t.historyHint}</p>}
+        {n.type === "deephist" && <p>{t.deepHistoryHint}</p>}
         {n.type !== "sheet" && <SizeFields node={n} height={![ "class", "object", "table" ].includes(n.type)} />}
-        {!info.notext && !info.box && n.type !== "note" && n.type !== "sheet" && <Swatches node={n} />}
+        {!info.notext && !info.box && n.type !== "note" && n.type !== "sheet" && n.type !== "operand" && <Swatches node={n} />}
         <NodeActions />
     </>;
 }

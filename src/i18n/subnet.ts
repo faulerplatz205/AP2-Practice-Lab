@@ -179,103 +179,103 @@ export const subnetText = defineText({
     withMask: (address: string, mask: string) => `${address} mit der Maske ${mask}`,
     prompts: {
         networkBroadcast: [
-            (net: string) => `Bestimme Netzadresse und Broadcastadresse von **${net}**.`,
-            (net: string) => `Ein Notebook im Firmennetz hat die IP-Konfiguration **${net}**. In welchem Netz liegt es und wie lautet die Broadcastadresse?`,
-            (net: string) => `Am Netzwerkdrucker im Lehrerzimmer steht **${net}**. Gib Netz- und Broadcastadresse seines Netzes an.`,
-            (net: string) => `Ein Kollege fragt dich, ob **${net}** eine Netzadresse ist. Rechne nach: Wie lauten Netzadresse und Broadcast?`,
+            (net: string): string => `Bestimme Netzadresse und Broadcastadresse von **${net}**.`,
+            (net: string): string => `Ein Notebook im Firmennetz hat die IP-Konfiguration **${net}**. In welchem Netz liegt es und wie lautet die Broadcastadresse?`,
+            (net: string): string => `Am Netzwerkdrucker im Lehrerzimmer steht **${net}**. Gib Netz- und Broadcastadresse seines Netzes an.`,
+            (net: string): string => `Ein Kollege fragt dich, ob **${net}** eine Netzadresse ist. Rechne nach: Wie lauten Netzadresse und Broadcast?`,
         ],
         hostRange: [
-            (net: string) => `Ein Rechner hat die Adresse **${net}**. Bestimme den ersten und letzten nutzbaren Host seines Netzes und die Anzahl der nutzbaren Hosts.`,
-            (net: string) => `Für das Netz von **${net}** sollen statische Adressen vergeben werden. Welcher Bereich ist nutzbar und wie viele Hosts passen hinein?`,
-            (net: string) => `Der DHCP-Bereich soll das ganze Netz von **${net}** abdecken. Gib erste und letzte vergebbare Adresse und die Anzahl der Hosts an.`,
+            (net: string): string => `Ein Rechner hat die Adresse **${net}**. Bestimme den ersten und letzten nutzbaren Host seines Netzes und die Anzahl der nutzbaren Hosts.`,
+            (net: string): string => `Für das Netz von **${net}** sollen statische Adressen vergeben werden. Welcher Bereich ist nutzbar und wie viele Hosts passen hinein?`,
+            (net: string): string => `Der DHCP-Bereich soll das ganze Netz von **${net}** abdecken. Gib erste und letzte vergebbare Adresse und die Anzahl der Hosts an.`,
         ],
         hostCount: [
-            (mask: string) => `Wie viele Hosts sind mit **${mask}** nutzbar?`,
-            (mask: string) => `Eine Abteilung bekommt ein Netz mit **${mask}**. Wie viele Geräte kannst du darin adressieren?`,
-            (mask: string) => `Im Netzplan einer Filiale steht **${mask}**. Wie viele nutzbare Hostadressen hat das Netz?`,
+            (mask: string): string => `Wie viele Hosts sind mit **${mask}** nutzbar?`,
+            (mask: string): string => `Eine Abteilung bekommt ein Netz mit **${mask}**. Wie viele Geräte kannst du darin adressieren?`,
+            (mask: string): string => `Im Netzplan einer Filiale steht **${mask}**. Wie viele nutzbare Hostadressen hat das Netz?`,
         ],
         maskToPrefix: [
-            (mask: string) => `Welches Präfix gehört zur Subnetzmaske **${mask}**?`,
-            (mask: string) => `In einer alten Konfiguration steht die Maske **${mask}**. Schreib sie in CIDR-Schreibweise.`,
+            (mask: string): string => `Welches Präfix gehört zur Subnetzmaske **${mask}**?`,
+            (mask: string): string => `In einer alten Konfiguration steht die Maske **${mask}**. Schreib sie in CIDR-Schreibweise.`,
         ],
         prefixToMask: [
-            (prefix: number) => `Wie lautet die Subnetzmaske zu **/${prefix}** in Punktschreibweise?`,
-            (prefix: number) => `Ein Gerät kennt nur die Punktschreibweise. Welche Maske trägst du für **/${prefix}** ein?`,
+            (prefix: number): string => `Wie lautet die Subnetzmaske zu **/${prefix}** in Punktschreibweise?`,
+            (prefix: number): string => `Ein Gerät kennt nur die Punktschreibweise. Welche Maske trägst du für **/${prefix}** ein?`,
         ],
         split: [
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `Das Netz **${network}/${prefix}** soll in **${count}** gleich große Subnetze aufgeteilt werden. Welches Präfix haben die Subnetze? Wie lauten Netz- und Broadcastadresse des **${nth}.** Subnetzes?`,
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `Eine Firma teilt **${network}/${prefix}** gleichmäßig auf **${count}** Standorte auf. Welches Präfix bekommt jeder Standort, und welches Netz (Netz- und Broadcastadresse) hat Standort **${nth}**?`,
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `Für **${count}** VLANs wird **${network}/${prefix}** in gleich große Netze zerlegt, durchnummeriert ab 1. Gib das Präfix und Netz- und Broadcastadresse von VLAN-Netz **${nth}** an.`,
         ],
         vlsm: [
-            (network: string, prefix: number, departments: string) =>
+            (network: string, prefix: number, departments: string): string =>
                 `Teile **${network}/${prefix}** mit VLSM auf: ${departments}. Vergib die Netze lückenlos ab dem Anfang, die größte Abteilung zuerst. Gib für jede Abteilung Netzadresse und Präfix an.`,
-            (network: string, prefix: number, departments: string) =>
+            (network: string, prefix: number, departments: string): string =>
                 `Die IT plant **${network}/${prefix}** neu: ${departments}. Vergib die Netze ohne Lücken ab Netzanfang, das größte Netz zuerst, und nenne Netzadresse und Präfix.`,
         ],
         department: (name: string, hosts: number) => `**${name}** ${hosts} Hosts`,
         ipv6Shorten: [
-            (address: string) => `Kürze die IPv6-Adresse so weit wie möglich (RFC 5952): **${address}**`,
-            (address: string) => `In der Doku soll die Adresse **${address}** kurz und regelkonform stehen. Wie lautet die kürzeste Schreibweise?`,
+            (address: string): string => `Kürze die IPv6-Adresse so weit wie möglich (RFC 5952): **${address}**`,
+            (address: string): string => `In der Doku soll die Adresse **${address}** kurz und regelkonform stehen. Wie lautet die kürzeste Schreibweise?`,
         ],
         ipv6Expand: [
-            (address: string) => `Schreibe die IPv6-Adresse vollständig aus, 8 Blöcke mit je 4 Hex-Ziffern: **${address}**`,
-            (address: string) => `Für eine Firewall-Regel brauchst du **${address}** in voller Länge. Schreib alle 32 Hex-Ziffern aus.`,
+            (address: string): string => `Schreibe die IPv6-Adresse vollständig aus, 8 Blöcke mit je 4 Hex-Ziffern: **${address}**`,
+            (address: string): string => `Für eine Firewall-Regel brauchst du **${address}** in voller Länge. Schreib alle 32 Hex-Ziffern aus.`,
         ],
         ipv6Subnets: [
-            (network: string, prefix: number, target: number) => `Ein Standort bekommt das Präfix **${network}/${prefix}**. Wie viele **/${target}**-Subnetze lassen sich daraus bilden?`,
-            (network: string, prefix: number, target: number) => `Dein Provider teilt dir **${network}/${prefix}** zu. Wie viele Netze mit **/${target}** kannst du daraus machen?`,
+            (network: string, prefix: number, target: number): string => `Ein Standort bekommt das Präfix **${network}/${prefix}**. Wie viele **/${target}**-Subnetze lassen sich daraus bilden?`,
+            (network: string, prefix: number, target: number): string => `Dein Provider teilt dir **${network}/${prefix}** zu. Wie viele Netze mit **/${target}** kannst du daraus machen?`,
         ],
         hostSubnet: [
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `Das Netz **${network}/${prefix}** ist in **/${subPrefix}**-Subnetze aufgeteilt, durchnummeriert ab 1. In welchem Subnetz liegt der Host **${host}**? Gib Nummer, Netz- und Broadcastadresse an.`,
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `Eine Schule hat **${network}/${prefix}** in Klassenraum-Netze mit **/${subPrefix}** zerlegt (Raum 1 ist das erste Netz). Ein Tablet meldet sich mit **${host}**. Zu welchem Raum gehört es, und wie lauten Netz- und Broadcastadresse?`,
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `Im Log taucht **${host}** auf. Das Firmennetz **${network}/${prefix}** ist in **/${subPrefix}**-Netze aufgeteilt, Netz 1 beginnt am Anfang. Welches Netz ist es (Nummer, Netzadresse, Broadcast)?`,
         ],
         sameSubnet: [
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `**${a}** hat **${aAddress}**, **${b}** hat **${bAddress}**, beide mit **${mask}**. Liegen sie im selben Subnetz? Gib dazu beide Netzadressen an.`,
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `Können **${a}** (**${aAddress}**) und **${b}** (**${bAddress}**) ohne Router miteinander sprechen? Die Maske ist bei beiden **${mask}**. Begründe mit den Netzadressen.`,
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `Ein Ticket: „**${a}** erreicht **${b}** nicht.“ ${a} hat **${aAddress}**, ${b} hat **${bAddress}**, Maske jeweils **${mask}**. Sind beide im selben Netz?`,
         ],
         hostsToPrefix: [
-            (hosts: number, segment: string) => `Die Abteilung **${segment}** braucht **${hosts}** Hostadressen. Welche Maske ist die kleinste, die reicht? Wie viele Hosts hat das Netz dann?`,
-            (hosts: number, segment: string) => `Für **${segment}** werden **${hosts}** Geräte geplant. Welches Präfix verschwendet am wenigsten Adressen, und wie viele Hosts sind damit nutzbar?`,
-            (hosts: number, segment: string) => `Ein Netz soll genau **${hosts}** Hosts aufnehmen (**${segment}**). Gib die kleinste passende Maske und die Zahl der nutzbaren Hosts an.`,
+            (hosts: number, segment: string): string => `Die Abteilung **${segment}** braucht **${hosts}** Hostadressen. Welche Maske ist die kleinste, die reicht? Wie viele Hosts hat das Netz dann?`,
+            (hosts: number, segment: string): string => `Für **${segment}** werden **${hosts}** Geräte geplant. Welches Präfix verschwendet am wenigsten Adressen, und wie viele Hosts sind damit nutzbar?`,
+            (hosts: number, segment: string): string => `Ein Netz soll genau **${hosts}** Hosts aufnehmen (**${segment}**). Gib die kleinste passende Maske und die Zahl der nutzbaren Hosts an.`,
         ],
         subnetsToPrefix: [
-            (network: string, prefix: number, count: number, minHosts: number | null) =>
+            (network: string, prefix: number, count: number, minHosts: number | null): string =>
                 `Aus **${network}/${prefix}** sollen mindestens **${count}** gleich große Subnetze entstehen${minHosts ? ` mit je mindestens **${minHosts}** Hosts` : ""}. Welche Maske nimmst du (möglichst viele Hosts pro Subnetz)? Wie viele Subnetze entstehen tatsächlich, und wie viele Hosts hat jedes?`,
-            (network: string, prefix: number, count: number, minHosts: number | null) =>
+            (network: string, prefix: number, count: number, minHosts: number | null): string =>
                 `Eine Firma mit **${count}** Abteilungen will **${network}/${prefix}** gleichmäßig aufteilen${minHosts ? `, jede Abteilung braucht bis zu **${minHosts}** Hosts` : ""}. Welche Subnetzmaske passt mit den meisten Hosts pro Netz? Wie viele Subnetze und Hosts pro Subnetz ergibt das?`,
         ],
         reverseMask: [
-            (network: string, broadcast: string) => `Ein Netz hat die Netzadresse **${network}** und die Broadcastadresse **${broadcast}**. Wie lautet die Maske, und wie viele Hosts sind nutzbar?`,
-            (network: string, broadcast: string) => `Im Netzplan steht nur „**${network} bis ${broadcast}**“. Welches Präfix hat das Netz, und wie viele Hosts passen hinein?`,
+            (network: string, broadcast: string): string => `Ein Netz hat die Netzadresse **${network}** und die Broadcastadresse **${broadcast}**. Wie lautet die Maske, und wie viele Hosts sind nutzbar?`,
+            (network: string, broadcast: string): string => `Im Netzplan steht nur „**${network} bis ${broadcast}**“. Welches Präfix hat das Netz, und wie viele Hosts passen hinein?`,
         ],
         wildcard: [
-            (network: string, prefix: number) => `Für eine ACL auf dem Router brauchst du die Wildcard-Maske zum Netz **${network}/${prefix}**. Wie lautet sie?`,
-            (network: string, prefix: number) => `OSPF soll das Netz **${network}/${prefix}** bekanntgeben: „network ${network} ? area 0“. Welche Wildcard-Maske gehört an die Stelle des Fragezeichens?`,
+            (network: string, prefix: number): string => `Für eine ACL auf dem Router brauchst du die Wildcard-Maske zum Netz **${network}/${prefix}**. Wie lautet sie?`,
+            (network: string, prefix: number): string => `OSPF soll das Netz **${network}/${prefix}** bekanntgeben: „network ${network} ? area 0“. Welche Wildcard-Maske gehört an die Stelle des Fragezeichens?`,
         ],
         wildcardReverse: [
-            (network: string, wildcard: string) => `In einer ACL steht **permit ${network} ${wildcard}**. Welches Präfix (oder welche Maske) hat das Netz, und wie viele Hosts umfasst es?`,
-            (network: string, wildcard: string) => `Eine Firewall-Regel nutzt die Wildcard **${wildcard}** für **${network}**. Wie lautet die passende Subnetzmaske, und wie viele Hosts sind nutzbar?`,
+            (network: string, wildcard: string): string => `In einer ACL steht **permit ${network} ${wildcard}**. Welches Präfix (oder welche Maske) hat das Netz, und wie viele Hosts umfasst es?`,
+            (network: string, wildcard: string): string => `Eine Firewall-Regel nutzt die Wildcard **${wildcard}** für **${network}**. Wie lautet die passende Subnetzmaske, und wie viele Hosts sind nutzbar?`,
         ],
         summarize: [
-            (networks: string) => `Router R1 kennt die Netze ${networks}. Fasse sie zu einer möglichst kleinen Sammelroute zusammen, die alle enthält.`,
-            (networks: string) => `Die Filialen nutzen ${networks}. Welche eine Route trägt die Zentrale ein, um alle zu erreichen? Nimm die kleinste, die alle abdeckt.`,
-            (networks: string) => `Supernetting: Welche kleinste Route umfasst ${networks}?`,
+            (networks: string): string => `Router R1 kennt die Netze ${networks}. Fasse sie zu einer möglichst kleinen Sammelroute zusammen, die alle enthält.`,
+            (networks: string): string => `Die Filialen nutzen ${networks}. Welche eine Route trägt die Zentrale ein, um alle zu erreichen? Nimm die kleinste, die alle abdeckt.`,
+            (networks: string): string => `Supernetting: Welche kleinste Route umfasst ${networks}?`,
         ],
         routeContents: [
-            (network: string, prefix: number, target: number) => `Wie viele **/${target}**-Netze passen in **${network}/${prefix}**? Wie lauten das erste und das letzte davon?`,
-            (network: string, prefix: number, target: number) => `Ein Router hat die Sammelroute **${network}/${prefix}**. Welche **/${target}**-Netze stecken darin? Gib die Anzahl und das erste und letzte Netz an.`,
+            (network: string, prefix: number, target: number): string => `Wie viele **/${target}**-Netze passen in **${network}/${prefix}**? Wie lauten das erste und das letzte davon?`,
+            (network: string, prefix: number, target: number): string => `Ein Router hat die Sammelroute **${network}/${prefix}**. Welche **/${target}**-Netze stecken darin? Gib die Anzahl und das erste und letzte Netz an.`,
         ],
         findMistakeDevices: [
             "In diesem Netz ist ein Gerät falsch konfiguriert. Welches, und was ist falsch?",
@@ -283,45 +283,45 @@ export const subnetText = defineText({
             "Der Azubi hat die Adressen vergeben. Eine Zeile ist falsch: Welche, und warum?",
         ],
         findMistakePlan: [
-            (network: string, prefix: number) => `Für **${network}/${prefix}** wurde dieser Adressplan erstellt. Ein Eintrag ist falsch. Welcher, und was ist das Problem?`,
-            (network: string, prefix: number) => `Die Kollegin hat **${network}/${prefix}** aufgeteilt. Prüf den Plan: Welcher Eintrag ist fehlerhaft und warum?`,
+            (network: string, prefix: number): string => `Für **${network}/${prefix}** wurde dieser Adressplan erstellt. Ein Eintrag ist falsch. Welcher, und was ist das Problem?`,
+            (network: string, prefix: number): string => `Die Kollegin hat **${network}/${prefix}** aufgeteilt. Prüf den Plan: Welcher Eintrag ist fehlerhaft und warum?`,
         ],
         scenarios: {
             company: [
-                (name: string, net: string, list: string) => `Die **${name}** bekommt das Netz **${net}** und möchte es für ihre Abteilungen aufteilen: ${list}.`,
-                (name: string, net: string, list: string) => `Bei der **${name}** wird das Netzwerk neu geplant. Zur Verfügung steht **${net}**. Benötigt werden: ${list}.`,
+                (name: string, net: string, list: string): string => `Die **${name}** bekommt das Netz **${net}** und möchte es für ihre Abteilungen aufteilen: ${list}.`,
+                (name: string, net: string, list: string): string => `Bei der **${name}** wird das Netzwerk neu geplant. Zur Verfügung steht **${net}**. Benötigt werden: ${list}.`,
             ],
             school: [
-                (name: string, net: string, list: string) => `Die **${name}** vernetzt ihr Gebäude neu. Zur Verfügung steht **${net}**. Benötigt werden: ${list}.`,
-                (name: string, net: string, list: string) => `Der Schulträger gibt der **${name}** das Netz **${net}**. Geplant sind: ${list}.`,
+                (name: string, net: string, list: string): string => `Die **${name}** vernetzt ihr Gebäude neu. Zur Verfügung steht **${net}**. Benötigt werden: ${list}.`,
+                (name: string, net: string, list: string): string => `Der Schulträger gibt der **${name}** das Netz **${net}**. Geplant sind: ${list}.`,
             ],
             branches: [
-                (name: string, net: string, list: string) => `Die **${name}** verbindet Zentrale und Filialen. Aus **${net}** brauchst du: ${list}.`,
-                (name: string, net: string, list: string) => `Die **${name}** eröffnet neue Standorte. Alle Netze kommen aus **${net}**: ${list}.`,
+                (name: string, net: string, list: string): string => `Die **${name}** verbindet Zentrale und Filialen. Aus **${net}** brauchst du: ${list}.`,
+                (name: string, net: string, list: string): string => `Die **${name}** eröffnet neue Standorte. Alle Netze kommen aus **${net}**: ${list}.`,
             ],
         } satisfies Record<ScenarioId, unknown>,
         reserve: (percent: number) => `Plane für jedes LAN **${percent} %** Reserve ein (aufrunden).`,
         wanNote: "WAN-Strecken verbinden zwei Router und brauchen genau 2 Adressen.",
         planRule: "Gib jedem Netz die kleinste passende Maske. Die Netze dürfen sich nicht überschneiden und müssen im gegebenen Netz liegen. Tipp: das größte zuerst, lückenlos ab dem Anfang.",
         ipv6Prefix: [
-            (address: string, prefix: number) => `Ein Server hat die Adresse **${address}/${prefix}**. Wie lautet sein Netzpräfix?`,
-            (address: string, prefix: number) => `Aus dem Log: **${address}** mit Präfixlänge **/${prefix}**. Zu welchem Netz gehört die Adresse?`,
+            (address: string, prefix: number): string => `Ein Server hat die Adresse **${address}/${prefix}**. Wie lautet sein Netzpräfix?`,
+            (address: string, prefix: number): string => `Aus dem Log: **${address}** mit Präfixlänge **/${prefix}**. Zu welchem Netz gehört die Adresse?`,
         ],
         ipv6PrefixSite: [
-            (address: string, prefix: number, site: number) => `Der Standort hat ein **/${site}**, die LANs sind **/${prefix}**. Ein Rechner hat **${address}**. Wie lautet sein **/${prefix}**-Netz, und welche Subnetz-ID (hex) hat es?`,
-            (address: string, prefix: number, site: number) => `Dein Provider gibt dir ein **/${site}**. Ein Gerät mit **${address}** liegt in einem **/${prefix}**. Gib das Netz und die Subnetz-ID innerhalb des **/${site}** an.`,
+            (address: string, prefix: number, site: number): string => `Der Standort hat ein **/${site}**, die LANs sind **/${prefix}**. Ein Rechner hat **${address}**. Wie lautet sein **/${prefix}**-Netz, und welche Subnetz-ID (hex) hat es?`,
+            (address: string, prefix: number, site: number): string => `Dein Provider gibt dir ein **/${site}**. Ein Gerät mit **${address}** liegt in einem **/${prefix}**. Gib das Netz und die Subnetz-ID innerhalb des **/${site}** an.`,
         ],
         ipv6NthSubnet: [
-            (network: string, prefix: number, nth: number) => `Aus **${network}/${prefix}** werden **/64**-Netze vergeben, das erste hat die Subnetz-ID 0. Wie lautet das **${nth}.** /64-Netz?`,
-            (network: string, prefix: number, nth: number) => `Die Firma nummeriert ihre VLANs ab 1 und gibt VLAN n das n-te /64 aus **${network}/${prefix}**. Welches Netz bekommt VLAN **${nth}**?`,
+            (network: string, prefix: number, nth: number): string => `Aus **${network}/${prefix}** werden **/64**-Netze vergeben, das erste hat die Subnetz-ID 0. Wie lautet das **${nth}.** /64-Netz?`,
+            (network: string, prefix: number, nth: number): string => `Die Firma nummeriert ihre VLANs ab 1 und gibt VLAN n das n-te /64 aus **${network}/${prefix}**. Welches Netz bekommt VLAN **${nth}**?`,
         ],
         ipv6Type: [
-            (address: string) => `Welcher Adresstyp ist **${address}**?`,
-            (address: string) => `In „ipconfig“ steht **${address}**. Was für eine Adresse ist das?`,
+            (address: string): string => `Welcher Adresstyp ist **${address}**?`,
+            (address: string): string => `In „ipconfig“ steht **${address}**. Was für eine Adresse ist das?`,
         ],
         eui64: [
-            (mac: string) => `Eine Netzwerkkarte hat die MAC-Adresse **${mac}**. Bilde die Interface-ID nach modifiziertem EUI-64 und die Link-Local-Adresse daraus.`,
-            (mac: string) => `SLAAC mit EUI-64: Welche Interface-ID und welche Link-Local-Adresse (fe80::/64) erzeugt ein Gerät mit der MAC **${mac}**?`,
+            (mac: string): string => `Eine Netzwerkkarte hat die MAC-Adresse **${mac}**. Bilde die Interface-ID nach modifiziertem EUI-64 und die Link-Local-Adresse daraus.`,
+            (mac: string): string => `SLAAC mit EUI-64: Welche Interface-ID und welche Link-Local-Adresse (fe80::/64) erzeugt ein Gerät mit der MAC **${mac}**?`,
         ],
     },
     fields: {
@@ -719,103 +719,103 @@ export const subnetText = defineText({
     withMask: (address: string, mask: string) => `${address} with the mask ${mask}`,
     prompts: {
         networkBroadcast: [
-            (net: string) => `Find the network address and the broadcast address of **${net}**.`,
-            (net: string) => `A laptop in the company network has the IP configuration **${net}**. Which network is it in, and what is the broadcast address?`,
-            (net: string) => `The network printer in the staff room shows **${net}**. Give the network and broadcast address of its network.`,
-            (net: string) => `A colleague asks whether **${net}** is a network address. Work it out: what are the network and broadcast address?`,
+            (net: string): string => `Find the network address and the broadcast address of **${net}**.`,
+            (net: string): string => `A laptop in the company network has the IP configuration **${net}**. Which network is it in, and what is the broadcast address?`,
+            (net: string): string => `The network printer in the staff room shows **${net}**. Give the network and broadcast address of its network.`,
+            (net: string): string => `A colleague asks whether **${net}** is a network address. Work it out: what are the network and broadcast address?`,
         ],
         hostRange: [
-            (net: string) => `A computer has the address **${net}**. Find the first and last usable host of its network and the number of usable hosts.`,
-            (net: string) => `Static addresses are to be assigned in the network of **${net}**. Which range is usable and how many hosts fit?`,
-            (net: string) => `The DHCP range should cover the whole network of **${net}**. Give the first and last assignable address and the number of hosts.`,
+            (net: string): string => `A computer has the address **${net}**. Find the first and last usable host of its network and the number of usable hosts.`,
+            (net: string): string => `Static addresses are to be assigned in the network of **${net}**. Which range is usable and how many hosts fit?`,
+            (net: string): string => `The DHCP range should cover the whole network of **${net}**. Give the first and last assignable address and the number of hosts.`,
         ],
         hostCount: [
-            (mask: string) => `How many hosts are usable with **${mask}**?`,
-            (mask: string) => `A department gets a network with **${mask}**. How many devices can you address in it?`,
-            (mask: string) => `The network plan of a branch says **${mask}**. How many usable host addresses does the network have?`,
+            (mask: string): string => `How many hosts are usable with **${mask}**?`,
+            (mask: string): string => `A department gets a network with **${mask}**. How many devices can you address in it?`,
+            (mask: string): string => `The network plan of a branch says **${mask}**. How many usable host addresses does the network have?`,
         ],
         maskToPrefix: [
-            (mask: string) => `Which prefix belongs to the subnet mask **${mask}**?`,
-            (mask: string) => `An old configuration contains the mask **${mask}**. Write it in CIDR notation.`,
+            (mask: string): string => `Which prefix belongs to the subnet mask **${mask}**?`,
+            (mask: string): string => `An old configuration contains the mask **${mask}**. Write it in CIDR notation.`,
         ],
         prefixToMask: [
-            (prefix: number) => `What is the subnet mask for **/${prefix}** in dotted notation?`,
-            (prefix: number) => `A device only understands dotted notation. Which mask do you enter for **/${prefix}**?`,
+            (prefix: number): string => `What is the subnet mask for **/${prefix}** in dotted notation?`,
+            (prefix: number): string => `A device only understands dotted notation. Which mask do you enter for **/${prefix}**?`,
         ],
         split: [
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `The network **${network}/${prefix}** is to be split into **${count}** equal subnets. Which prefix do the subnets have? What are the network and broadcast address of subnet number **${nth}**?`,
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `A company splits **${network}/${prefix}** evenly across **${count}** sites. Which prefix does each site get, and which network (network and broadcast address) does site **${nth}** have?`,
-            (network: string, prefix: number, count: number, nth: number) =>
+            (network: string, prefix: number, count: number, nth: number): string =>
                 `For **${count}** VLANs, **${network}/${prefix}** is cut into equal networks, numbered from 1. Give the prefix and the network and broadcast address of VLAN network **${nth}**.`,
         ],
         vlsm: [
-            (network: string, prefix: number, departments: string) =>
+            (network: string, prefix: number, departments: string): string =>
                 `Split **${network}/${prefix}** with VLSM: ${departments}. Assign the networks without gaps from the start, largest department first. Give the network address and prefix of every department.`,
-            (network: string, prefix: number, departments: string) =>
+            (network: string, prefix: number, departments: string): string =>
                 `IT re-plans **${network}/${prefix}**: ${departments}. Assign the networks without gaps from the start, largest network first, and give network address and prefix.`,
         ],
         department: (name: string, hosts: number) => `**${name}** ${hosts} hosts`,
         ipv6Shorten: [
-            (address: string) => `Shorten the IPv6 address as far as possible (RFC 5952): **${address}**`,
-            (address: string) => `The documentation should show **${address}** short and by the rules. What is the shortest notation?`,
+            (address: string): string => `Shorten the IPv6 address as far as possible (RFC 5952): **${address}**`,
+            (address: string): string => `The documentation should show **${address}** short and by the rules. What is the shortest notation?`,
         ],
         ipv6Expand: [
-            (address: string) => `Write out the IPv6 address in full, 8 groups of 4 hex digits: **${address}**`,
-            (address: string) => `A firewall rule needs **${address}** at full length. Write out all 32 hex digits.`,
+            (address: string): string => `Write out the IPv6 address in full, 8 groups of 4 hex digits: **${address}**`,
+            (address: string): string => `A firewall rule needs **${address}** at full length. Write out all 32 hex digits.`,
         ],
         ipv6Subnets: [
-            (network: string, prefix: number, target: number) => `A site gets the prefix **${network}/${prefix}**. How many **/${target}** subnets can be made from it?`,
-            (network: string, prefix: number, target: number) => `Your provider assigns **${network}/${prefix}**. How many **/${target}** networks can you make from it?`,
+            (network: string, prefix: number, target: number): string => `A site gets the prefix **${network}/${prefix}**. How many **/${target}** subnets can be made from it?`,
+            (network: string, prefix: number, target: number): string => `Your provider assigns **${network}/${prefix}**. How many **/${target}** networks can you make from it?`,
         ],
         hostSubnet: [
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `The network **${network}/${prefix}** is split into **/${subPrefix}** subnets, numbered from 1. Which subnet contains the host **${host}**? Give its number, network and broadcast address.`,
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `A school cut **${network}/${prefix}** into classroom networks with **/${subPrefix}** (room 1 is the first network). A tablet shows up with **${host}**. Which room does it belong to, and what are the network and broadcast address?`,
-            (network: string, prefix: number, subPrefix: number, host: string) =>
+            (network: string, prefix: number, subPrefix: number, host: string): string =>
                 `**${host}** appears in the log. The company network **${network}/${prefix}** is split into **/${subPrefix}** networks, network 1 starts at the beginning. Which network is it (number, network address, broadcast)?`,
         ],
         sameSubnet: [
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `**${a}** has **${aAddress}**, **${b}** has **${bAddress}**, both with **${mask}**. Are they in the same subnet? Also give both network addresses.`,
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `Can **${a}** (**${aAddress}**) and **${b}** (**${bAddress}**) talk to each other without a router? Both use the mask **${mask}**. Show it with the network addresses.`,
-            (a: string, aAddress: string, b: string, bAddress: string, mask: string) =>
+            (a: string, aAddress: string, b: string, bAddress: string, mask: string): string =>
                 `A ticket: “**${a}** cannot reach **${b}**.” ${a} has **${aAddress}**, ${b} has **${bAddress}**, mask **${mask}** on both. Are they in the same network?`,
         ],
         hostsToPrefix: [
-            (hosts: number, segment: string) => `The department **${segment}** needs **${hosts}** host addresses. Which is the smallest mask that is enough? How many hosts does the network have then?`,
-            (hosts: number, segment: string) => `**${hosts}** devices are planned for **${segment}**. Which prefix wastes the fewest addresses, and how many hosts are usable with it?`,
-            (hosts: number, segment: string) => `A network has to hold exactly **${hosts}** hosts (**${segment}**). Give the smallest fitting mask and the number of usable hosts.`,
+            (hosts: number, segment: string): string => `The department **${segment}** needs **${hosts}** host addresses. Which is the smallest mask that is enough? How many hosts does the network have then?`,
+            (hosts: number, segment: string): string => `**${hosts}** devices are planned for **${segment}**. Which prefix wastes the fewest addresses, and how many hosts are usable with it?`,
+            (hosts: number, segment: string): string => `A network has to hold exactly **${hosts}** hosts (**${segment}**). Give the smallest fitting mask and the number of usable hosts.`,
         ],
         subnetsToPrefix: [
-            (network: string, prefix: number, count: number, minHosts: number | null) =>
+            (network: string, prefix: number, count: number, minHosts: number | null): string =>
                 `**${network}/${prefix}** is to become at least **${count}** equal subnets${minHosts ? ` with at least **${minHosts}** hosts each` : ""}. Which mask do you use (as many hosts per subnet as possible)? How many subnets do you actually get, and how many hosts does each have?`,
-            (network: string, prefix: number, count: number, minHosts: number | null) =>
+            (network: string, prefix: number, count: number, minHosts: number | null): string =>
                 `A company with **${count}** departments wants to split **${network}/${prefix}** evenly${minHosts ? `, each department needs up to **${minHosts}** hosts` : ""}. Which subnet mask fits with the most hosts per network? How many subnets and hosts per subnet does that give?`,
         ],
         reverseMask: [
-            (network: string, broadcast: string) => `A network has the network address **${network}** and the broadcast address **${broadcast}**. What is the mask, and how many hosts are usable?`,
-            (network: string, broadcast: string) => `The network plan only says “**${network} to ${broadcast}**”. Which prefix does the network have, and how many hosts fit?`,
+            (network: string, broadcast: string): string => `A network has the network address **${network}** and the broadcast address **${broadcast}**. What is the mask, and how many hosts are usable?`,
+            (network: string, broadcast: string): string => `The network plan only says “**${network} to ${broadcast}**”. Which prefix does the network have, and how many hosts fit?`,
         ],
         wildcard: [
-            (network: string, prefix: number) => `An ACL on the router needs the wildcard mask for the network **${network}/${prefix}**. What is it?`,
-            (network: string, prefix: number) => `OSPF should announce the network **${network}/${prefix}**: “network ${network} ? area 0”. Which wildcard mask replaces the question mark?`,
+            (network: string, prefix: number): string => `An ACL on the router needs the wildcard mask for the network **${network}/${prefix}**. What is it?`,
+            (network: string, prefix: number): string => `OSPF should announce the network **${network}/${prefix}**: “network ${network} ? area 0”. Which wildcard mask replaces the question mark?`,
         ],
         wildcardReverse: [
-            (network: string, wildcard: string) => `An ACL says **permit ${network} ${wildcard}**. Which prefix (or mask) does the network have, and how many hosts does it cover?`,
-            (network: string, wildcard: string) => `A firewall rule uses the wildcard **${wildcard}** for **${network}**. What is the matching subnet mask, and how many hosts are usable?`,
+            (network: string, wildcard: string): string => `An ACL says **permit ${network} ${wildcard}**. Which prefix (or mask) does the network have, and how many hosts does it cover?`,
+            (network: string, wildcard: string): string => `A firewall rule uses the wildcard **${wildcard}** for **${network}**. What is the matching subnet mask, and how many hosts are usable?`,
         ],
         summarize: [
-            (networks: string) => `Router R1 knows the networks ${networks}. Summarize them into the smallest single route that contains all of them.`,
-            (networks: string) => `The branches use ${networks}. Which one route does the head office add to reach all of them? Take the smallest that covers all.`,
-            (networks: string) => `Supernetting: which smallest route covers ${networks}?`,
+            (networks: string): string => `Router R1 knows the networks ${networks}. Summarize them into the smallest single route that contains all of them.`,
+            (networks: string): string => `The branches use ${networks}. Which one route does the head office add to reach all of them? Take the smallest that covers all.`,
+            (networks: string): string => `Supernetting: which smallest route covers ${networks}?`,
         ],
         routeContents: [
-            (network: string, prefix: number, target: number) => `How many **/${target}** networks fit into **${network}/${prefix}**? What are the first and the last of them?`,
-            (network: string, prefix: number, target: number) => `A router has the summary route **${network}/${prefix}**. Which **/${target}** networks does it contain? Give the number and the first and last network.`,
+            (network: string, prefix: number, target: number): string => `How many **/${target}** networks fit into **${network}/${prefix}**? What are the first and the last of them?`,
+            (network: string, prefix: number, target: number): string => `A router has the summary route **${network}/${prefix}**. Which **/${target}** networks does it contain? Give the number and the first and last network.`,
         ],
         findMistakeDevices: [
             "One device in this network is configured wrongly. Which one, and what is wrong?",
@@ -823,45 +823,45 @@ export const subnetText = defineText({
             "The trainee assigned the addresses. One row is wrong: which one, and why?",
         ],
         findMistakePlan: [
-            (network: string, prefix: number) => `This address plan was made for **${network}/${prefix}**. One entry is wrong. Which one, and what is the problem?`,
-            (network: string, prefix: number) => `A colleague split **${network}/${prefix}**. Check the plan: which entry is faulty and why?`,
+            (network: string, prefix: number): string => `This address plan was made for **${network}/${prefix}**. One entry is wrong. Which one, and what is the problem?`,
+            (network: string, prefix: number): string => `A colleague split **${network}/${prefix}**. Check the plan: which entry is faulty and why?`,
         ],
         scenarios: {
             company: [
-                (name: string, net: string, list: string) => `**${name}** gets the network **${net}** and wants to split it for its departments: ${list}.`,
-                (name: string, net: string, list: string) => `The network of **${name}** is being re-planned. **${net}** is available. Needed: ${list}.`,
+                (name: string, net: string, list: string): string => `**${name}** gets the network **${net}** and wants to split it for its departments: ${list}.`,
+                (name: string, net: string, list: string): string => `The network of **${name}** is being re-planned. **${net}** is available. Needed: ${list}.`,
             ],
             school: [
-                (name: string, net: string, list: string) => `**${name}** re-wires its building. **${net}** is available. Needed: ${list}.`,
-                (name: string, net: string, list: string) => `The school authority gives **${name}** the network **${net}**. Planned: ${list}.`,
+                (name: string, net: string, list: string): string => `**${name}** re-wires its building. **${net}** is available. Needed: ${list}.`,
+                (name: string, net: string, list: string): string => `The school authority gives **${name}** the network **${net}**. Planned: ${list}.`,
             ],
             branches: [
-                (name: string, net: string, list: string) => `**${name}** connects its head office and branches. From **${net}** you need: ${list}.`,
-                (name: string, net: string, list: string) => `**${name}** opens new sites. All networks come from **${net}**: ${list}.`,
+                (name: string, net: string, list: string): string => `**${name}** connects its head office and branches. From **${net}** you need: ${list}.`,
+                (name: string, net: string, list: string): string => `**${name}** opens new sites. All networks come from **${net}**: ${list}.`,
             ],
         },
         reserve: (percent: number) => `Plan a reserve of **${percent} %** for every LAN (round up).`,
         wanNote: "WAN links connect two routers and need exactly 2 addresses.",
         planRule: "Give every network the smallest fitting mask. The networks must not overlap and must lie inside the given network. Tip: largest first, without gaps from the start.",
         ipv6Prefix: [
-            (address: string, prefix: number) => `A server has the address **${address}/${prefix}**. What is its network prefix?`,
-            (address: string, prefix: number) => `From the log: **${address}** with prefix length **/${prefix}**. Which network does the address belong to?`,
+            (address: string, prefix: number): string => `A server has the address **${address}/${prefix}**. What is its network prefix?`,
+            (address: string, prefix: number): string => `From the log: **${address}** with prefix length **/${prefix}**. Which network does the address belong to?`,
         ],
         ipv6PrefixSite: [
-            (address: string, prefix: number, site: number) => `The site has a **/${site}**, the LANs are **/${prefix}**. A computer has **${address}**. What is its **/${prefix}** network, and which subnet ID (hex) does it have?`,
-            (address: string, prefix: number, site: number) => `Your provider gives you a **/${site}**. A device with **${address}** is in a **/${prefix}**. Give the network and the subnet ID inside the **/${site}**.`,
+            (address: string, prefix: number, site: number): string => `The site has a **/${site}**, the LANs are **/${prefix}**. A computer has **${address}**. What is its **/${prefix}** network, and which subnet ID (hex) does it have?`,
+            (address: string, prefix: number, site: number): string => `Your provider gives you a **/${site}**. A device with **${address}** is in a **/${prefix}**. Give the network and the subnet ID inside the **/${site}**.`,
         ],
         ipv6NthSubnet: [
-            (network: string, prefix: number, nth: number) => `**/64** networks are assigned from **${network}/${prefix}**, the first has the subnet ID 0. What is the **${nth}th** /64 network?`,
-            (network: string, prefix: number, nth: number) => `The company numbers its VLANs from 1 and gives VLAN n the n-th /64 from **${network}/${prefix}**. Which network does VLAN **${nth}** get?`,
+            (network: string, prefix: number, nth: number): string => `**/64** networks are assigned from **${network}/${prefix}**, the first has the subnet ID 0. What is the **${nth}th** /64 network?`,
+            (network: string, prefix: number, nth: number): string => `The company numbers its VLANs from 1 and gives VLAN n the n-th /64 from **${network}/${prefix}**. Which network does VLAN **${nth}** get?`,
         ],
         ipv6Type: [
-            (address: string) => `Which address type is **${address}**?`,
-            (address: string) => `“ipconfig” shows **${address}**. What kind of address is it?`,
+            (address: string): string => `Which address type is **${address}**?`,
+            (address: string): string => `“ipconfig” shows **${address}**. What kind of address is it?`,
         ],
         eui64: [
-            (mac: string) => `A network card has the MAC address **${mac}**. Build the interface ID by modified EUI-64 and the link-local address from it.`,
-            (mac: string) => `SLAAC with EUI-64: which interface ID and which link-local address (fe80::/64) does a device with the MAC **${mac}** create?`,
+            (mac: string): string => `A network card has the MAC address **${mac}**. Build the interface ID by modified EUI-64 and the link-local address from it.`,
+            (mac: string): string => `SLAAC with EUI-64: which interface ID and which link-local address (fe80::/64) does a device with the MAC **${mac}** create?`,
         ],
     },
     fields: {

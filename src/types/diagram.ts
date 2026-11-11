@@ -25,15 +25,15 @@ export type GenericNodeType = "np" | "rect" | "ellipse" | "diamond" | "text";
 export type UmlNodeType =
     | "class" | "object" | "actor" | "usecase" | "boundary"
     | "start" | "end" | "flowend" | "action" | "decision" | "bar"
-    | "signal" | "accept" | "objnode" | "lane" | "state"
-    | "lifeline" | "actline" | "activation" | "fragment"
-    | "component" | "iface" | "node3d" | "artifact" | "package" | "note"
+    | "signal" | "accept" | "objnode" | "lane" | "state" | "compstate" | "history" | "deephist"
+    | "lifeline" | "actline" | "activation" | "fragment" | "destroy" | "operand" | "invariant"
+    | "component" | "port" | "iface" | "node3d" | "artifact" | "package" | "note"
     | "entity" | "relship" | "erattr" | "table" | "sheet";
 
 export type NodeType = GenericNodeType | UmlNodeType;
 
-/** Empty = normal class or attribute. ER attributes: "key" (underlined), "multi" (double ellipse), "derived" (dashed). */
-export type Stereotype = "" | "abstract" | "interface" | "enum" | "key" | "multi" | "derived";
+/** Empty = normal class or attribute. ER attributes: "key" (underlined), "partial" (dashed underline, key of a weak entity), "multi" (double ellipse), "derived" (dashed). ER: entity "weak" (double border), relationship "ident" (double diamond). */
+export type Stereotype = "" | "abstract" | "interface" | "enum" | "key" | "multi" | "derived" | "partial" | "weak" | "ident";
 
 export interface DiagramNode {
     id: number;
@@ -56,7 +56,9 @@ export type ActivityNode = DiagramNode & { type: "np"; f: ActivityFields };
 
 export type RelationKind =
     | "flow" | "assoc" | "dir" | "inherit" | "realize" | "aggr" | "comp"
-    | "dep" | "include" | "extend" | "msg" | "async" | "reply" | "anchor"
+    | "dep" | "include" | "extend" | "msg" | "async" | "reply" | "create" | "anchor"
+    /** Component, deployment and package diagrams: required interface (socket), delegation, «deploy», «manifest», «import», «access», «merge» */
+    | "require" | "delegate" | "deploy" | "manifest" | "import" | "access" | "merge"
     /** ER line (cardinality in `label`) and table relation (1/n in `m1`/`m2`) */
     | "erl" | "fk";
 

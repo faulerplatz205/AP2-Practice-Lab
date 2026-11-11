@@ -149,3 +149,9 @@ describe("helpers", () => {
         expect(prefixForHosts(1.5)).toBeNull();
     });
 });
+
+describe("parseCidr with address/mask", () => {
+    it("reads a dotted mask after the slash", () => {
+        expect(parseCidr("192.168.1.1/255.255.255.0")).toEqual(parseCidr("192.168.1.1/24"));
+    });
+});

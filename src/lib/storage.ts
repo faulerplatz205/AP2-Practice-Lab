@@ -2,6 +2,17 @@ import { STORAGE_KEY } from "./constants";
 
 /** Never throws: in private mode, with full storage or blocked data it returns `null` or `false`. */
 export const storage = {
+    /** Whether the browser lets the page store anything at all (false: private mode or blocked site data, not "full"). */
+    available(): boolean {
+        try {
+            const probe = STORAGE_KEY + "-probe";
+            localStorage.setItem(probe, "1");
+            localStorage.removeItem(probe);
+            return true;
+        } catch {
+            return false;
+        }
+    },
     read<T>(suffix: string): T | null {
         try {
             const raw = localStorage.getItem(STORAGE_KEY + suffix);

@@ -12,18 +12,23 @@ export function ErShape({ node: n, fill }: { node: DiagramNode; fill: string }):
     const { w, h } = n;
     switch (n.type) {
         case "entity":
-            return <><rect width={w} height={h} fill={fill} {...line} /><MultilineText text={n.text} x={w / 2} y={h / 2} size={14.5} weight="700" maxWidth={w - 12} /></>;
+            return <>
+                <rect width={w} height={h} fill={fill} {...line} />
+                {n.stereo === "weak" && <rect x={4} y={4} width={w - 8} height={h - 8} fill="none" {...line} />}
+                <MultilineText text={n.text} x={w / 2} y={h / 2} size={14.5} weight="700" maxWidth={w - 18} />
+            </>;
         case "relship":
             return <>
                 <path d={`M${w / 2} 0L${w} ${h / 2}L${w / 2} ${h}L0 ${h / 2}Z`} fill={fill} {...line} strokeLinejoin="round" />
+                {n.stereo === "ident" && <path d={`M${w / 2} 7L${w - 12} ${h / 2}L${w / 2} ${h - 7}L12 ${h / 2}Z`} fill="none" {...line} strokeLinejoin="round" />}
                 <MultilineText text={n.text} x={w / 2} y={h / 2} size={13.5} maxWidth={w * 0.56} />
             </>;
         case "erattr": {
-            const key = n.stereo === "key";
+            const key = n.stereo === "key" || n.stereo === "partial";
             return <>
                 <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} strokeDasharray={n.stereo === "derived" ? "5 4" : undefined} />
                 {n.stereo === "multi" && <ellipse cx={w / 2} cy={h / 2} rx={w / 2 - 4} ry={h / 2 - 4} fill="none" {...line} />}
-                <MultilineText text={n.text} x={w / 2} y={h / 2} size={13} weight={key ? "700" : "500"} underline={key} maxWidth={w * 0.78} />
+                <MultilineText text={n.text} x={w / 2} y={h / 2} size={13} weight={key ? "700" : "500"} underline={key} dashed={n.stereo === "partial"} maxWidth={w * 0.78} />
             </>;
         }
         default:

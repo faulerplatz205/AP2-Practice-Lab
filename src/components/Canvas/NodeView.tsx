@@ -12,6 +12,8 @@ import { MultilineText } from "./SvgText";
 export interface NodeViewProps {
     node: DiagramNode;
     selected?: boolean;
+    /** Part of a selection of several nodes: outlined, without handles */
+    grouped?: boolean;
     /** Start node of an arrow being drawn */
     pending?: boolean;
     marks?: MarkSet;
@@ -39,7 +41,7 @@ function GenericShape({ node: n, fill, critical }: { node: DiagramNode; fill: st
 }
 
 /** Pointer handling maps clicks to a node via `data-id`; `data-handle` is the resize handle, `data-port` the arrow handle at the edge. */
-export function NodeView({ node: n, selected, pending, marks }: NodeViewProps): ReactElement {
+export function NodeView({ node: n, selected, grouped, pending, marks }: NodeViewProps): ReactElement {
     const fill = n.fill ? FILLS[n.fill].color : "var(--node)";
     const critical = isCritical(n);
     return (
@@ -48,12 +50,12 @@ export function NodeView({ node: n, selected, pending, marks }: NodeViewProps): 
                 ? <ActivityShape node={n} fill={fill} critical={critical} marks={marks} />
                 : isUml(n.type) ? <UmlShape node={n} fill={fill} /> : <GenericShape node={n} fill={fill} critical={critical} />}
             {marks?.has(`n:${n.id}`) && <rect x="-6" y="-6" width={n.w + 12} height={n.h + 12} fill="none" stroke="var(--crit)" strokeWidth="2" strokeDasharray="6 4" rx="4" />}
-            {(selected || pending) && <rect x="-4" y="-4" width={n.w + 8} height={n.h + 8} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="5 3" rx="3" />}
+            {(selected || grouped || pending) && <rect className="selbox" x="-4" y="-4" width={n.w + 8} height={n.h + 8} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray={pending ? "5 3" : undefined} rx="4" pointerEvents="none" />}
             {selected && !pending && !FRAME_TYPES.has(n.type) && <>
                 {[[ n.w / 2, -4 ], [ n.w + 4, n.h / 2 ], [ n.w / 2, n.h + 4 ], [ -4, n.h / 2 ]].map(([ cx, cy ], i) =>
                     <circle key={i} className="prt" data-port={n.id} cx={cx} cy={cy} r="5" />)}
             </>}
-            {selected && <rect className="hdl" data-handle={n.id} x={n.w - 2} y={n.h - 2} width="10" height="10" rx="2" fill="var(--accent)" stroke="var(--node)" strokeWidth="1.5" />}
+            {selected && <rect className="hdl" data-handle={n.id} x={n.w - 1} y={n.h - 1} width="10" height="10" rx="3" fill="var(--node)" stroke="var(--accent)" strokeWidth="1.5" />}
         </g>
     );
 }
