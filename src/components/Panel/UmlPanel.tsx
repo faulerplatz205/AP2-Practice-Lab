@@ -123,6 +123,10 @@ export function UmlPanel({ node: n }: { node: DiagramNode }): ReactElement | nul
         {n.type === "state" && <label className="field">{t.stateActivities}
             <LiveTextarea id="f-attrs" className="mono" placeholder={"entry / …\ndo / …\nexit / …"} value={n.attrs ?? ""} write={write("attrs")} />
         </label>}
+        {n.type === "usecase" && <label className="field">{t.extensionPoints}
+            <LiveTextarea id="f-attrs" placeholder={t.extensionPointsPlaceholder} value={n.attrs ?? ""} write={write("attrs")} />
+        </label>}
+        {n.type === "note" && <p>{t.noteOnLineHint}</p>}
         {n.type === "history" && <p>{t.historyHint}</p>}
         {n.type === "deephist" && <p>{t.deepHistoryHint}</p>}
         {n.type !== "sheet" && <SizeFields node={n} height={![ "class", "object", "table" ].includes(n.type)} />}

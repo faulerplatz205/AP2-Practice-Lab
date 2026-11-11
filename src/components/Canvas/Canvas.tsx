@@ -2,14 +2,14 @@ import { type PointerEvent as ReactPointerEvent, type ReactElement, type WheelEv
 import clsx from "clsx";
 import type { Diagram, DiagramNode, Point, Rect } from "../../types/diagram";
 import { selectedNodeIds, useDiagram } from "../../state/diagramStore";
-import { beginArrowFrom, closeEditor, connectTo, handleDoubleClick, importFile, placeNode, select, selectNodes, setTool, spawnFrom, startConnection, toggleSelected, withCarried } from "../../state/actions";
+import { beginArrowFrom, closeEditor, connectTo, connectToEdge, handleDoubleClick, importFile, placeNode, select, selectNodes, setTool, spawnFrom, startConnection, toggleSelected, withCarried } from "../../state/actions";
 import { registerCanvas, toWorld, zoomAt } from "../../state/viewport";
 import { runCheck } from "../../lib/check";
 import { findNode, minSize } from "../../lib/diagram";
 import { snap } from "../../lib/math";
 import { RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, isUml } from "../../lib/uml/types";
 import { outline } from "../../lib/uml/outline";
-import { fragmentOf, headHeight, isLifeline, isMessage, messageOffset, messageY, moveMessage, nearestLifeline, ownerOf, pinnedTarget } from "../../lib/uml/sequence";
+import { fragmentOf, headHeight, isLifeline, isMessage, messageOffset, messageY, moveMessage, nearestLifeline, nestedX, ownerOf, pinnedTarget, settleActivations } from "../../lib/uml/sequence";
 import { GRID } from "../../lib/constants";
 import { anchorPoint, inside, overlaps } from "../../lib/geometry";
 import { useSpaceKey } from "../../hooks/useSpaceKey";
@@ -150,6 +150,9 @@ export function Canvas(): ReactElement {
         }
 
         if (state.tool === "arrow") {
+            // a note hangs on a line as well: the arrow was started on the note and the click hits a line
+            const lineEl = target.closest<SVGElement>("[data-eid]");
+            if (lineEl && state.pendingFrom !== null && findNode(state.doc, state.pendingFrom)?.type === "note") return connectToEdge(Number(lineEl.dataset.eid));
             if (!nodeEl) {
                 if (state.arrowOnce) setTool("select");
                 else state.set({ pendingFrom: null });
@@ -244,8 +247,9 @@ export function Canvas(): ReactElement {
             if (!d.group && (n.type === "activation" || n.type === "destroy" || n.type === "invariant")) {
                 // parts of a lifeline stay on a dashed line: the nearest one, so they can change the lifeline but not float
                 const l = nearestLifeline(state.doc.nodes, p.x - d.ox + n.w / 2, 70);
-                if (l) nx = l.x + l.w / 2 - n.w / 2;
                 if (n.type === "activation") ny = snap(p.y - d.oy);
+                // a bar dragged onto a running bar lands next to it (nested)
+                if (l) nx = n.type === "activation" ? nestedX(state.doc.nodes, n, l, ny) : l.x + l.w / 2 - n.w / 2;
             }
             // a separator line moves up and down inside its fragment
             if (!d.group && n.type === "operand" && fragmentOf(n, state.doc.nodes)) nx = n.x;
@@ -263,6 +267,7 @@ export function Canvas(): ReactElement {
                     if (!head) m.y += dy;
                 }
                 if (head && dy) moveLifelineHead(x, findNode(x, d.id)!, dy);
+                if (n.type === "activation") settleActivations(x.nodes);
             }, { history: !d.moved });
             d.moved = true;
             return;
@@ -280,6 +285,7 @@ export function Canvas(): ReactElement {
                 if (m.type === "fragment") for (const o of x.nodes) if (o.type === "operand" && fragmentOf(o, x.nodes) === m) o.w = w;
                 m.w = w;
                 m.h = h;
+                if (m.type === "activation") settleActivations(x.nodes);
             }, { history: !d.moved });
             d.moved = true;
         }

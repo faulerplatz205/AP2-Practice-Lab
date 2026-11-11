@@ -4,7 +4,7 @@ import { snap } from "../math";
 import { detourGeometry, erGeometry, isClear, obstacles, parallelGeometry, type EdgeGeometry } from "./detour";
 import { outline } from "./outline";
 import { FLOW_TYPES, RELATIONS, SEQUENCE_TYPES, isUml } from "./types";
-import { activationAt, messageY, ownerOf, pinnedTarget } from "./sequence";
+import { SELF_DROP, activationAt, messageY, ownerOf, pinnedTarget } from "./sequence";
 
 export type { EdgeGeometry } from "./detour";
 
@@ -93,8 +93,9 @@ function messageX(d: Diagram, n: DiagramNode, y: number, dir: number, isSource: 
 function messageGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode): EdgeGeometry {
     const y = messageY(e, a, b);
     if (a.id === b.id) {
-        const x = messageX(d, a, y, 1, true), x2 = messageX(d, a, y + 30, -1, false);
-        return { d: `M${x} ${y}H${x + 46}V${y + 30}H${x2}`, lx: x + 52, ly: y + 18, anc: "start", s: [ x, y ], sd: [ 1, 0 ], t: [ x2, y + 30 ], td: [ 1, 0 ] };
+        // leaves the running bar and comes back onto the nested bar of the self call, if there is one
+        const x = messageX(d, a, y, 1, true), x2 = messageX(d, a, y + SELF_DROP, -1, false), out = Math.max(x, x2) + 46;
+        return { d: `M${x} ${y}H${out}V${y + SELF_DROP}H${x2}`, lx: out + 6, ly: y + 18, anc: "start", s: [ x, y ], sd: [ 1, 0 ], t: [ x2, y + SELF_DROP ], td: [ 1, 0 ] };
     }
     const dir = Math.sign((b.x + b.w / 2) - (a.x + a.w / 2)) || 1;
     const x1 = messageX(d, a, y, dir, true);
@@ -605,6 +606,32 @@ function elbowGeometry(d: Diagram, a: DiagramNode, b: DiagramNode, rail: number 
     return geometry(usual);
 }
 
+/** Point half way along a path. */
+function midpoint(points: Vec[]): Vec {
+    const lengths = points.slice(1).map((q, i) => Math.hypot(q[0] - points[i][0], q[1] - points[i][1]));
+    let rest = lengths.reduce((sum, l) => sum + l, 0) / 2;
+    for (let i = 0; i < lengths.length; i++) {
+        if (rest <= lengths[i] && lengths[i] > 0) {
+            const f = rest / lengths[i];
+            return [ points[i][0] + (points[i + 1][0] - points[i][0]) * f, points[i][1] + (points[i + 1][1] - points[i][1]) * f ];
+        }
+        rest -= lengths[i];
+    }
+    return points[points.length - 1] ?? [ 0, 0 ];
+}
+
+/** Anchor of a note that hangs on a line (`e.on`): from the note to the middle of that line; null when the line is gone. */
+function lineAnchorGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode, ctx?: RouteContext): EdgeGeometry | null {
+    const target = d.edges.find(x => x.id === e.on), note = a.type === "note" ? a : b;
+    if (!target || target.on !== undefined) return null;
+    const from = d.nodes.find(n => n.id === target.from), to = d.nodes.find(n => n.id === target.to);
+    if (!from || !to) return null;
+    const [ tx, ty ] = midpoint(pathPoints(edgeGeometry(d, target, from, to, ctx).d));
+    const [ sx, sy ] = anchorPoint(note, outline(note), tx, ty);
+    const len = Math.hypot(tx - sx, ty - sy) || 1, ux = (tx - sx) / len, uy = (ty - sy) / len;
+    return { d: `M${sx} ${sy}L${tx} ${ty}`, lx: (sx + tx) / 2, ly: (sy + ty) / 2 - 6, s: [ sx, sy ], sd: [ ux, uy ], t: [ tx, ty ], td: [ -ux, -uy ] };
+}
+
 /**
  * Path of an edge. Order of the cases: message (sequence) > self loop > control flow > network diagram elbow >
  * ER line > parallel relations > detour around shapes > straight line.
@@ -612,6 +639,10 @@ function elbowGeometry(d: Diagram, a: DiagramNode, b: DiagramNode, rail: number 
  */
 export function edgeGeometry(d: Diagram, e: DiagramEdge, a: DiagramNode, b: DiagramNode, ctx?: RouteContext): EdgeGeometry {
     const kind = e.kind ?? "flow";
+    if (kind === "anchor" && e.on !== undefined) {
+        const onLine = lineAnchorGeometry(d, e, a, b, ctx);
+        if (onLine) return onLine;
+    }
     if (RELATIONS[kind]?.seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type)) return messageGeometry(d, e, a, b);
     if (a.id === b.id) return selfGeometry(d, e, a, ctx ?? routeContext(d));
     if (kind === "flow" && FLOW_TYPES.has(a.type) && FLOW_TYPES.has(b.type)) return (ctx ?? routeContext(d)).flows.get(e.id) ?? flowGeometry(d, e, a, b, flowOffsets(d));

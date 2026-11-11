@@ -26,6 +26,7 @@ export const UML_TYPES: Record<UmlNodeType, UmlTypeInfo> = {
     start: { w: 30, h: 30, minW: 20, minH: 20, notext: true, round: true },
     end: { w: 32, h: 32, minW: 22, minH: 22, notext: true, round: true },
     flowend: { w: 30, h: 30, minW: 20, minH: 20, notext: true, round: true },
+    connector: { w: 34, h: 34, minW: 26, minH: 26, round: true },
     action: { w: 170, h: 56, minW: 70, minH: 36 },
     decision: { w: 44, h: 44, minW: 30, minH: 30, notext: true },
     bar: { w: 200, h: 8, minW: 6, minH: 6, notext: true },
@@ -86,7 +87,7 @@ export function isErEntity(type: NodeType): boolean {
 /** Frames are drawn around other elements and are never connected; node and package are containers that are. */
 export const FRAME_TYPES = new Set<NodeType>([ "boundary", "lane", "fragment", "operand" ]);
 
-export const FLOW_TYPES = new Set<NodeType>([ "start", "end", "flowend", "action", "decision", "bar", "signal", "accept", "objnode", "state", "compstate", "history", "deephist" ]);
+export const FLOW_TYPES = new Set<NodeType>([ "start", "end", "flowend", "connector", "action", "decision", "bar", "signal", "accept", "objnode", "state", "compstate", "history", "deephist" ]);
 
 /** Elements that may be connected to themselves: self transition (state, composite state), reflexive association (class, object), self-referencing table. */
 export const SELF_TYPES = new Set<NodeType>([ "state", "compstate", "class", "object", "table" ]);

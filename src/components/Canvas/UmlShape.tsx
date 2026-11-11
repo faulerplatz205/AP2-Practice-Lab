@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import type { DiagramNode } from "../../types/diagram";
-import { classLayout, fragmentTab } from "../../lib/uml/size";
+import { classLayout, fragmentTab, extensionSplit } from "../../lib/uml/size";
 import { lines } from "../../lib/uml/types";
 import { MultilineText, TextLines, Underline } from "./SvgText";
 import { ErShape, SheetShape, TableShape } from "./DbShape";
@@ -63,9 +63,10 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
             const stereo = n.stereo === "interface" ? "«interface»" : n.stereo === "enum" ? "«enumeration»" : "";
             return <>
                 <rect width={w} height={L.total} fill={fill} {...line} />
-                <path d={`M0 ${L.headerH}H${w}${L.opsH ? `M0 ${L.headerH + L.attrsH}H${w}` : ""}`} {...line} fill="none" />
+                {L.attrsH > 0 && <path d={`M0 ${L.headerH}H${w}${L.opsH ? `M0 ${L.headerH + L.attrsH}H${w}` : ""}`} {...line} fill="none" />}
                 {stereo && <Label x={w / 2} y={15} size={11} weight="400" muted>{stereo}</Label>}
-                <Label x={w / 2} y={stereo ? 33 : 20} size={14.5} weight="700" italic={n.stereo === "abstract"}>{n.text}</Label>
+                <Label x={w / 2} y={stereo ? 33 : n.stereo === "abstract" ? 19 : L.attrsH ? 20 : L.headerH / 2 + 5} size={14.5} weight="700" italic={n.stereo === "abstract"}>{n.text}</Label>
+                {n.stereo === "abstract" && <Label x={w / 2} y={35} size={11.5} weight="400">{"{abstract}"}</Label>}
                 <TextLines rows={L.attrs} x={8} y={L.headerH + 18} members />
                 {L.opsH > 0 && <TextLines rows={L.ops} x={8} y={L.headerH + L.attrsH + 18} members />}
             </>;
@@ -90,8 +91,20 @@ export function UmlShape({ node: n, fill }: Props): ReactElement | null {
                 <Label x={cx} y={h - 4}>{n.text}</Label>
             </>;
         }
-        case "usecase":
-            return <><ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />{centered(13.5, w * 0.74)}</>;
+        case "usecase": {
+            const points = n.attrs ? lines(n.attrs) : [];
+            if (!points.length) return <><ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />{centered(13.5, w * 0.74)}</>;
+            // extension points below a line across the ellipse
+            const split = extensionSplit(n), half = w / 2 * Math.sqrt(Math.max(0, 1 - ((split - h / 2) / (h / 2)) ** 2));
+            return <>
+                <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={fill} {...line} />
+                <path d={`M${w / 2 - half} ${split}H${w / 2 + half}`} {...line} fill="none" />
+                <MultilineText text={n.text} x={w / 2} y={split / 2 + 5} size={13} maxWidth={w * 0.6} />
+                {points.map((point, i) => <Label key={i} x={w / 2} y={split + 16 + i * 15} size={11.5} weight="400">{point}</Label>)}
+            </>;
+        }
+        case "connector":
+            return <><circle cx={w / 2} cy={h / 2} r={Math.min(w, h) / 2} fill={fill} {...line} />{centered(14, w - 8)}</>;
         case "boundary":
             return <><Frame w={w} h={h} title={32} /><Label x={w / 2} y={22} size={15} weight="700">{n.text}</Label></>;
         case "start":

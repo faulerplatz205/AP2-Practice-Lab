@@ -24,7 +24,7 @@ import { fieldAt } from "../lib/uml/fields";
 import { edgeGeometry } from "../lib/uml/routing";
 import { labelKey, placeLabels } from "../lib/uml/labels";
 import { FRAME_TYPES, RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
-import { fragmentOf, headHeight, isLifeline, messageOffset, messageY, moveMessage, nearestLifeline, ownerOf, pinnedTarget } from "../lib/uml/sequence";
+import { SELF_DROP, activationAt, fragmentOf, headHeight, isLifeline, messageOffset, messageY, moveMessage, nearestLifeline, ownerOf, pinnedTarget, settleActivations } from "../lib/uml/sequence";
 import { inside } from "../lib/geometry";
 import { fileBaseName } from "../lib/downloads";
 import { MODES, type ExampleKey, EXAMPLE_MODE, GENERIC_ITEMS, type PaletteItem } from "../data/modes";
@@ -149,6 +149,8 @@ export function placeNode(type: NodeType, p: Point, keepTool: boolean): void {
             n.w = frame.w;
         }
         d.nodes.push(n);
+        // a bar placed onto a running bar is nested: it lands next to it
+        if (n.type === "activation") settleActivations(d.nodes);
         id = n.id;
     });
     select("node", id);
@@ -165,6 +167,7 @@ export function deleteSelection(): void {
     change(d => {
         if (selection?.kind === "edge") {
             d.edges = d.edges.filter(e => e.id !== selection.id);
+            dropLooseAnchors(d);
             return;
         }
         const ids = new Set(nodeIds);
@@ -177,6 +180,7 @@ export function deleteSelection(): void {
         }
         d.nodes = d.nodes.filter(n => !ids.has(n.id));
         d.edges = d.edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
+        dropLooseAnchors(d);
     });
     select(null);
 }
@@ -204,7 +208,13 @@ export function paste(): void {
             return n;
         });
         const edges = source.edges.map(e => ({ ...structuredClone(e), id: d.next++, from: map.get(e.from)!, to: map.get(e.to)! }));
-        for (const e of edges) delete e.route;
+        // a copied note stays on the copy of its line, or loses the line
+        const lineIds = new Map(source.edges.map((e, i) => [ e.id, edges[i].id ]));
+        for (const e of edges) {
+            delete e.route;
+            if (e.on !== undefined && lineIds.has(e.on)) e.on = lineIds.get(e.on);
+            else delete e.on;
+        }
         d.edges.push(...edges);
         // the next paste lands another step further
         clipboard = structuredClone({ nodes, edges });
@@ -288,6 +298,25 @@ export function connectTo(toId: number): void {
     unlock("first_arrow");
 }
 
+/** Hangs the note the arrow was started on onto a line, e.g. the condition of an «extend». */
+export function connectToEdge(edgeId: number): void {
+    const { pendingFrom, arrowOnce, change, set } = useDiagram.getState();
+    set({ pendingFrom: null });
+    const note = pendingFrom === null ? undefined : findNode(doc(), pendingFrom), target = findEdge(doc(), edgeId);
+    if (!note || note.type !== "note" || !target || target.on !== undefined) return;
+    if (arrowOnce) setTool("select");
+    if (doc().edges.some(x => x.on === edgeId && (x.from === note.id || x.to === note.id))) return;
+    change(d => {
+        d.edges.push({ id: d.next++, from: note.id, to: target.from, label: "", kind: "anchor", on: edgeId });
+    });
+    notify(msg().relationSet(relationName(text(relationLabels), text(modeRelationLabels), doc().cfg.mode, "anchor")));
+}
+
+/** Anchors of notes whose line was deleted go with it. */
+function dropLooseAnchors(d: Diagram): void {
+    d.edges = d.edges.filter(e => e.on === undefined || d.edges.some(x => x.id === e.on));
+}
+
 /** Relations whose only symbol is drawn at the start of the line (aggregation, composition). */
 function symbolAtStart(kind: RelationKind): boolean {
     return !!RELATIONS[kind].start && !RELATIONS[kind].end;
@@ -301,6 +330,19 @@ function pushEdge(d: Diagram, a: DiagramNode, b: DiagramNode, kind: RelationKind
     const isMessage = !!RELATIONS[kind].seq && SEQUENCE_TYPES.has(a.type) && SEQUENCE_TYPES.has(b.type);
     const e: Diagram["edges"][number] = { id: d.next++, from: a.id, to: b.id, label: "", kind };
     if (isMessage) e.y = messageOffset(d.nodes, a, pendingY);
+    // a self call made while a bar is running starts a nested bar: the call stack grows by one
+    if (isMessage && a.id === b.id && isLifeline(a) && kind !== "reply") {
+        const y = a.y + (e.y ?? 0);
+        // `a` may come from outside the recipe; the bars are compared with the lifeline inside it
+        const line = findNode(d, a.id);
+        if (line && activationAt(d.nodes, line, y)) {
+            const bar = createNode(d, "activation", a.x + a.w / 2, y);
+            bar.y = y + SELF_DROP - 10;
+            bar.h = 40;
+            d.nodes.push(bar);
+            settleActivations(d.nodes);
+        }
+    }
     if (a.type === "decision" && kind === "flow") {
         const outgoing = d.edges.filter(x => x.from === a.id);
         const isMerge = d.edges.filter(x => x.to === a.id).length > 1 && !outgoing.length;

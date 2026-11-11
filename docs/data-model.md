@@ -55,7 +55,7 @@ If `mode` is missing or unknown (older plans), `guessMode()` derives it from the
 
 Network diagram values are strings because fields may be empty or wrong. `num()` reads them with comma or dot, `fmt()` writes at most two decimals with a decimal comma. The keys follow the German IHK terms: `faz`/`fez`/`saz`/`sez`/`gp`/`fp` = ES/EF/LS/LF/TF/FF.
 
-UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end`, `flowend`, `action`, `decision`, `bar`, `signal`, `accept`, `objnode`, `lane`, `state`, `lifeline`, `actline`, `activation`, `fragment`, `component`, `iface`, `node3d`, `artifact`, `package`, `note`, and for databases `entity`, `relship` (relationship diamond), `erattr` (ER attribute), `table`, `sheet` (data table).
+UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end`, `flowend`, `connector` (activity diagram, letter in `text`), `action`, `decision`, `bar`, `signal`, `accept`, `objnode`, `lane`, `state`, `lifeline`, `actline`, `activation`, `fragment`, `component`, `iface`, `node3d`, `artifact`, `package`, `note`, and for databases `entity`, `relship` (relationship diamond), `erattr` (ER attribute), `table`, `sheet` (data table).
 
 ### Edges (`DiagramEdge`)
 
@@ -66,6 +66,7 @@ UML node types: `class`, `object`, `actor`, `usecase`, `boundary`, `start`, `end
 | `label` | string | label; edges leaving a decision always store it with `[ ]` |
 | `y` | number | messages only: height relative to the top of the sender |
 | `m1`, `m2` | string | multiplicity at the start and the end |
+| `on` | number | only on an `anchor` whose note hangs on a line: id of that line. `from` is the note, `to` one end of the line; without the line the anchor leads to that element |
 | `route` | object | optional detour found by „Sauber anordnen“: `key` (position and size of both nodes) and `ws` (waypoints). Ignored as soon as a node moves or the way is blocked |
 
 Relation kinds: `flow`, `assoc`, `dir`, `inherit`, `realize`, `aggr`, `comp`, `dep`, `include`, `extend`, `msg`, `async`, `reply`, `anchor` (note link), `erl` (ER line, cardinality in `label`), `fk` (table relationship, cardinalities in `m1`/`m2`).

@@ -20,7 +20,7 @@ export const modeText = defineText({
         },
         uc: {
             label: "Use-Case-Diagramm",
-            tips: [ "Systemgrenze setzen, Anwendungsfälle hineinziehen.", "Akteure außerhalb platzieren und mit einer Linie verbinden.", "«include» und «extend» links unter Verbindungen wählen." ],
+            tips: [ "Systemgrenze setzen, Anwendungsfälle hineinziehen.", "Akteure außerhalb platzieren und mit einer Linie verbinden.", "«include» und «extend» links unter Verbindungen wählen.", "Bedingung eines «extend»: Notiz setzen, Pfeil-Werkzeug wählen, erst die Notiz und dann die Linie anklicken." ],
         },
         kl: {
             label: "Klassendiagramm",
@@ -72,6 +72,7 @@ export const modeText = defineText({
         barVertical: "Gabelung / Vereinigung senkrecht",
         end: "Endknoten (Aktivität)",
         flowEnd: "Ablaufende (Endknoten des Flusses)",
+        connector: "Konnektor (Sprungmarke)",
         sendSignal: "Signal senden",
         acceptSignal: "Signal empfangen",
         objectNode: "Objektknoten",
@@ -152,7 +153,7 @@ export const modeText = defineText({
         },
         uc: {
             label: "Use case diagram",
-            tips: [ "Place a system boundary and drag use cases into it.", "Place actors outside and connect them with a line.", "Pick «include» and «extend» on the left under connections." ],
+            tips: [ "Place a system boundary and drag use cases into it.", "Place actors outside and connect them with a line.", "Pick «include» and «extend» on the left under connections.", "Condition of an «extend»: place a note, pick the arrow tool, click the note and then the line." ],
         },
         kl: {
             label: "Class diagram",
@@ -204,6 +205,7 @@ export const modeText = defineText({
         barVertical: "Fork / join (vertical)",
         end: "Activity final node",
         flowEnd: "Flow final node",
+        connector: "Connector (jump label)",
         sendSignal: "Send signal",
         acceptSignal: "Accept signal",
         objectNode: "Object node",

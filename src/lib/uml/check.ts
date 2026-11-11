@@ -122,6 +122,15 @@ function checkFlow(c: Context): void {
         const o = c.outs(b).length, i = c.ins(b).length;
         if (!((i === 1 && o >= 2) || (i >= 2 && o === 1))) c.add("error", t.barMismatch, b, t.barMismatchTip);
     }
+    // connectors: the flow jumps from the one with an incoming arrow to the one with the same letter
+    const connectors = c.ofType("connector"), letter = (n: DiagramNode): string => String(n.text).trim().toLowerCase();
+    const entries = connectors.filter(n => c.outs(n).length === 1 && !c.ins(n).length), exits = connectors.filter(n => c.ins(n).length >= 1 && !c.outs(n).length);
+    for (const n of connectors) {
+        const lone = entries.includes(n) || (exits.includes(n) && c.ins(n).length === 1);
+        if (!letter(n)) c.add("warn", t.connectorNoName, n, t.connectorNoNameTip);
+        if (!lone) c.add("error", t.connectorArrows(c.name(n)), n, t.connectorArrowsTip);
+        else if (letter(n) && (entries.includes(n) ? !exits.some(x => letter(x) === letter(n)) : entries.filter(x => letter(x) === letter(n)).length !== 1)) c.add("error", t.connectorNoPartner(c.name(n)), n, t.connectorNoPartnerTip);
+    }
     for (const e of c.edges.filter(x => c.kind(x) !== "flow" && c.kind(x) !== "anchor" && FLOW_TYPES.has(c.node(x.from).type) && FLOW_TYPES.has(c.node(x.to).type))) {
         c.add("warn", t.flowOnly, null, t.flowOnlyTip(text(relationLabels)[c.kind(e)]), [ e.id ]);
     }
@@ -144,10 +153,13 @@ function checkFlow(c: Context): void {
         const seen = new Set(starts.map(s => s.id)), queue = [ ...seen ];
         while (queue.length) {
             const id = queue.shift()!;
-            for (const e of c.edges.filter(x => x.from === id)) {
-                if (!seen.has(e.to)) {
-                    seen.add(e.to);
-                    queue.push(e.to);
+            const reached = c.edges.filter(x => x.from === id).map(e => e.to);
+            const here = c.node(id);
+            if (here.type === "connector") reached.push(...entries.filter(x => letter(x) === letter(here)).map(x => x.id));
+            for (const to of reached) {
+                if (!seen.has(to)) {
+                    seen.add(to);
+                    queue.push(to);
                 }
             }
         }

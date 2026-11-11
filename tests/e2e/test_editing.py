@@ -197,6 +197,24 @@ async def main():
         after = await S()
         f2 = [n for n in after['nodes'] if n['id'] == frag['id']][0]
         ok((f2['x'], f2['y']) != (frag['x'], frag['y']) and acts(after) == acts(before), 'A fragment moves alone, the activation bars stay on their lifelines')
+        # an activation bar placed onto a running bar is nested next to it; a self call on a bar brings its own
+        bars = lambda d: [n for n in d['nodes'] if n['type'] == 'activation']
+        outer = max(bars(after), key=lambda n: n['h'])
+        ob = await box(outer['id'])
+        await pg.click('.tile[data-k="m2"]')
+        await pg.mouse.click(ob['x'] + ob['width'] / 2, ob['y'] + ob['height'] / 2)
+        s4 = await S()
+        inner = s4['nodes'][-1]
+        ok(inner['type'] == 'activation' and inner['x'] == outer['x'] + 7, f'An activation bar placed onto another one is nested beside it ({inner["x"]} vs {outer["x"]})')
+        await pg.keyboard.press('Control+z')
+        await pg.click('.rtile[data-rel="msg"]')
+        ob = await box(outer['id'])
+        for dy in (30, 60):
+            await pg.mouse.click(ob['x'] + ob['width'] / 2, ob['y'] + dy * zoom)
+        s5 = await S()
+        loop = s5['edges'][-1]
+        ok(loop['from'] == loop['to'] and len(bars(s5)) == len(bars(after)) + 1 and s5['nodes'][-1]['x'] == outer['x'] + 7, 'A self call on an activation bar starts a nested bar')
+        await pg.click('[data-tool="select"]')
         await pg.screenshot(path=out('edit_sequence.png'))
 
         # toolbar menus open below their button, inside the window, and leave the toolbar where it is

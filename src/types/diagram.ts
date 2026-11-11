@@ -24,7 +24,7 @@ export type GenericNodeType = "np" | "rect" | "ellipse" | "diamond" | "text";
 
 export type UmlNodeType =
     | "class" | "object" | "actor" | "usecase" | "boundary"
-    | "start" | "end" | "flowend" | "action" | "decision" | "bar"
+    | "start" | "end" | "flowend" | "connector" | "action" | "decision" | "bar"
     | "signal" | "accept" | "objnode" | "lane" | "state" | "compstate" | "history" | "deephist"
     | "lifeline" | "actline" | "activation" | "fragment" | "destroy" | "operand" | "invariant"
     | "component" | "port" | "iface" | "node3d" | "artifact" | "package" | "note"
@@ -77,6 +77,8 @@ export interface DiagramEdge {
     m2?: string;
     /** Detour found by "tidy up", valid while `key` matches the position and size of both nodes */
     route?: EdgeRoute;
+    /** Anchor of a note that hangs on a line: id of that line. `from` is the note, `to` one end of the line */
+    on?: number;
 }
 
 export interface EdgeRoute {

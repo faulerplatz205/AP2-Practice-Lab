@@ -80,7 +80,7 @@ export function guessMode(d: Pick<Diagram, "nodes">): DiagramMode {
     const t = new Set((d.nodes ?? []).map(n => n.type));
     if (t.has("np")) return "netz";
     const byType: [DiagramMode, NodeType[]][] = [
-        [ "akt", [ "action", "decision", "bar", "signal", "accept", "objnode", "lane" ]],
+        [ "akt", [ "action", "decision", "bar", "signal", "accept", "objnode", "lane", "connector" ]],
         [ "zu", [ "state" ]],
         [ "uc", [ "actor", "usecase", "boundary" ]],
         [ "kl", [ "class" ]],

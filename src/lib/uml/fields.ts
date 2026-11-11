@@ -1,5 +1,5 @@
 import type { DiagramNode, Point } from "../../types/diagram";
-import { classLayout, fragmentTab } from "./size";
+import { classLayout, fragmentTab, extensionSplit } from "./size";
 import { TABLE_HEADER, sheetLayout } from "../db/columns";
 import { UML_TYPES, isUml } from "./types";
 
@@ -24,9 +24,15 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
     switch (n.type) {
         case "class": {
             const L = classLayout(n);
+            if (!L.attrsH && !L.opsH) return { key: "text", y: 0, h: L.total };
             if (ly < L.headerH) return { key: "text", y: 0, h: L.headerH };
             if (ly < L.headerH + L.attrsH || !L.opsH) return { key: "attrs", y: L.headerH, h: Math.max(L.attrsH, 40), multi: true };
             return { key: "ops", y: L.headerH + L.attrsH, h: Math.max(L.opsH, 40), multi: true };
+        }
+        case "usecase": {
+            if (!n.attrs) return { key: "text", y: 0, h: n.h };
+            const split = extensionSplit(n);
+            return ly < split ? { key: "text", y: 0, h: split } : { key: "attrs", y: split, h: Math.max(n.h - split, 40), multi: true };
         }
         case "object":
         case "state":

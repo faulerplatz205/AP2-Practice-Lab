@@ -4,7 +4,7 @@ import { createNode, emptyDiagram } from "../diagram";
 import { insertExample } from "../../data/examples";
 import { runCheck } from "../check";
 import { useLocale } from "../../i18n/locale";
-import { moveMessage } from "./sequence";
+import { NEST, moveMessage, ownerOf, settleActivations } from "./sequence";
 
 useLocale.setState({ locale: "de" });
 
@@ -101,6 +101,24 @@ describe("sequence diagram check", () => {
         const t = base();
         t.bar(t.b, 250, 300);
         expect(has(t.d, "ohne eingehende Nachricht")).toBe(true);
+    });
+
+    it("nests the bar of a self call next to the running bar and accepts it", () => {
+        const s = base();
+        s.msg(s.b, s.b, "msg", 110, "reserviere()");
+        const inner = s.bar(s.b, 130, 160), outer = s.d.nodes[3];
+        settleActivations(s.d.nodes);
+        expect(inner.x).toBe(outer.x + NEST);
+        expect(ownerOf(inner, s.d.nodes)).toBe(s.b);
+        expect(has(s.d, "ohne eingehende Nachricht")).toBe(false);
+        // a third level, and back onto the line once the outer bars are gone
+        const third = s.bar(s.b, 140, 150);
+        settleActivations(s.d.nodes);
+        expect(third.x).toBe(outer.x + 2 * NEST);
+        outer.y = 300;
+        settleActivations(s.d.nodes);
+        expect(inner.x).toBe(s.b.x + s.b.w / 2 - 7);
+        expect(third.x).toBe(inner.x + NEST);
     });
 
     it("finds a message below the end of the lifeline", () => {

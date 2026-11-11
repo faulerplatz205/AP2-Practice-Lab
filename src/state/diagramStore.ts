@@ -86,7 +86,7 @@ function initialDiagram(): { doc: Diagram; fromStorage: boolean } {
 const initial = initialDiagram();
 export const STARTED_FROM_STORAGE = initial.fromStorage;
 
-const FITTED = new Set<NodeType>([ "class", "object", "state", "table", "sheet" ]);
+const FITTED = new Set<NodeType>([ "class", "object", "state", "table", "sheet", "usecase" ]);
 
 /** Sizes of classes, objects, states, tables and data tables follow their content. */
 function fitAll(d: Diagram): void {

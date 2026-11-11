@@ -24,10 +24,17 @@ export function fragmentTab(n: DiagramNode): { tab: string; tabW: number } {
 export function classLayout(n: DiagramNode): ClassLayout {
     const attrs = n.attrs ? lines(n.attrs) : [];
     const ops = n.ops ? lines(n.ops) : [];
-    const headerH = n.stereo && n.stereo !== "abstract" ? 42 : 30;
-    const attrsH = attrs.length ? attrs.length * LINE + 10 : 14;
-    const opsH = n.stereo === "enum" && !ops.length ? 0 : (ops.length ? ops.length * LINE + 10 : 14);
+    // without attributes and methods a class is a plain box with its name, as in the IHK Belegsatz
+    const plain = !attrs.length && !ops.length && !n.stereo;
+    const headerH = plain ? 44 : n.stereo ? 42 : 30;
+    const attrsH = plain ? 0 : attrs.length ? attrs.length * LINE + 10 : 14;
+    const opsH = plain || (n.stereo === "enum" && !ops.length) ? 0 : (ops.length ? ops.length * LINE + 10 : 14);
     return { headerH, attrsH, opsH, attrs, ops, total: headerH + attrsH + opsH };
+}
+
+/** A use case with extension points: y of the line between its name and the points. */
+export function extensionSplit(n: DiagramNode): number {
+    return Math.round(n.h * 0.44);
 }
 
 /** Grows classes/objects to their longest entry and states to their activities. Mutates `n` (runs inside immer). */
@@ -48,6 +55,10 @@ export function fitToContent(n: DiagramNode): void {
         const L = sheetLayout(n);
         n.w = snap(L.width + 5);
         n.h = L.height;
+    } else if (n.type === "usecase" && n.attrs) {
+        const points = lines(n.attrs);
+        n.h = Math.max(n.h, 84 + points.length * 15);
+        n.w = Math.max(n.w, snap(Math.max(...points.map(l => l.length * 6.6)) + 90));
     } else if (n.type === "state" && n.attrs) {
         const acts = lines(n.attrs);
         n.h = Math.max(n.h, 38 + acts.length * LINE + 6);

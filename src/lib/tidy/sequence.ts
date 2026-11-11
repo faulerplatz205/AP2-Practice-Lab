@@ -1,7 +1,7 @@
 import type { Diagram, DiagramEdge, DiagramNode } from "../../types/diagram";
 import { inside } from "../geometry";
 import { snap } from "../math";
-import { headHeight, isLifeline, isMessage, messageY, ownerOf, pinnedTarget } from "../uml/sequence";
+import { NEST, headHeight, isLifeline, isMessage, messageY, ownerOf, pinnedTarget, settleActivations } from "../uml/sequence";
 import { RELATIONS } from "../uml/types";
 
 /** Vertical distance between two messages, and the extra room of a self message. */
@@ -33,6 +33,8 @@ export function tidySequence(d: Diagram): DiagramNode[] | null {
     const byId = new Map(all.map(n => [ n.id, n ]));
     const messages = d.edges.filter(e => isMessage(e) && byId.has(e.from) && byId.has(e.to));
     const of = (n: DiagramNode): DiagramNode | undefined => ownerOf(n, all);
+    // bars lying on top of each other (older drawings) become nested ones first
+    settleActivations(all);
     const ends = (e: DiagramEdge): [DiagramNode | undefined, DiagramNode | undefined] => [ of(byId.get(e.from)!), of(byId.get(e.to)!) ];
     const oldY = new Map(messages.map(e => [ e.id, messageY(e, byId.get(e.from)!, byId.get(e.to)!) ]));
     const activations = all.filter(n => n.type === "activation"), fragments = all.filter(n => n.type === "fragment");
@@ -131,7 +133,7 @@ export function tidySequence(d: Diagram): DiagramNode[] | null {
     for (const a of activations) {
         const l = ownerBefore.get(a);
         if (!l) continue;
-        a.x = centerX(l) - a.w / 2 + depth.get(a)! * 7;
+        a.x = centerX(l) - a.w / 2 + depth.get(a)! * NEST;
         const ys = barMessages.get(a)!.map(e => newY.get(e.id)!).filter(y => y !== undefined);
         if (ys.length) {
             a.y = Math.min(...ys) - 10;

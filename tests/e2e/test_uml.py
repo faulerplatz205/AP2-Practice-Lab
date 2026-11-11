@@ -50,7 +50,7 @@ async def main():
         await pg.click('#modeBtn')
         ok(await pg.locator('[data-mode]').count() == 13, 'Diagram kind picker with 13 kinds')
         await pg.click('[data-mode="akt"]')
-        ok(await pg.locator('.side .tile[data-k^="m"]').count() == 11 and 'Startknoten' in await pg.inner_text('#side')
+        ok(await pg.locator('.side .tile[data-k^="m"]').count() == 12 and 'Startknoten' in await pg.inner_text('#side')
            and 'Vorgang' not in await pg.inner_text('.side .tiles'), 'Activity shows only its elements')
         await pg.click('#modeBtn')
         await pg.click('[data-mode="kl"]')
@@ -214,6 +214,24 @@ async def main():
         ucs2 = [n for n in st['nodes'] if n['type'] == 'usecase']
         d = [a['x'] - b[0] for a, b in zip(ucs2, before)]
         ok(len(set(d)) == 1 and d[0] > 30, 'System boundary takes its content along ' + str(d))
+        # a note hangs on a line (condition of an extend), a use case shows its extension points
+        st = await S()
+        ext = [e for e in st['edges'] if e.get('kind') == 'extend'][0]
+        await pg.click('.tile[data-k="m3"]')
+        await pg.mouse.click(420, 760)
+        note = (await S())['nodes'][-1]
+        ok(note['type'] == 'note', 'The note is offered with the use case elements')
+        await pg.click('#nbArrow')
+        mid = await pg.evaluate("""id => { const p = document.querySelector(`.eg[data-eid="${id}"] path:last-child`); const q = p.getPointAtLength(p.getTotalLength() / 2).matrixTransform(p.getScreenCTM()); return [q.x, q.y]; }""", ext['id'])
+        await pg.mouse.click(mid[0], mid[1])
+        st = await S()
+        ok(st['edges'][-1].get('on') == ext['id'] and st['edges'][-1]['from'] == note['id'], 'A note is attached to a line with the arrow tool')
+        uc = [n for n in st['nodes'] if n['type'] == 'usecase'][0]
+        await pg.click(f'[data-id="{uc["id"]}"]')
+        await pg.fill('#f-attrs', 'Zahlungsart')
+        ok('Zahlungsart' in await pg.text_content(f'[data-id="{uc["id"]}"]'), 'A use case shows its extension points')
+        await pg.screenshot(path=out('uc_note_on_line.png'))
+        await pg.keyboard.press('Escape')
         # image export with UML
         await pg.click('#bDownload')
         async with pg.expect_download() as dl:

@@ -2,6 +2,40 @@
 
 Newest entries at the top. The versions match the releases of the Claude Artifact.
 
+## 2.4.0 – 2026-11-11
+
+Everything the IHK Belegsatz and the exam sheets show can now be drawn the way it is printed there.
+
+### Added
+
+- **Connector** in the activity diagram: a circle with a letter; the flow ends at one connector and goes on at the one with the same letter. „Prüfen“ follows the jump and reports a connector without a counterpart, without a letter or with more than one arrow
+- **Extension points** of a use case: listed in the panel, drawn below a line inside the ellipse; a double click below the line edits them
+- **Note on a line:** with the arrow tool click a note and then a line, e.g. to put the condition next to an «extend». The dotted link ends in the middle of the line, follows it and goes when the line is deleted
+- The **note** is offered with the elements of the use case, class and state machine diagram, where the Belegsatz shows it
+
+### Changed
+
+- **Network diagram node** as on the exam sheets: a box with number and name above duration, total and free float; FAZ and FEZ stand above its corners, SAZ and SEZ below them. The legend in the panel shows the same
+- **Class:** without attributes and methods it is a plain box with its name; an abstract class carries `{abstract}` below its italic name
+
+## 2.3.1 – 2026-11-11
+
+Nested activation bars in the sequence diagram and one consistent shape for every control.
+
+### Added
+
+- **Nested activation bars:** an activation bar placed or dragged onto a running bar lands beside it, one step further right per level, and goes back onto the dashed line when the outer bar is gone. A self message drawn on a running bar brings its nested bar along and ends on it
+
+### Changed
+
+- **One corner system:** every button, field, tile and menu row has the same corner, floating bars, menus and cards the next larger one, dialogs the largest. Pills are gone (plan name, level chip, toast, badges), color swatches are squares like the other controls
+- **„Prüfen“** looks like the buttons next to it, filled grey with the accent color only on its icon; the same for „Anleitung öffnen“ in the panel. Only the confirming button of a dialog stays filled with the accent color
+- A selected chapter of the guide is tinted like every other selected control, menu rows are highlighted in grey
+
+### Fixed
+
+- **Sequence diagram:** a second activation bar could not be put onto one that was already there, both ended up on the same spot. The check no longer reports the nested bar of a self call as „ohne eingehende Nachricht“
+
 ## 2.3.0 – 2026-11-11
 
 Editing like in a drawing tool: selection rectangle, visible brackets, text fields that grow, multiplicities right at the line, converting elements, and a new, quieter look.

@@ -2,7 +2,7 @@ import type { DiagramEdge, DiagramNode } from "../../types/diagram";
 import type { Context } from "./check";
 import { inside } from "../geometry";
 import { FRAGMENT_OPERATORS, RELATIONS, SEQUENCE_TYPES } from "./types";
-import { activationAt, headHeight, isLifeline, messageY, ownerOf, pinnedTarget } from "./sequence";
+import { SELF_DROP, activationAt, headHeight, isLifeline, messageY, ownerOf, pinnedTarget } from "./sequence";
 import { text } from "../../i18n/locale";
 import { seqCheckText } from "../../i18n/checkSequence";
 import { umlText } from "../../i18n/diagram";
@@ -104,7 +104,9 @@ export function checkSequence(c: Context): void {
         }
         // the lifeline that starts the interaction has no incoming message
         const initiator = !messages.some(m => m.to === l && m.from !== l);
-        if (l.type === "lifeline" && !initiator && !messages.some(m => m.to === l && m.y >= a.y - 6 && m.y <= a.y + a.h)) c.add("warn", t.activationNoMessage(c.name(l)), a, t.activationNoMessageTip);
+        // a self call arrives further down, on its nested bar
+        const arrival = (m: Message): number => m.from === m.to ? m.y + SELF_DROP : m.y;
+        if (l.type === "lifeline" && !initiator && !messages.some(m => m.to === l && arrival(m) >= a.y - 6 && m.y <= a.y + a.h)) c.add("warn", t.activationNoMessage(c.name(l)), a, t.activationNoMessageTip);
     }
 
     const destroyed = new Map<DiagramNode, DiagramNode>();

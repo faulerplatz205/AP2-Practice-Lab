@@ -13,21 +13,23 @@ interface Props {
     marks?: MarkSet;
 }
 
-/** Activity node in the IHK layout: 3 columns x 4 rows, fields see ACTIVITY_CELLS. */
+/**
+ * Activity node as on the IHK exam sheets: a box of two rows (number, name / duration, total float, free float) with
+ * FAZ and FEZ above its corners and SAZ and SEZ below them. The node is 3 columns x 4 rows, fields see ACTIVITY_CELLS.
+ */
 export function ActivityShape({ node: n, fill, critical, marks }: Props): ReactElement {
     const labels = useText(fieldLabels);
     const { w, h } = n, rh = h / 4, cw = w / 3;
     const stroke = critical ? "var(--crit)" : "var(--ink)";
     const labelSize = Math.max(8, Math.min(9.5, rh * 0.3)), valueSize = Math.max(10, Math.min(15, rh * 0.44));
-    const grid = `M0 ${rh}H${w}M0 ${2 * rh}H${w}M0 ${3 * rh}H${w}M${cw} 0V${rh}M${2 * cw} 0V${rh}M${cw} ${rh}V${2 * rh}M${cw} ${2 * rh}V${h}M${2 * cw} ${2 * rh}V${h}`;
+    const grid = `M0 ${2 * rh}H${w}M${cw} ${rh}V${3 * rh}M${2 * cw} ${2 * rh}V${3 * rh}`;
     return <>
-        <rect width={w} height={h} fill={fill} />
-        <rect x={cw} y="0" width={cw} height={rh} fill="var(--blank)" />
-        <rect x={cw} y={3 * rh} width={cw} height={rh} fill="var(--blank)" />
+        <rect width={w} height={h} fill="transparent" />
+        <rect y={rh} width={w} height={2 * rh} fill={fill} />
         {marks && ACTIVITY_CELLS.filter(c => marks.has(`${n.id}:${c.key}`)).map(c =>
             <rect key={c.key} x={c.col * cw} y={c.row * rh} width={c.span * cw} height={rh} fill="var(--bad)" />)}
         <path d={grid} stroke={stroke} strokeOpacity={critical ? 0.55 : 0.45} strokeWidth="1" fill="none" />
-        <rect width={w} height={h} fill="none" stroke={stroke} strokeWidth={critical ? 2.2 : 1.4} />
+        <rect y={rh} width={w} height={2 * rh} fill="none" stroke={stroke} strokeWidth={critical ? 2.2 : 1.4} />
         {ACTIVITY_CELLS.map(c => {
             const x = c.col * cw, y = c.row * rh, cellW = c.span * cw, v = n.f[c.key] ?? "";
             let value: ReactElement | null = null;

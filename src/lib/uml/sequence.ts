@@ -11,12 +11,18 @@ export const isLifeline = (n: DiagramNode): boolean => n.type === "lifeline" || 
 
 export const isMessage = (e: DiagramEdge): boolean => !!RELATIONS[e.kind ?? "flow"]?.seq;
 
-/** Lifeline that an activation, destruction X or state invariant sits on (center within 14 px), the lifeline itself, or undefined. */
+/** Sideways step of an activation bar per nesting level, and how far below its start a self message arrives. */
+export const NEST = 7, SELF_DROP = 30;
+
+/**
+ * Lifeline that an activation, destruction X or state invariant sits on (center within 14 px; a nested activation
+ * bar lies up to five levels further right), the lifeline itself, or undefined.
+ */
 export function ownerOf(n: DiagramNode, nodes: DiagramNode[]): DiagramNode | undefined {
     if (isLifeline(n)) return n;
     if (n.type !== "activation" && n.type !== "destroy" && n.type !== "invariant") return undefined;
     const cx = n.x + n.w / 2;
-    let best: DiagramNode | undefined, gap = 14;
+    let best: DiagramNode | undefined, gap = n.type === "activation" ? 14 + 5 * NEST : 14;
     for (const l of nodes) {
         if (!isLifeline(l)) continue;
         const g = Math.abs(l.x + l.w / 2 - cx);
@@ -53,6 +59,29 @@ export function activationAt(nodes: DiagramNode[], l: DiagramNode, y: number): D
         if (!best || a.x > best.x) best = a;
     }
     return best;
+}
+
+/**
+ * x of the activation bar `a` on the lifeline `l` with its top at `y`: on the dashed line, or `NEST` px further
+ * right for every bar on that lifeline that is still running when `a` starts (the call stack grows, e.g. with a
+ * self call). Of two bars starting together the longer one is the outer one.
+ */
+export function nestedX(nodes: DiagramNode[], a: DiagramNode, l: DiagramNode, y = a.y): number {
+    let depth = 0;
+    for (const o of nodes) {
+        if (o.id === a.id || o.type !== "activation" || ownerOf(o, nodes)?.id !== l.id) continue;
+        if ((o.y < y && o.y + o.h > y) || (o.y === y && (o.h > a.h || (o.h === a.h && o.id < a.id)))) depth++;
+    }
+    return l.x + l.w / 2 - a.w / 2 + depth * NEST;
+}
+
+/** Puts every activation bar onto its lifeline, nested bars next to each other (mutates the nodes). */
+export function settleActivations(nodes: DiagramNode[]): void {
+    const bars = nodes.filter(n => n.type === "activation").map(a => [ a, ownerOf(a, nodes) ] as const);
+    const xs = bars.map(([ a, l ]) => l ? nestedX(nodes, a, l) : a.x);
+    bars.forEach(([ a ], i) => {
+        a.x = xs[i];
+    });
 }
 
 /**

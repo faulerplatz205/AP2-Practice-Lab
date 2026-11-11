@@ -91,6 +91,9 @@ Flow elements: start, end, flow final, action, decision, bar, send/accept signal
 | Every outgoing arrow of a decision has a guard in `[ ]` | error |
 | Guards of one decision are distinct | error |
 | Fork: 1 in, at least 2 out. Join: at least 2 in, 1 out | error |
+| A connector has exactly one arrow, in or out | error |
+| A connector with an incoming arrow has exactly one counterpart with the same letter and an outgoing arrow; one with an outgoing arrow has at least one counterpart with an incoming arrow. Reachability follows the jump | error |
+| A connector carries a letter | warn |
 | Only control flow arrows between flow elements | warn |
 | A transition between states has an event (else it is a completion transition) | info |
 | Two transitions leaving one state do not carry the same event and guard (self transitions included) | warn |
@@ -157,7 +160,7 @@ Rules follow the knowledge base article „Sequenzdiagramm“: time runs downwar
 | A reply follows an earlier synchronous call in the other direction | error |
 | A reply carries the return value, not the operation name again | warn |
 | A synchronous call without a reply | info |
-| An activation lies on a lifeline and starts with an incoming message (not on the lifeline that starts the interaction) | warn |
+| An activation lies on a lifeline (nested bars beside it count) and starts with an incoming message, the nested bar of a self call with that self message (not on the lifeline that starts the interaction) | warn |
 | An activation lasts until the reply to its call | warn |
 | A destruction X lies on a lifeline, once, at its end; no message after it | warn / error |
 | A «create» message points at the head of a lifeline, once; no message to that lifeline before it | error / warn |

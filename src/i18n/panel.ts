@@ -86,6 +86,9 @@ export const panelText = defineText({
     attributeValues: "Attributwerte",
     objectPlaceholder: "name = \"Max\"",
     stateActivities: "Aktivitäten (optional)",
+    extensionPoints: "Erweiterungspunkte (optional)",
+    extensionPointsPlaceholder: "z. B. Zahlungsart wählen",
+    noteOnLineHint: "An eine Linie hängen: Pfeil-Werkzeug wählen, erst die Notiz, dann die Linie anklicken.",
     historyHint: "Flache Historie: Wird der zusammengesetzte Zustand wieder betreten, geht es in dem direkten Unterzustand weiter, der zuletzt aktiv war. Tiefer verschachtelte Zustände beginnen wieder bei ihrem Startzustand.",
     deepHistoryHint: "Tiefe Historie: Wird der zusammengesetzte Zustand wieder betreten, wird der zuletzt aktive Zustand über alle Verschachtelungsebenen hinweg wiederhergestellt.",
 
@@ -206,6 +209,9 @@ export const panelText = defineText({
     attributeValues: "Attribute values",
     objectPlaceholder: "name = \"Max\"",
     stateActivities: "Activities (optional)",
+    extensionPoints: "Extension points (optional)",
+    extensionPointsPlaceholder: "e.g. choose payment",
+    noteOnLineHint: "Attach it to a line: pick the arrow tool, click the note and then the line.",
     historyHint: "Shallow history: when the composite state is entered again, it continues in the direct substate that was active last. Deeper nested states start at their initial state again.",
     deepHistoryHint: "Deep history: when the composite state is entered again, the state that was active last is restored across all nesting levels.",
 
