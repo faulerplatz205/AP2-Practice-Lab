@@ -126,7 +126,7 @@ export const panelText = defineText({
     keys: [
         [ "Doppelklick", "Text oder Feld bearbeiten" ],
         [ "A", "Pfeil: Vorgänger anklicken, dann Nachfolger" ],
-        [ "Tab", "nächstes Feld im Knoten" ],
+        [ "Tab", "nächstes Feld (z. B. Tabellenname → Spalten), Umschalt+Tab zurück" ],
         [ "V A 1–9 L", "Werkzeuge" ],
         [ "Entf", "Auswahl löschen" ],
         [ "Rahmen ziehen", "mehrere Elemente auswählen" ],
@@ -246,7 +246,7 @@ export const panelText = defineText({
     keys: [
         [ "Double-click", "Edit text or field" ],
         [ "A", "Arrow: click the predecessor, then the successor" ],
-        [ "Tab", "next field in the node" ],
+        [ "Tab", "next field (e.g. table name → columns), Shift+Tab back" ],
         [ "V A 1–9 L", "Tools" ],
         [ "Del", "Delete selection" ],
         [ "Drag a frame", "select several elements" ],

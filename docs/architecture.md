@@ -90,9 +90,9 @@ A double click opens the floating text field `#ed` (`InlineEditor`) above the ri
 | `kind` | Edits |
 | --- | --- |
 | `np` | one field of an activity node (`key` = `faz`, `fez`, …); Tab jumps to the next field |
-| `field` | `text`, `attrs` or `ops` of a UML element; the area comes from `fieldAt()` in `lib/uml/fields.ts` |
+| `field` | `text`, `attrs` or `ops` of a UML element; the area comes from `fieldAt()` in `lib/uml/fields.ts`. Tab / Shift+Tab walks the fields in `fieldOrder()` (`editNextField()`), e.g. table name → columns, class name → attributes → methods |
 | `shape` | text of a generic shape |
-| `edge` | label of an edge; edges leaving a decision get `[ ]` added automatically |
+| `edge` | label of an edge; edges leaving a decision get `[ ]` added automatically. On a relation with multiplicities Tab walks start multiplicity → label → end multiplicity |
 
 ## Image and File Export
 

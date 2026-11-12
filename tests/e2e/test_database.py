@@ -120,6 +120,41 @@ async def main():
         ok('m:n zwischen' in t, 'Tables: m:n between two tables found')
         await pg.screenshot(path=out('db_rel_errors.png'))
 
+        # Tab in the text field on the canvas: table name -> columns, Shift+Tab back, along a relation m1 -> label -> m2
+        await new(pg, 'rel')
+        await place(pg, 'm0', 500, 300)
+        await pg.keyboard.press('Escape')
+        tid = (await S())['nodes'][0]['id']
+        await pg.dblclick(f'#svg [data-id="{tid}"]', position={'x': 40, 'y': 12})
+        await pg.fill('#ed', 'Kunde')
+        await pg.keyboard.press('Tab')
+        await frame(pg)
+        ok(await pg.locator('#ed').count() == 1 and await pg.input_value('#ed') == (await S())['nodes'][0]['attrs'], 'Tab: name applied, columns field open')
+        await pg.fill('#ed', 'PK kundenNr INT\nname VARCHAR(50)')
+        await pg.keyboard.press('Shift+Tab')
+        await frame(pg)
+        n = (await S())['nodes'][0]
+        ok(n['text'] == 'Kunde' and n['attrs'] == 'PK kundenNr INT\nname VARCHAR(50)', 'Tab: name and columns applied')
+        ok(await pg.input_value('#ed') == 'Kunde', 'Shift+Tab: back to the table name')
+        await pg.keyboard.press('Escape')
+        await table(pg, 900, 300, 'Bestellung', 'PK bestellNr INT\nFK kundenNr INT')
+        oid = (await S())['nodes'][1]['id']
+        await connect(pg, oid, tid)
+        eid = (await S())['edges'][0]['id']
+        # a double click close to the start of the line opens the start multiplicity
+        g = await pg.evaluate(f"""() => {{ const p = document.querySelectorAll('.eg[data-eid="{eid}"] path')[1];
+            const m = p.getScreenCTM(), q = p.getPointAtLength(12); return {{ x: q.x * m.a + m.e, y: q.y * m.d + m.f }}; }}""")
+        await pg.keyboard.press('Escape')
+        await pg.mouse.dblclick(g['x'], g['y'])
+        await frame(pg)
+        keys = []
+        for _ in range(3):
+            keys.append(await pg.input_value('#ed') if await pg.locator('#ed').count() else None)
+            await pg.keyboard.press('Tab')
+            await frame(pg)
+        await pg.keyboard.press('Escape')
+        ok(keys[0] == 'n' and keys[2] == '1', f'Tab on a relation: start multiplicity, label, end multiplicity {keys}')
+
         # normalisation exercise
         await pg.click('#bNorm')
         await pg.click('[data-norm="invoice"]')

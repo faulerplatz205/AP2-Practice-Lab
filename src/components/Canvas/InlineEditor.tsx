@@ -1,6 +1,6 @@
 import { type ReactElement, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { type EditorState, useDiagram } from "../../state/diagramStore";
-import { closeEditor, editNextCell } from "../../state/actions";
+import { closeEditor, editNextCell, editNextField } from "../../state/actions";
 import { useText } from "../../i18n/locale";
 import { canvasText } from "../../i18n/canvas";
 
@@ -78,6 +78,8 @@ function Editor({ editor }: { editor: EditorState }): ReactElement {
                     } else if (e.key === "Tab" && editor.kind === "np") {
                         e.preventDefault();
                         editNextCell(value, e.shiftKey);
+                    } else if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey && editNextField(value, e.shiftKey)) {
+                        e.preventDefault();
                     }
                 }}
             />

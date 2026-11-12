@@ -17,6 +17,57 @@ export interface EditableField {
     left?: boolean;
 }
 
+/**
+ * Order in which Tab walks through the fields of an element: name, then its lines (attributes, columns,
+ * activities, extension points, rows), then the methods of a class. Elements with a single field have none.
+ */
+export function fieldOrder(n: DiagramNode): EditableField["key"][] {
+    switch (n.type) {
+        case "class":
+            return n.stereo === "enum" && !n.ops ? [ "text", "attrs" ] : [ "text", "attrs", "ops" ];
+        case "table":
+        case "sheet":
+        case "object":
+        case "state":
+        case "usecase":
+            return [ "text", "attrs" ];
+        default:
+            return [];
+    }
+}
+
+/**
+ * The field `key` of an element with several fields (see `fieldOrder`), also when it is still empty and so not
+ * drawn yet, e.g. the columns of a new table or the attributes of a plain class.
+ */
+export function fieldFor(n: DiagramNode, key: EditableField["key"]): EditableField | null {
+    switch (n.type) {
+        case "class": {
+            const L = classLayout(n);
+            if (key === "text") return { key, y: 0, h: L.attrsH || L.opsH ? L.headerH : L.total };
+            if (key === "attrs") return { key, y: L.headerH, h: Math.max(L.attrsH, 40), multi: true };
+            return { key, y: L.headerH + L.attrsH, h: Math.max(L.opsH, 40), multi: true };
+        }
+        case "usecase": {
+            if (key === "text") return { key, y: 0, h: n.attrs ? extensionSplit(n) : n.h };
+            const split = n.attrs ? extensionSplit(n) : n.h - 10;
+            return { key: "attrs", y: split, h: Math.max(n.h - split, 40), multi: true };
+        }
+        case "object":
+        case "state":
+            if (key === "text") return { key, y: 0, h: n.type === "state" && !n.attrs ? n.h : 32 };
+            return { key: "attrs", y: n.type === "state" && !n.attrs ? n.h - 10 : 30, h: Math.max(n.h - 30, 40), multi: true };
+        case "table":
+            return key === "text" ? { key, y: 0, h: TABLE_HEADER } : { key: "attrs", y: TABLE_HEADER, h: Math.max(n.h - TABLE_HEADER, 40), multi: true };
+        case "sheet": {
+            const caption = sheetLayout(n).caption;
+            return key === "text" ? { key, y: 0, h: caption || 28 } : { key: "attrs", y: caption, h: Math.max(n.h - caption, 40), multi: true };
+        }
+        default:
+            return null;
+    }
+}
+
 /** Which field is under the click point `p` (world coordinates)? Without `p`: the main field. */
 export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
     if (!isUml(n.type) || UML_TYPES[n.type].notext) return null;
@@ -24,21 +75,16 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
     switch (n.type) {
         case "class": {
             const L = classLayout(n);
-            if (!L.attrsH && !L.opsH) return { key: "text", y: 0, h: L.total };
-            if (ly < L.headerH) return { key: "text", y: 0, h: L.headerH };
-            if (ly < L.headerH + L.attrsH || !L.opsH) return { key: "attrs", y: L.headerH, h: Math.max(L.attrsH, 40), multi: true };
-            return { key: "ops", y: L.headerH + L.attrsH, h: Math.max(L.opsH, 40), multi: true };
+            if (!L.attrsH && !L.opsH) return fieldFor(n, "text");
+            if (ly < L.headerH) return fieldFor(n, "text");
+            return fieldFor(n, ly < L.headerH + L.attrsH || !L.opsH ? "attrs" : "ops");
         }
-        case "usecase": {
-            if (!n.attrs) return { key: "text", y: 0, h: n.h };
-            const split = extensionSplit(n);
-            return ly < split ? { key: "text", y: 0, h: split } : { key: "attrs", y: split, h: Math.max(n.h - split, 40), multi: true };
-        }
+        case "usecase":
+            return fieldFor(n, n.attrs && ly >= extensionSplit(n) ? "attrs" : "text");
         case "object":
         case "state":
-            if (n.type === "state" && !n.attrs) return { key: "text", y: 0, h: n.h };
-            if (ly < 32) return { key: "text", y: 0, h: 32 };
-            return { key: "attrs", y: 30, h: Math.max(n.h - 30, 40), multi: true };
+            if (n.type === "state" && !n.attrs) return fieldFor(n, "text");
+            return fieldFor(n, ly < 32 ? "text" : "attrs");
         case "fragment": {
             const { tabW } = fragmentTab(n), sd = n.text === "sd";
             if (!sd && ly < 24 && p && p.x - n.x < tabW) return { key: "text", y: 0, h: 24 };
@@ -50,10 +96,10 @@ export function fieldAt(n: DiagramNode, p: Point | null): EditableField | null {
         case "lifeline":
             return { key: "text", y: 0, h: 40 };
         case "table":
-            return ly < TABLE_HEADER ? { key: "text", y: 0, h: TABLE_HEADER } : { key: "attrs", y: TABLE_HEADER, h: Math.max(n.h - TABLE_HEADER, 40), multi: true };
+            return fieldFor(n, ly < TABLE_HEADER ? "text" : "attrs");
         case "sheet": {
             const caption = sheetLayout(n).caption;
-            return caption && ly < caption ? { key: "text", y: 0, h: caption } : { key: "attrs", y: caption, h: Math.max(n.h - caption, 40), multi: true };
+            return fieldFor(n, caption && ly < caption ? "text" : "attrs");
         }
         case "actline":
             return { key: "text", y: 48, h: 22 };

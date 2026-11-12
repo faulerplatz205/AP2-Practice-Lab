@@ -20,7 +20,7 @@ import { fmt, num, snap } from "../lib/math";
 import { arrangeTables, tidyDiagram } from "../lib/tidy/tidy";
 import { onBorder } from "../lib/tidy/structure";
 import { storage } from "../lib/storage";
-import { fieldAt } from "../lib/uml/fields";
+import { type EditableField, fieldAt, fieldFor, fieldOrder } from "../lib/uml/fields";
 import { edgeGeometry } from "../lib/uml/routing";
 import { labelKey, placeLabels } from "../lib/uml/labels";
 import { FRAME_TYPES, RELATIONS, SELF_TYPES, SEQUENCE_TYPES, UML_TYPES, autoRelation, isUml } from "../lib/uml/types";
@@ -513,7 +513,7 @@ export function setRelationEnds(edgeId: number, start: string, end: string): voi
 
 /* ---------- Editing on the canvas ---------- */
 
-export function openEditor(nodeId: number, p: Point | null): void {
+export function openEditor(nodeId: number, p: Point | null, key?: EditableField["key"]): void {
     const n = findNode(doc(), nodeId);
     if (!n) return;
     const { set } = useDiagram.getState();
@@ -527,7 +527,7 @@ export function openEditor(nodeId: number, p: Point | null): void {
         }
         set({ editor: { kind: "np", id: n.id, key: cell.key, x: n.x + cell.col * cw, y: n.y + cell.row * rh, w: cell.span * cw, h: rh, fontSize: 13, mono: cell.key !== "name", align: "center", value: n.f[cell.key] ?? "" } });
     } else if (isUml(n.type)) {
-        const f = fieldAt(n, p);
+        const f = key ? fieldFor(n, key) : fieldAt(n, p);
         if (!f) return;
         if (n.type === "fragment" && f.key === "text") return; // the operator is picked in the bar next to the fragment
         const isList = !!f.multi && f.key !== "text";
@@ -656,6 +656,37 @@ export function editNextCell(value: string, backwards: boolean): void {
     const next = ACTIVITY_CELLS[(i + (backwards ? ACTIVITY_CELLS.length - 1 : 1)) % ACTIVITY_CELLS.length];
     openEditor(id, { x: n.x + (next.col + 0.5) * n.w / 3, y: n.y + (next.row + 0.5) * n.h / 4 });
 }
+
+/**
+ * Tab in a text field with neighbours: applies the text and opens the next (with Shift the previous) one, e.g.
+ * from the name of a table to its columns, from the attributes of a class to its methods, or along a relation
+ * from the start multiplicity over the label to the end multiplicity. Returns false when there is no neighbour,
+ * so Tab keeps its usual meaning.
+ */
+export function editNextField(value: string, backwards: boolean): boolean {
+    const { editor } = useDiagram.getState();
+    if (!editor) return false;
+    if (editor.kind === "edge") {
+        const e = findEdge(doc(), editor.id);
+        if (!e || !MULTIPLICITY_KINDS.includes(e.kind ?? "flow")) return false;
+        const order = EDGE_FIELDS, i = order.indexOf((editor.key ?? "label") as typeof order[number]);
+        closeEditor(value);
+        openEdgeEditor(editor.id, order[(i + (backwards ? order.length - 1 : 1)) % order.length]);
+        return true;
+    }
+    if (editor.kind !== "field") return false;
+    const n = findNode(doc(), editor.id);
+    const order = n ? fieldOrder(n) : [];
+    const i = order.indexOf(editor.key as EditableField["key"]);
+    if (i < 0 || order.length < 2) return false;
+    closeEditor(value);
+    // closing may have grown the element (new columns), so the next field is placed on the updated element
+    openEditor(editor.id, null, order[(i + (backwards ? order.length - 1 : 1)) % order.length]);
+    return true;
+}
+
+/** Tab order of the text fields of a relation with multiplicities. */
+const EDGE_FIELDS = [ "m1", "label", "m2" ] as const;
 
 /** Double click: edit a node or edge; on an empty spot create a text field. */
 export function handleDoubleClick(clientX: number, clientY: number): void {

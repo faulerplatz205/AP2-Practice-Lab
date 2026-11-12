@@ -2,6 +2,13 @@
 
 Newest entries at the top. The versions match the releases of the artifact.
 
+## 2.4.2 – 2026-11-12
+
+### Added
+
+- **Tab between fields:** in the text field on the canvas Tab applies the text and jumps to the next field, Shift+Tab back. Table: name → columns. Class: name → attributes → methods. Object, state, use case and data table: name → lines. Also works when the next field is still empty, e.g. the columns of a new table or the attributes of a plain class
+- **Tab along a relation:** on a line with multiplicities (association, aggregation, composition, foreign key) Tab walks start multiplicity → label → end multiplicity
+
 ## 2.4.1 – 2026-11-11
 
 ### Added
